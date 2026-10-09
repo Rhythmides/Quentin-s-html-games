@@ -1,0 +1,2788 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>微生界 Microcosm · 培养皿实验室</title>
+<style>
+:root{
+  --bg:#06090b; --bg2:#080d10; --panel:#0c1216; --panel2:#111a1f; --panel3:#162128;
+  --line:#1b282e; --line2:#26383f;
+  --ink:#d9ebe4; --muted:#6d8781; --dim:#41585a;
+  --accent:#3ddc97; --accent2:#4cc9f0; --warn:#ff4d5e; --amber:#ffb45c; --violet:#c78cff;
+  --def:#7ba8ff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;}
+button,input,select{font:inherit;color:inherit}
+button{background:transparent;border:1px solid var(--line2);border-radius:3px;cursor:pointer;
+  padding:8px 14px;font-size:12px;letter-spacing:.02em;transition:.15s}
+button:hover{background:#16242a;border-color:#35505a}
+button:disabled{opacity:.3;cursor:not-allowed}
+button.primary{background:var(--accent);color:#04170f;border-color:var(--accent);font-weight:600}
+button.primary:hover{background:#5bf0ac}
+button.danger{border-color:rgba(255,77,94,.4);color:#ff8894}
+button.danger:hover{background:rgba(255,77,94,.12);border-color:var(--warn)}
+button.ghost{border-color:transparent;color:var(--muted)}
+button.ghost:hover{color:var(--ink);background:#141f24}
+input,select{background:#0a1013;border:1px solid var(--line2);border-radius:3px;padding:8px 10px;outline:0;font-size:12px}
+input:focus,select:focus{border-color:var(--accent)}
+select{cursor:pointer}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#1d2c33;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#2c434d}
+
+.screen{position:fixed;inset:0;display:none;flex-direction:column}
+.screen.active{display:flex}
+
+#home{align-items:center;justify-content:center;background:radial-gradient(circle at 50% 45%,#0d1a1c 0%,#06090b 60%)}
+.homeWrap{width:min(560px,88vw)}
+.logo{font-family:var(--mono);font-size:10px;letter-spacing:.42em;color:var(--accent);opacity:.75;margin-bottom:22px}
+#home h1{font-size:58px;font-weight:200;letter-spacing:-.045em;margin:0 0 10px;line-height:1}
+.tagline{font-size:12.5px;color:var(--muted);line-height:1.9;margin:0 0 44px;max-width:420px}
+.homeMenu{display:flex;flex-direction:column;gap:7px;max-width:300px}
+.homeMenu button{padding:13px 16px;text-align:left;font-size:13px}
+.homeFoot{margin-top:46px;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.08em}
+
+#saves{align-items:center;justify-content:center;background:var(--bg)}
+.modal{width:min(660px,92vw);max-height:82vh;background:var(--panel);border:1px solid var(--line2);
+  border-radius:5px;display:flex;flex-direction:column;overflow:hidden}
+.modalHead{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.modalHead h2{margin:0;font-size:16px;font-weight:400;letter-spacing:.04em}
+.modalBody{overflow:auto;padding:8px 24px 20px}
+.modalFoot{padding:14px 24px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+.saveRow{display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid var(--line)}
+.saveRow:last-child{border-bottom:0}
+.saveRow b{font-weight:500;font-size:13.5px}
+.saveMeta{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:5px;letter-spacing:.03em}
+.empty{color:var(--dim);font-size:12px;padding:34px 0;text-align:center;line-height:1.9}
+
+#dishSetup{background:var(--bg)}
+.setupWrap{display:flex;flex-direction:column;height:100%}
+.setupHead{padding:22px 30px 16px;border-bottom:1px solid var(--line)}
+.setupHead h2{margin:0 0 6px;font-size:19px;font-weight:400;letter-spacing:.02em}
+.setupHead p{margin:0;font-size:11.5px;color:var(--muted)}
+.setupBody{flex:1;display:grid;grid-template-columns:270px 1fr 300px;min-height:0}
+.presetCol{border-right:1px solid var(--line);padding:18px;overflow:auto}
+.paramCol{padding:18px 22px;overflow:auto}
+.previewCol{border-left:1px solid var(--line);background:#070c0e;display:flex;align-items:center;justify-content:center;position:relative}
+.panelTitle{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;margin-bottom:14px}
+.presetList{display:flex;flex-direction:column;gap:6px;margin-bottom:22px}
+.presetItem{border:1px solid var(--line2);border-radius:3px;padding:11px 12px;cursor:pointer;transition:.15s}
+.presetItem:hover{background:#101a1f;border-color:#2c4650}
+.presetItem.on{border-color:var(--accent);background:#0d2019}
+.presetItem b{display:block;font-size:12.5px;font-weight:500;margin-bottom:4px}
+.presetItem small{font-size:10px;color:var(--muted);line-height:1.6;display:block}
+.nameField label{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;color:var(--dim);margin-bottom:7px}
+.nameField input{width:100%}
+.paramRow{display:grid;grid-template-columns:88px 1fr 62px;align-items:center;gap:12px;margin-bottom:15px}
+.paramRow>span{font-size:11.5px;color:var(--muted)}
+.paramRow output{font-family:var(--mono);font-size:11px;text-align:right;color:var(--accent)}
+input[type=range]{-webkit-appearance:none;appearance:none;height:2px;background:var(--line2);border-radius:2px;outline:0;padding:0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;
+  background:var(--accent);cursor:pointer;box-shadow:0 0 0 3px rgba(61,220,151,.15)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radius:50%;background:var(--accent);cursor:pointer}
+.autoRow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);margin-top:16px}
+.autoRow>span{font-size:11.5px;color:var(--muted)}
+.autoSelect{padding:7px 10px;font-size:11px;min-width:130px}
+.setupFoot{padding:14px 30px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.previewLabel{position:absolute;top:14px;left:16px;font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;color:var(--dim)}
+#dishPreview{width:100%;height:100%}
+
+#game{background:var(--bg)}
+.topbar{height:50px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 12px;gap:5px;
+  background:#0a1013;flex:none;z-index:5;overflow-x:auto;overflow-y:hidden}
+.topbar::-webkit-scrollbar{height:0}
+.brand{font-family:var(--mono);font-size:11px;letter-spacing:.26em;color:var(--accent);margin:0 14px 0 6px;opacity:.8;white-space:nowrap}
+.tool{width:auto;min-width:34px;height:30px;padding:0 10px;font-size:11.5px;border-color:transparent;color:var(--muted);white-space:nowrap}
+.tool:hover{background:#141f24;color:var(--ink)}
+.tool.on{background:var(--accent);color:#04170f;border-color:var(--accent);font-weight:600}
+.btnRun{height:30px;padding:0 14px;font-size:12px;font-weight:600;border-radius:3px;white-space:nowrap;
+  transition:all .25s cubic-bezier(.2,.8,.3,1.1)}
+.btnRun.running{background:linear-gradient(180deg,#3ddc97,#2ab77d);color:#04170f;border-color:#3ddc97;
+  box-shadow:0 0 0 0 rgba(61,220,151,.55);animation:pulseRun 2s infinite}
+.btnRun.paused{background:linear-gradient(180deg,#ffb45c,#e69c3a);color:#1a1000;border-color:#ffb45c;
+  animation:pulsePause 1.8s infinite}
+@keyframes pulseRun{
+  0%{box-shadow:0 0 0 0 rgba(61,220,151,.55)}
+  70%{box-shadow:0 0 0 10px rgba(61,220,151,0)}
+  100%{box-shadow:0 0 0 0 rgba(61,220,151,0)}
+}
+@keyframes pulsePause{
+  0%{box-shadow:0 0 0 0 rgba(255,180,92,.5)}
+  70%{box-shadow:0 0 0 9px rgba(255,180,92,0)}
+  100%{box-shadow:0 0 0 0 rgba(255,180,92,0)}
+}
+.sep{width:1px;height:20px;background:var(--line2);margin:0 6px;flex:none}
+.spacer{flex:1}
+.status{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.04em;padding:0 10px;white-space:nowrap}
+.selGroup{display:none;gap:4px;align-items:center;padding-left:6px;border-left:1px solid var(--line2);margin-left:4px}
+.selGroup.show{display:flex}
+.selLabel{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--amber);
+  padding:3px 7px;border:1px solid rgba(255,180,92,.35);border-radius:2px;background:rgba(255,180,92,.06)}
+.gameMain{flex:1;display:grid;grid-template-columns:1fr 296px;min-height:0}
+.viewport{position:relative;min-width:0;background:#05080a;overflow:hidden}
+.viewport canvas{display:block;width:100%;height:100%;touch-action:none}
+.right{border-left:1px solid var(--line);background:var(--panel);overflow:auto}
+.panel{padding:15px 16px;border-bottom:1px solid var(--line)}
+.statGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.stat{background:var(--panel2);border-radius:3px;padding:9px 10px}
+.stat b{display:block;font-family:var(--mono);font-size:16px;font-weight:400;color:var(--ink);letter-spacing:-.02em}
+.stat span{font-size:9.5px;color:var(--dim);letter-spacing:.06em}
+.meter{margin-bottom:11px}
+.meterTop{display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:5px}
+.meterTop span{color:var(--muted)}
+.meterTop b{font-family:var(--mono);font-weight:400;color:var(--ink);font-size:11px}
+.meterBar{height:2px;background:#16242a;border-radius:2px;overflow:hidden}
+.meterBar i{display:block;height:100%;background:var(--accent);transition:width .25s;border-radius:2px}
+.emptyOverlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(5,8,10,.72);backdrop-filter:blur(2px);z-index:3}
+.emptyCard{text-align:center;max-width:340px;padding:20px}
+.emptyCard h3{font-weight:300;font-size:22px;margin:0 0 10px;letter-spacing:-.01em}
+.emptyCard p{font-size:12px;color:var(--muted);line-height:1.9;margin:0 0 22px}
+.cellInfo{font-family:var(--mono);font-size:10.5px;color:var(--muted);line-height:1.95}
+.cellInfo .k{color:var(--dim)}
+.geneChips{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+.chip{font-size:9.5px;padding:2.5px 6px;border:1px solid var(--line2);border-radius:2px;color:var(--muted)}
+.chip.new{border-color:var(--warn);color:var(--warn);position:relative}
+.chip.dup{border-color:var(--amber);color:var(--amber)}
+.chip.atk{border-color:var(--warn);color:#ff8894}
+.chip.def{border-color:var(--def);color:var(--def)}
+
+.nutrientBar{position:absolute;left:0;right:0;bottom:0;padding:10px 14px;
+  background:linear-gradient(180deg,rgba(6,10,12,0),rgba(6,10,12,.95) 40%);
+  display:flex;align-items:center;gap:6px;z-index:4;flex-wrap:wrap;pointer-events:none}
+.nutrientBar>*{pointer-events:auto}
+.npLabel{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:var(--dim);
+  margin-right:6px;text-transform:uppercase}
+.npBtn{display:flex;align-items:center;gap:6px;padding:7px 11px;font-size:11px;
+  border:1px solid var(--line2);border-radius:3px;background:rgba(12,18,22,.85);color:var(--muted);
+  backdrop-filter:blur(6px);transition:.15s;white-space:nowrap}
+.npBtn:hover{color:var(--ink);border-color:#3a5866;background:rgba(22,33,40,.9)}
+.npBtn.on{background:rgba(61,220,151,.15);border-color:var(--accent);color:var(--accent);font-weight:600}
+.npBtn.danger.on{background:rgba(255,95,109,.15);border-color:var(--warn);color:#ff8894}
+.npBtn.mix{background:rgba(76,201,240,.12);border-color:rgba(76,201,240,.5);color:#8fdcf5;font-weight:600}
+.npBtn.mix:hover{background:rgba(76,201,240,.22);color:#b0e8fb}
+.npDot{width:7px;height:7px;border-radius:50%;flex:none}
+.npHint{font-family:var(--mono);font-size:9.5px;color:var(--dim);margin-left:6px}
+.autoBadge{font-family:var(--mono);font-size:9.5px;color:var(--accent);padding:4px 8px;
+  border:1px solid rgba(61,220,151,.35);border-radius:2px;background:rgba(61,220,151,.08);margin-left:6px}
+
+#dna{background:var(--bg)}
+.dnaTop{height:50px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 14px;gap:9px;background:#0a1013;flex:none}
+.dnaTitle{font-size:13px;letter-spacing:.06em;color:var(--muted);margin-left:8px}
+.slotInfo{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-right:10px}
+.dnaBody{flex:1;display:grid;grid-template-columns:264px 1fr 292px;min-height:0}
+.geneLibrary{border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.libTop{padding:14px 14px 10px}
+.search{width:100%;padding:8px 10px;font-size:11.5px}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;padding:0 14px 12px}
+.tabs button{padding:4.5px 8px;font-size:10px;border-color:var(--line2);color:var(--muted)}
+.tabs button.on{background:var(--accent);color:#04170f;border-color:var(--accent);font-weight:600}
+.tabs button.atk.on{background:var(--warn);color:#1a0000;border-color:var(--warn)}
+.tabs button.def.on{background:var(--def);color:#0a1326;border-color:var(--def)}
+.geneList{flex:1;overflow:auto;padding:0 12px 16px;display:flex;flex-direction:column;gap:5px}
+.geneCard{border:1px solid var(--line2);border-radius:3px;padding:9px 11px;cursor:grab;background:#0d1519;position:relative;transition:.15s}
+.geneCard:hover{border-color:#35505a;background:#111c22}
+.geneCard.sel{border-color:var(--accent);background:#0d2019}
+.geneCard.atk.sel{border-color:var(--warn);background:#201012}
+.geneCard.def.sel{border-color:var(--def);background:#0c1626}
+.geneCard b{font-size:11.5px;font-weight:500;display:block}
+.geneCard small{display:block;font-size:9.5px;color:var(--dim);margin-top:4px;line-height:1.5}
+.catTag{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;border:1px solid var(--line2);
+  padding:1.5px 5px;border-radius:2px;margin-right:6px;color:var(--muted);vertical-align:1px}
+.catTag.atk{border-color:rgba(255,77,94,.5);color:#ff8894}
+.catTag.def{border-color:rgba(123,168,255,.5);color:var(--def)}
+.newFlag{position:absolute;top:-6px;right:-6px;width:17px;height:17px;border-radius:50%;
+  background:var(--warn);color:#fff;font-size:11px;font-weight:700;line-height:17px;text-align:center;
+  box-shadow:0 0 0 0 rgba(255,77,94,.6);animation:pulseFlag 1.05s infinite;z-index:1}
+@keyframes pulseFlag{
+  0%{box-shadow:0 0 0 0 rgba(255,77,94,.65);opacity:1}
+  70%{box-shadow:0 0 0 9px rgba(255,77,94,0);opacity:.55}
+  100%{box-shadow:0 0 0 0 rgba(255,77,94,0);opacity:1}
+}
+.chromoArea{overflow:auto;padding:20px 22px;background:var(--bg2)}
+.chromoHeadRow{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.chromosome{background:var(--panel);border:1px solid var(--line2);border-radius:4px;padding:14px;margin-bottom:14px}
+.chromosome.plasmid{border-style:dashed;background:#0a1318}
+.chrHead{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+  letter-spacing:.1em;color:var(--dim);margin-bottom:11px}
+.chrHead .badge{color:var(--accent2)}
+.chrHead .badge.plasmid{color:var(--violet)}
+.slots{display:flex;flex-wrap:wrap;gap:6px}
+.slot{width:110px;height:56px;border:1px dashed #2b4049;border-radius:3px;padding:7px 8px;position:relative;
+  background:#0a1114;transition:.15s;display:flex;flex-direction:column;justify-content:center}
+.slot.drop{border-color:var(--accent);background:#0d2019}
+.slot.filled{border-style:solid;border-color:var(--line2);background:#111c22}
+.slot.filled.atk{border-color:rgba(255,77,94,.4);background:#1a0d10}
+.slot.filled.def{border-color:rgba(123,168,255,.4);background:#0c1626}
+.slot b{font-size:10.5px;font-weight:500;line-height:1.25;word-break:break-all}
+.slot small{font-size:8.5px;color:var(--dim);margin-top:3px;font-family:var(--mono)}
+.slot .x{position:absolute;right:3px;top:2px;border:0;padding:0 4px;font-size:12px;line-height:1;color:var(--dim)}
+.slot .x:hover{color:var(--warn);background:transparent}
+.slotHint{font-size:9.5px;color:var(--dim);display:flex;align-items:center;justify-content:center;height:100%;text-align:center}
+.geneInfo{border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:18px}
+.infoTitle{font-size:17px;font-weight:400;margin-bottom:4px}
+.infoCat{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--accent);margin-bottom:16px}
+.infoCat.atk{color:var(--warn)}
+.infoCat.def{color:var(--def)}
+.infoDesc{font-size:11.5px;line-height:1.95;color:#96aca6;margin-bottom:18px}
+.infoEffect{font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.9;border-top:1px solid var(--line);padding-top:14px}
+.validBox{margin-top:18px;padding:11px 12px;border-radius:3px;font-size:10.5px;line-height:1.75}
+.validBox.good{background:rgba(61,220,151,.08);color:var(--accent);border:1px solid rgba(61,220,151,.25)}
+.validBox.bad{background:rgba(255,77,94,.08);color:#ff8894;border:1px solid rgba(255,77,94,.25)}
+
+#notice{position:fixed;left:50%;bottom:86px;transform:translate(-50%,14px);opacity:0;
+  background:#0e181c;border:1px solid var(--line2);border-left:2px solid var(--accent);
+  color:var(--ink);padding:10px 16px;font-size:11.5px;border-radius:3px;transition:.25s;
+  pointer-events:none;z-index:60;max-width:80vw}
+#notice.show{opacity:1;transform:translate(-50%,0)}
+
+@media(max-width:1000px){
+  .setupBody{grid-template-columns:220px 1fr}
+  .previewCol{display:none}
+  .gameMain{grid-template-columns:1fr 250px}
+  .dnaBody{grid-template-columns:220px 1fr}
+  .geneInfo{display:none}
+}
+@media(max-width:720px){
+  .gameMain{grid-template-columns:1fr}
+  .right{display:none}
+  .dnaBody{grid-template-columns:1fr}
+  .geneLibrary{display:none}
+  #home h1{font-size:42px}
+}
+</style>
+</head>
+<body>
+
+<section id="home" class="screen active">
+  <div class="homeWrap">
+    <div class="logo">MICROCOSM · 02</div>
+    <h1>微生界</h1>
+    <p class="tagline">一个遵守物质守恒的单细胞沙盒。<br>设计基因组，投放培养皿，让突变替你做出选择。</p>
+    <div class="homeMenu">
+      <button class="primary" id="btnNewSave">新建培养皿</button>
+      <button id="btnLoadSave">载入培养皿</button>
+      <button id="btnContinue">继续上次实验</button>
+      <button id="btnToggleAudio">音效：开</button>
+    </div>
+    <div class="homeFoot">v2.5 · 亲缘识别 / 强趋化 / 混合营养投放</div>
+  </div>
+</section>
+
+<section id="saves" class="screen">
+  <div class="modal">
+    <div class="modalHead">
+      <h2>培养皿档案</h2>
+      <button class="ghost" id="btnSavesClose">关闭</button>
+    </div>
+    <div class="modalBody" id="saveListBody"></div>
+    <div class="modalFoot"><button id="btnSavesBack">返回</button></div>
+  </div>
+</section>
+
+<section id="dishSetup" class="screen">
+  <div class="setupWrap">
+    <div class="setupHead">
+      <h2>培养皿设置</h2>
+      <p>选择预设环境，或拖动滑块自定义全部参数。环境会随时间持续波动。</p>
+    </div>
+    <div class="setupBody">
+      <div class="presetCol">
+        <div class="panelTitle">预设方案</div>
+        <div class="presetList" id="presetList"></div>
+        <div class="nameField">
+          <label>培养皿名称</label>
+          <input id="saveNameInput" maxlength="20" value="培养皿 01">
+        </div>
+      </div>
+      <div class="paramCol">
+        <div class="panelTitle">环境参数</div>
+        <div id="paramList"></div>
+        <div class="autoRow">
+          <span>自动补充营养</span>
+          <select id="autoNutrientFreq" class="autoSelect">
+            <option value="0">关闭</option>
+            <option value="30">每 30 秒</option>
+            <option value="60" selected>每 60 秒</option>
+            <option value="120">每 120 秒</option>
+          </select>
+        </div>
+      </div>
+      <div class="previewCol">
+        <div class="previewLabel">PREVIEW</div>
+        <canvas id="dishPreview"></canvas>
+      </div>
+    </div>
+    <div class="setupFoot">
+      <button class="ghost" id="btnSetupBack">← 返回</button>
+      <button class="primary" id="btnCreateSave">建立培养皿</button>
+    </div>
+  </div>
+</section>
+
+<section id="game" class="screen">
+  <div class="topbar">
+    <div class="brand">MICROCOSM</div>
+    <button class="btnRun paused" id="btnRun">▶ 开始</button>
+    <button class="tool" id="btnSpeed">1×</button>
+    <div class="sep"></div>
+    <button class="tool" id="btnCreate">＋ 创建生物</button>
+    <button class="tool" id="btnImport">导入生物</button>
+    <input type="file" id="fileInput" accept=".json" hidden>
+    <div class="selGroup" id="selGroup">
+      <span class="selLabel" id="selLabel">已选中 #1</span>
+      <button class="tool" id="btnEdit">编辑基因组</button>
+      <button class="tool" id="btnSetTemplate" title="将该细胞的基因组设为新建生物时的默认模板">设为模板</button>
+      <button class="tool" id="btnClone">克隆</button>
+      <button class="tool" id="btnExportBio">导出</button>
+      <button class="tool danger" id="btnDelete">删除</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="status" id="simStatus">就绪</div>
+    <button class="tool" id="btnAudio">♪ 音效</button>
+    <button class="tool" id="btnSave">保存</button>
+    <button class="tool" id="btnQuit">退出</button>
+  </div>
+  <div class="gameMain">
+    <div class="viewport" id="viewport">
+      <canvas id="world"></canvas>
+
+      <div class="nutrientBar" id="nutrientBar">
+        <span class="npLabel">投放物质</span>
+        <button class="npBtn mix" data-nut="__mix" title="在培养皿中心添加 60 单位混合营养：葡萄糖 50% · 氨基酸 30% · 氧气 20%">✦ 混合营养</button>
+        <button class="npBtn" data-nut="glucose"><i class="npDot" style="background:#ffb45c"></i>葡萄糖</button>
+        <button class="npBtn" data-nut="amino"><i class="npDot" style="background:#4cc9f0"></i>氨基酸</button>
+        <button class="npBtn" data-nut="oxygen"><i class="npDot" style="background:#a9d8ff"></i>氧气</button>
+        <button class="npBtn" data-nut="lipid"><i class="npDot" style="background:#c78cff"></i>脂质</button>
+        <button class="npBtn" data-nut="co2"><i class="npDot" style="background:#4b5f68"></i>CO₂</button>
+        <button class="npBtn danger" data-nut="toxin"><i class="npDot" style="background:#ff5f6d"></i>毒素</button>
+        <button class="npBtn" data-nut="__clear" title="清空大部分游离分子">清空</button>
+        <span class="npHint" id="npHint"></span>
+        <span class="autoBadge" id="autoBadge" style="display:none">自动补充：开</span>
+      </div>
+
+      <div class="emptyOverlay" id="emptyOverlay">
+        <div class="emptyCard">
+          <h3>培养皿是空的</h3>
+          <p>这个培养皿里还没有任何生命。<br>创建一个生物，编辑它的初始基因组，然后投放进来。</p>
+          <button class="primary" id="btnCreateBio2">创建生物</button>
+        </div>
+      </div>
+    </div>
+    <aside class="right">
+      <div class="panel">
+        <div class="panelTitle">环境 · <span id="envName">—</span></div>
+        <div id="envMeters"></div>
+      </div>
+      <div class="panel">
+        <div class="panelTitle">培养皿统计</div>
+        <div class="statGrid">
+          <div class="stat"><b id="stCells">0</b><span>活细胞</span></div>
+          <div class="stat"><b id="stGen">0</b><span>最高世代</span></div>
+          <div class="stat"><b id="stBio">0</b><span>总生物量</span></div>
+          <div class="stat"><b id="stMol">0</b><span>游离分子</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panelTitle">选中生物</div>
+        <div id="cellPanel" class="cellInfo" style="color:var(--dim)">点击培养皿中的细胞查看详情</div>
+      </div>
+      <div class="panel">
+        <div class="panelTitle">事件日志</div>
+        <div id="mutLog" class="cellInfo" style="color:var(--dim)">尚无记录</div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<section id="dna" class="screen">
+  <div class="dnaTop">
+    <button class="ghost" id="btnDnaBack">← 返回</button>
+    <span class="dnaTitle" id="dnaTitle">基因组编辑器</span>
+    <div class="spacer"></div>
+    <span class="slotInfo" id="dnaSlotInfo"></span>
+    <button class="ghost" id="btnDnaReset">重置为最小基因组</button>
+    <button class="primary" id="btnDnaApply">投放进培养皿</button>
+  </div>
+  <div class="dnaBody">
+    <aside class="geneLibrary">
+      <div class="libTop"><input class="search" id="geneSearch" placeholder="搜索基因片段…"></div>
+      <div class="tabs" id="geneTabs"></div>
+      <div class="geneList" id="geneList"></div>
+    </aside>
+    <main class="chromoArea">
+      <div class="chromoHeadRow">
+        <div class="panelTitle" style="margin:0">染色体</div>
+        <button id="btnAddChr">＋ 新增质粒</button>
+      </div>
+      <div id="chromoList"></div>
+    </main>
+    <aside class="geneInfo">
+      <div id="geneInfoBox">
+        <div class="infoTitle">选择一个片段</div>
+        <div class="infoDesc">从左侧基因库中拖拽或点击基因，再点击染色体上的空位即可放入。<br><br>随已发现基因数增加，最多可解锁 5 个质粒。</div>
+      </div>
+      <div id="dnaValidation"></div>
+    </aside>
+  </div>
+</section>
+
+<div id="notice"></div>
+
+<script>
+(() => {
+"use strict";
+
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const clamp = (v,a,b) => v < a ? a : v > b ? b : v;
+const rand  = (a,b) => a + Math.random()*(b-a);
+const deep  = o => JSON.parse(JSON.stringify(o));
+const esc   = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const fmt   = (n,d=1) => (Math.round(n*Math.pow(10,d))/Math.pow(10,d)).toFixed(d);
+
+let noticeTimer = null;
+function notify(msg){
+  const el = $("#notice");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => el.classList.remove("show"), 2400);
+}
+function showScreen(id){
+  $$(".screen").forEach(s => s.classList.remove("active"));
+  const el = document.getElementById(id);
+  if (el) el.classList.add("active");
+}
+
+/* ============ 音频 ============ */
+const Audio = {
+  ctx:null, master:null, bgm:null, enabled:true, initialized:false,
+  init(){
+    if (this.initialized) return true;
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return false;
+      this.ctx = new Ctx();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = 0.28;
+      this.master.connect(this.ctx.destination);
+      this.initialized = true;
+      return true;
+    } catch(e){ return false; }
+  },
+  resume(){ if (this.ctx && this.ctx.state === "suspended") this.ctx.resume().catch(()=>{}); },
+  beep(freq = 440, dur = 0.08, type = "sine", vol = 0.1){
+    if (!this.enabled || !this.init()) return;
+    this.resume();
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g); g.connect(this.master);
+    osc.start(t); osc.stop(t + dur + 0.05);
+  },
+  click(){ this.beep(720, 0.035, "triangle", 0.05); },
+  toggleOn(){ this.beep(520, 0.05, "sine", 0.07); setTimeout(()=>this.beep(780,0.06,"sine",0.06), 50); },
+  toggleOff(){ this.beep(520, 0.05, "sine", 0.07); setTimeout(()=>this.beep(320,0.08,"sine",0.06), 50); },
+  spawn(){ this.beep(392, 0.07, "sine", 0.08); setTimeout(() => this.beep(587, 0.1, "sine", 0.08), 70); setTimeout(() => this.beep(784, 0.12, "sine", 0.07), 145); },
+  split(){ this.beep(330, 0.06, "sine", 0.06); setTimeout(() => this.beep(494, 0.09, "sine", 0.07), 60); },
+  bud(){ this.beep(440, 0.05, "triangle", 0.05); setTimeout(() => this.beep(660, 0.08, "triangle", 0.05), 60); },
+  mutate(){ this.beep(523, 0.1, "sine", 0.09); setTimeout(() => this.beep(659, 0.1, "sine", 0.09), 80); setTimeout(() => this.beep(784, 0.1, "sine", 0.09), 160); setTimeout(() => this.beep(1047, 0.2, "sine", 0.08), 240); },
+  attack(){ this.beep(160, 0.1, "sawtooth", 0.06); setTimeout(()=>this.beep(120,0.14,"sawtooth",0.05), 60); },
+  death(){ this.beep(220, 0.2, "sawtooth", 0.05); setTimeout(()=>this.beep(110,0.3,"sine",0.05), 100); },
+  error(){ this.beep(180, 0.16, "square", 0.06); },
+  drop(){ this.beep(340, 0.06, "triangle", 0.05); },
+  place(){ this.beep(660, 0.04, "sine", 0.055); setTimeout(()=>this.beep(880,0.05,"sine",0.045), 40); },
+  delete(){ this.beep(300, 0.1, "sawtooth", 0.05); },
+  addMol(){ this.beep(480, 0.03, "triangle", 0.04); },
+  mix(){
+    this.beep(520, 0.05, "sine", 0.055);
+    setTimeout(()=>this.beep(660, 0.06, "sine", 0.055), 55);
+    setTimeout(()=>this.beep(780, 0.07, "sine", 0.05), 115);
+    setTimeout(()=>this.beep(1046, 0.1, "sine", 0.04), 180);
+  },
+  replenish(){
+    this.beep(520, 0.05, "sine", 0.05);
+    setTimeout(()=>this.beep(660, 0.06, "sine", 0.05), 60);
+    setTimeout(()=>this.beep(780, 0.08, "sine", 0.04), 130);
+  },
+  startBGM(){
+    if (!this.enabled || !this.init()) return;
+    this.resume();
+    if (this.bgm) return;
+    const t = this.ctx.currentTime;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.032, t + 4);
+    g.connect(this.master);
+    const o1 = this.ctx.createOscillator();
+    const o2 = this.ctx.createOscillator();
+    const o3 = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    o1.type = "sine"; o1.frequency.value = 55;
+    o2.type = "sine"; o2.frequency.value = 82.4;
+    o3.type = "sine"; o3.frequency.value = 55.4;
+    filter.type = "lowpass"; filter.frequency.value = 340; filter.Q.value = 1;
+    o1.connect(filter); o2.connect(filter); o3.connect(filter);
+    filter.connect(g);
+    o1.start(); o2.start(); o3.start();
+    this.bgm = { nodes:[o1,o2,o3], gain:g };
+    const lfo = this.ctx.createOscillator();
+    const lfoGain = this.ctx.createGain();
+    lfo.frequency.value = 0.055;
+    lfoGain.gain.value = 0.012;
+    lfo.connect(lfoGain); lfoGain.connect(g.gain);
+    lfo.start();
+    this.bgm.lfo = lfo;
+  },
+  stopBGM(){
+    if (!this.bgm || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    const bgm = this.bgm;
+    this.bgm = null;
+    try {
+      bgm.gain.gain.cancelScheduledValues(t);
+      bgm.gain.gain.setValueAtTime(bgm.gain.gain.value, t);
+      bgm.gain.gain.linearRampToValueAtTime(0, t + 1.5);
+    } catch(e){}
+    setTimeout(() => {
+      bgm.nodes.forEach(n => { try{n.stop();}catch(e){} });
+      if (bgm.lfo) try{bgm.lfo.stop();}catch(e){}
+    }, 1600);
+  },
+  toggle(){
+    this.enabled = !this.enabled;
+    if (!this.enabled){ this.stopBGM(); this.toggleOff(); }
+    else { this.toggleOn(); this.startBGM(); }
+    return this.enabled;
+  }
+};
+document.addEventListener("click", function unlockAudio(){
+  Audio.init(); Audio.resume();
+  if (Audio.enabled) Audio.startBGM();
+  document.removeEventListener("click", unlockAudio);
+}, { once:true });
+
+/* ============ 基因库 ============ */
+const GENES = [
+  { id:"membrane", name:"膜脂合成", cat:"结构", cost:1, essential:true,
+    desc:"合成磷脂双分子层，维持细胞边界与内部环境。", effect:"基础必需" },
+  { id:"transport", name:"转运蛋白", cat:"运输", cost:1, essential:true,
+    desc:"跨膜运输葡萄糖与氨基酸。", effect:"决定底物摄取速率" },
+  { id:"glycolysis", name:"糖酵解通路", cat:"代谢", cost:1, essential:true,
+    desc:"将葡萄糖分解为丙酮酸，净产少量 ATP。", effect:"葡萄糖 → 丙酮酸 + 2.6 ATP" },
+  { id:"ribosome", name:"核糖体", cat:"表达", cost:1, essential:true,
+    desc:"蛋白质合成机器。", effect:"决定生物量合成速率" },
+  { id:"replication", name:"DNA 复制", cat:"遗传", cost:1, essential:true,
+    desc:"复制基因组。没有它细胞不会分裂，也不会积累突变。", effect:"允许分裂 · 突变前提" },
+
+  { id:"lysozyme", name:"溶菌酶分泌", cat:"攻击", cost:2,
+    desc:"向周围分泌溶菌酶，持续损伤邻近细胞的细胞壁与细胞膜。亲缘细胞之间互不攻击。",
+    effect:"邻细胞持续掉 ATP 与生物量" },
+  { id:"t6ss", name:"VI型分泌系统", cat:"攻击", cost:3,
+    desc:"接触时向目标注射毒素蛋白，裂解宿主胞内物质。亲缘细胞之间互不攻击。",
+    effect:"接触造成大量伤害 + 回收 ATP 与氨基酸" },
+  { id:"toxinSynth", name:"毒素合成", cat:"攻击", cost:2,
+    desc:"合成并外排毒素分子到环境中。自身若无抗性也会被自己毒到。",
+    effect:"持续释放毒素分子" },
+  { id:"competence", name:"自然感受态", cat:"攻击", cost:1,
+    desc:"吸收环境中其他细胞裂解释放的 DNA 片段。每当邻近细胞死亡时，本细胞额外获得一次突变机会。",
+    effect:"邻细胞死亡触发额外突变" },
+
+  { id:"peptidoglycan", name:"肽聚糖加固", cat:"防御", cost:2,
+    desc:"加厚细胞壁的肽聚糖层，显著降低溶菌酶对细胞壁的降解效率。",
+    effect:"溶菌酶伤害 ×0.35" },
+  { id:"immunity", name:"T6SS 免疫蛋白", cat:"防御", cost:2,
+    desc:"表达特异性免疫蛋白，中和被注射进来的 T6SS 效应毒素。",
+    effect:"T6SS 伤害 ×0.25" },
+  { id:"antitoxin", name:"抗毒素蛋白", cat:"防御", cost:1,
+    desc:"结合并中和胞内毒素分子，降低毒素对代谢的抑制，并加速毒素泵出。",
+    effect:"毒素伤害 ×0.4 · 泵出速度 +30%" },
+  { id:"biofilm", name:"生物膜形成", cat:"防御", cost:3,
+    desc:"分泌胞外多糖基质，将自身包裹成生物膜。物理隔离能大幅减伤，但物质交换也会变慢。",
+    effect:"溶菌酶/T6SS 伤害 ×0.5 · 摄取效率 ×0.75" },
+
+  { id:"fermentation", name:"发酵通路", cat:"代谢", cost:1,
+    desc:"缺氧时以丙酮酸为电子受体再生 NAD⁺。", effect:"无氧时丙酮酸 → 1.8 ATP" },
+  { id:"respiration", name:"有氧呼吸链", cat:"代谢", cost:2,
+    desc:"丙酮酸进入三羧酸循环彻底氧化。必须有氧气。", effect:"有氧时丙酮酸 → 14 ATP" },
+  { id:"photosynthesis", name:"光合系统", cat:"代谢", cost:3,
+    desc:"利用光能固定无机碳合成有机物。", effect:"光照 → ATP + O₂" },
+  { id:"pigment", name:"光合色素", cat:"代谢", cost:1,
+    desc:"扩大可利用光谱范围。", effect:"光合效率 +40%" },
+  { id:"nitrogenase", name:"固氮酶", cat:"代谢", cost:2,
+    desc:"将 N₂ 还原为氨。", effect:"缓慢自产氨基酸" },
+  { id:"protease", name:"胞外蛋白酶", cat:"代谢", cost:1,
+    desc:"将环境中的有机废物降解为可吸收的氨基酸。", effect:"分解有机废物获取氨基酸" },
+
+  { id:"aquaporin", name:"水通道蛋白", cat:"运输", cost:1,
+    desc:"加速水分跨膜流动。", effect:"抵抗渗透压波动" },
+  { id:"ionPump", name:"离子泵", cat:"运输", cost:2,
+    desc:"消耗 ATP 泵出质子，维持胞内 pH 稳态。", effect:"pH 耐受范围显著扩大" },
+  { id:"efflux", name:"外排泵", cat:"运输", cost:1,
+    desc:"将胞内毒素与代谢废物主动排出。毒素合成者几乎必须搭配它。",
+    effect:"毒素抗性提升 · 泵出速度 +80%" },
+
+  { id:"repair", name:"DNA 修复系统", cat:"遗传", cost:2,
+    desc:"识别并切除复制错误。", effect:"分裂突变率 ×0.35" },
+  { id:"mutator", name:"易错聚合酶", cat:"遗传", cost:1,
+    desc:"放弃校对精度。", effect:"分裂突变率 ×1.9" },
+  { id:"plasmid", name:"质粒摄取", cat:"遗传", cost:2,
+    desc:"捕获环境游离 DNA 片段。", effect:"突变方向更偏有益" },
+  { id:"recombination", name:"同源重组", cat:"遗传", cost:2,
+    desc:"复制时交换同源片段。", effect:"突变方向更偏有益" },
+  { id:"budding", name:"出芽生殖", cat:"遗传", cost:2,
+    desc:"以出芽方式分裂。", effect:"分裂时 80% 概率出芽" },
+
+  { id:"catalase", name:"过氧化氢酶", cat:"保护", cost:1,
+    desc:"清除呼吸链副产物活性氧。", effect:"抗氧化损伤" },
+  { id:"heatShock", name:"热休克蛋白", cat:"保护", cost:1,
+    desc:"帮助变性蛋白重新折叠。", effect:"高温耐受 +7°C" },
+  { id:"coldShock", name:"冷休克蛋白", cat:"保护", cost:1,
+    desc:"维持低温下 RNA 与膜功能。", effect:"低温耐受 +7°C" },
+  { id:"osmolyte", name:"相容性溶质", cat:"保护", cost:1,
+    desc:"平衡外部渗透压。", effect:"pH / 渗透耐受提升" },
+
+  { id:"chemotaxis", name:"趋化系统", cat:"感知", cost:1,
+    desc:"感知营养浓度梯度，使细胞朝最近的一个营养分子游动。",
+    effect:"追踪最近的单一营养分子" },
+  { id:"advancedChemotaxis", name:"高级趋化系统", cat:"感知", cost:3,
+    desc:"双组分信号转导系统，能在约 200 像素的大范围内整合营养分布，朝营养密度最高的区域移动。需要鞭毛才能发挥作用。",
+    effect:"广域感知 · 朝营养密集区移动" },
+  { id:"photoreceptor", name:"光受体", cat:"感知", cost:1,
+    desc:"趋向适宜光强。", effect:"主动追踪光照" },
+  { id:"quorum", name:"群体感应", cat:"感知", cost:2,
+    desc:"高密度时改变行为。", effect:"高密度时降低代谢消耗" },
+  { id:"adhesion", name:"黏附素", cat:"感知", cost:1,
+    desc:"黏附表面或其他细胞。", effect:"降低被动漂移 · 攻击判定更稳" },
+
+  { id:"flagellum", name:"鞭毛", cat:"运动", cost:2,
+    desc:"螺旋推进器，指向运动方向后方。低 ATP 时自动降速但不停。", effect:"主动运动 + 消耗 ATP" },
+  { id:"gasVesicle", name:"气囊", cat:"运动", cost:1,
+    desc:"调节浮力。", effect:"自动上浮" },
+
+  { id:"storage", name:"储存颗粒", cat:"储存", cost:1,
+    desc:"储存碳源。", effect:"底物池容量 +200%" },
+];
+const GENE_MAP = {};
+GENES.forEach(g => GENE_MAP[g.id] = g);
+const CATS = ["全部","攻击","防御","结构","运输","代谢","遗传","保护","感知","运动","储存","表达"];
+const MINIMAL_GENOME = ["membrane","transport","glycolysis","ribosome","replication"];
+
+/* ============ 分子 ============ */
+const MOLS = {
+  glucose:{ name:"葡萄糖", color:"#ffb45c", r:2.7, drift:0.5 },
+  amino:  { name:"氨基酸", color:"#4cc9f0", r:2.5, drift:0.5 },
+  oxygen: { name:"氧气",   color:"#a9d8ff", r:1.6, drift:1.7 },
+  lipid:  { name:"脂质",   color:"#c78cff", r:2.5, drift:0.4 },
+  co2:    { name:"CO₂",   color:"#4b5f68", r:1.5, drift:1.2 },
+  organic:{ name:"有机废物", color:"#5d7264", r:2.0, drift:0.5 },
+  toxin:  { name:"毒素",   color:"#ff5f6d", r:2.5, drift:0.5 },
+};
+
+/* ============ 环境 ============ */
+const PRESETS = [
+  { id:"pond", name:"深池", desc:"温和、富营养的浅水环境。", params:{ temp:22, pH:7.2, oxygen:72, light:12, viscosity:1.0, mutagen:0.0, nutrient:72 } },
+  { id:"ice", name:"冰下水层", desc:"接近冰点的低温。", params:{ temp:4, pH:7.6, oxygen:62, light:20, viscosity:1.6, mutagen:0.0, nutrient:46 } },
+  { id:"anoxic", name:"缺氧沉积层", desc:"营养丰富但几乎没有氧气。", params:{ temp:18, pH:6.5, oxygen:6, light:0, viscosity:1.9, mutagen:0.2, nutrient:88 } },
+  { id:"photic", name:"浅光带", desc:"阳光充足、游离营养稀薄。", params:{ temp:28, pH:8.1, oxygen:88, light:94, viscosity:1.0, mutagen:0.3, nutrient:26 } },
+  { id:"vent", name:"热泉口", desc:"高温、酸性、强诱变。", params:{ temp:52, pH:5.7, oxygen:22, light:0, viscosity:1.2, mutagen:0.9, nutrient:64 } },
+  { id:"custom", name:"自定义", desc:"完全手动调整。", params:{ temp:25, pH:7.0, oxygen:60, light:40, viscosity:1.0, mutagen:0.2, nutrient:60 } },
+];
+const PARAM_DEFS = [
+  { key:"temp", name:"温度", min:0, max:60, step:1, fmt:v=>v+"°C" },
+  { key:"pH", name:"酸碱度", min:3, max:11, step:0.1, fmt:v=>v.toFixed(1) },
+  { key:"oxygen", name:"溶解氧", min:0, max:100,step:1, fmt:v=>v+"%" },
+  { key:"light", name:"光照", min:0, max:100,step:1, fmt:v=>v+"%" },
+  { key:"viscosity", name:"黏度", min:0.6,max:3, step:0.1, fmt:v=>v.toFixed(1) },
+  { key:"mutagen", name:"诱变剂", min:0, max:2, step:0.05, fmt:v=>v.toFixed(2) },
+  { key:"nutrient", name:"初始营养", min:0, max:100,step:1, fmt:v=>v+"%" },
+];
+
+/* ============ 存档 ============ */
+const SAVE_KEY = "microcosm_v2_saves";
+const LAST_KEY = "microcosm_v2_last";
+const ORGANISM_KIND = "microcosm-organism/v2";
+function readSaves(){ try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || []; } catch(e){ return []; } }
+function writeSaves(list){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(list)); } catch(e){} }
+function findSave(id){ return readSaves().find(s => s.id === id); }
+function upsertSave(save){
+  const list = readSaves();
+  const i = list.findIndex(s => s.id === save.id);
+  save.updated = Date.now();
+  if (i >= 0) list[i] = save; else list.push(save);
+  writeSaves(list);
+}
+function makeId(){ return "s" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+const MAIN_CAPACITY = 12;
+const PLASMID_CAPACITY = 3;
+const MAX_PLASMIDS = 5;
+function newMinimalTemplate(){
+  return { chromosomes: [{ id:"chr1", type:"main", capacity: MAIN_CAPACITY, genes: MINIMAL_GENOME.slice() }] };
+}
+function chromosomeCapacity(chr){ return chr.capacity || (chr.type === "plasmid" ? PLASMID_CAPACITY : MAIN_CAPACITY); }
+function maxChromosomes(){
+  if (!CURRENT) return 1;
+  const d = CURRENT.discovered.length;
+  let max = 1;
+  if (d >= 8)  max++;
+  if (d >= 12) max++;
+  if (d >= 16) max++;
+  if (d >= 21) max++;
+  if (d >= 26) max++;
+  return Math.min(max, 1 + MAX_PLASMIDS);
+}
+
+let CURRENT = null, WORLD = null, DNA_STATE = null, RUNNING_LOOP = false, lastFrame = 0;
+const VIEW = { w:0, h:0, cx:0, cy:0, R:0 };
+
+/* ============ 培养皿设置 ============ */
+let setupState = {
+  presetId:"pond",
+  params: deep(PRESETS[0].params),
+  name:"培养皿 01",
+  autoNutrientInterval: 60,
+};
+function renderPresets(){
+  const box = $("#presetList");
+  box.innerHTML = PRESETS.map(p => `
+    <div class="presetItem ${setupState.presetId===p.id?"on":""}" data-id="${p.id}">
+      <b>${esc(p.name)}</b><small>${esc(p.desc)}</small>
+    </div>`).join("");
+  box.querySelectorAll(".presetItem").forEach(el => {
+    el.onclick = () => {
+      Audio.click();
+      setupState.presetId = el.dataset.id;
+      setupState.params = deep(PRESETS.find(p => p.id === el.dataset.id).params);
+      renderPresets(); renderParams(); drawPreview();
+    };
+  });
+}
+function renderParams(){
+  const box = $("#paramList");
+  box.innerHTML = PARAM_DEFS.map(d => `
+    <div class="paramRow">
+      <span>${d.name}</span>
+      <input type="range" data-key="${d.key}" min="${d.min}" max="${d.max}" step="${d.step}" value="${setupState.params[d.key]}">
+      <output data-out="${d.key}">${d.fmt(setupState.params[d.key])}</output>
+    </div>`).join("");
+  box.querySelectorAll("input[type=range]").forEach(inp => {
+    inp.oninput = () => {
+      const k = inp.dataset.key;
+      setupState.params[k] = parseFloat(inp.value);
+      const d = PARAM_DEFS.find(p => p.key === k);
+      box.querySelector(`[data-out="${k}"]`).textContent = d.fmt(setupState.params[k]);
+      if (setupState.presetId !== "custom"){ setupState.presetId = "custom"; renderPresets(); }
+      drawPreview();
+    };
+  });
+}
+function drawPreview(){
+  const c = $("#dishPreview"); if (!c) return;
+  const rect = c.getBoundingClientRect(); if (rect.width < 2) return;
+  const dpr = window.devicePixelRatio || 1;
+  c.width = rect.width * dpr; c.height = rect.height * dpr;
+  const ctx = c.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0,0,W,H);
+  const cx = W/2, cy = H/2, R = Math.min(W,H)*0.36;
+  const p = setupState.params;
+  const g0 = ctx.createRadialGradient(cx,cy,R*0.2,cx,cy,R*2.1);
+  g0.addColorStop(0, `rgba(${60+p.light*1.2},${140+p.temp*1.6},150,${0.05+p.light/500})`);
+  g0.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g0; ctx.beginPath(); ctx.arc(cx,cy,R*2.1,0,Math.PI*2); ctx.fill();
+  const g1 = ctx.createRadialGradient(cx-R*0.25, cy-R*0.3, R*0.1, cx, cy, R);
+  const tNorm = clamp(p.temp/60,0,1);
+  g1.addColorStop(0, `rgba(${20+tNorm*70},${50+p.oxygen*0.4},${60+p.oxygen*0.5},1)`);
+  g1.addColorStop(1, "#050a0c");
+  ctx.fillStyle = g1; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle = "rgba(120,200,180,0.06)"; ctx.lineWidth = 1;
+  for (let i = 1; i <= 4; i++){ ctx.beginPath(); ctx.arc(cx,cy,R*i/4.5,0,Math.PI*2); ctx.stroke(); }
+  const seed = p.temp*3.1 + p.oxygen*0.7 + p.nutrient*0.3;
+  let s = seed;
+  const rnd = () => { s = (s*9301+49297) % 233280; return s/233280; };
+  const n = Math.round(p.nutrient/2.2);
+  for (let i = 0; i < n; i++){
+    const a = rnd()*Math.PI*2, rr = Math.sqrt(rnd())*R*0.92;
+    ctx.fillStyle = i%3===0 ? "rgba(76,201,240,.55)" : "rgba(255,180,92,.5)";
+    ctx.beginPath(); ctx.arc(cx+Math.cos(a)*rr, cy+Math.sin(a)*rr, 1.5, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.strokeStyle = "rgba(140,220,200,0.28)"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle = "rgba(120,180,165,0.55)";
+  ctx.font = "10px ui-monospace, monospace"; ctx.textAlign = "center";
+  ctx.fillText(`${p.temp}°C · pH ${p.pH.toFixed(1)} · O₂ ${p.oxygen}%`, cx, cy + R + 34);
+}
+
+/* ============ 世界 ============ */
+function createWorld(envParams){
+  return { env: deep(envParams), cells: [], mols: [],
+    time: 0, running: false, speed: 1,
+    selected: null, generation: 0,
+    eventLog: [], addTool: null, nextId: 1,
+    autoNutrientInterval: 0,
+    autoNutrientTimer: 0,
+  };
+}
+function envNow(){
+  const e = WORLD.env, t = WORLD.time;
+  const tvar = 2.4 + e.temp * 0.055;
+  const o2Consume = WORLD.cells.length * 0.45 + (WORLD.mols.filter(m => m.type === "oxygen").length) * 0.004;
+  return {
+    temp: e.temp + Math.sin(t*0.019)*tvar + Math.sin(t*0.047+1.1)*tvar*0.45,
+    pH:   e.pH + Math.sin(t*0.013+0.6)*0.32,
+    oxygen: clamp(e.oxygen + Math.sin(t*0.027)*7 - o2Consume, 0, 100),
+    light: clamp(e.light * (0.45 + 0.55*Math.sin(t*0.021 - 1.57)), 0, 100),
+    viscosity: e.viscosity,
+    mutagen: e.mutagen,
+  };
+}
+function cellRadius(c){ return 5.5 + Math.sqrt(Math.max(0.05, c.mass)) * 7.2; }
+function deriveTraits(geneIds){
+  const t = { burden:0 };
+  for (const id of geneIds){
+    const g = GENE_MAP[id]; if (!g) continue;
+    t[id] = (t[id] || 0) + 1;
+    t.burden += g.cost;
+  }
+  return t;
+}
+function makeCellFromTemplate(x, y, geneIds, gen = 0){
+  return {
+    id: WORLD ? WORLD.nextId++ : 1,
+    x, y, vx:0, vy:0, angle: rand(0, Math.PI*2),
+    phase: rand(0, 6.28),
+    mass: 0.85, atp: 28,
+    pool: { glucose:0, amino:0, oxygen:0, pyruvate:0, lipid:0 },
+    geneIds: geneIds.slice(),
+    traits: deriveTraits(geneIds),
+    age: 0, dead: false, generation: gen,
+    tempStress: 0, vigor: 1,
+    hue: rand(140, 185), mutant: false, logged: false,
+    attackGlow: 0, defenseGlow: 0,
+    _chemoCache: null, _chemoCacheTime: 0,
+    _nearestCache: null, _nearestCacheTime: 0,
+  };
+}
+function spawnMol(x, y, type, mass){
+  if (!WORLD || WORLD.mols.length > 900) return;
+  const def = MOLS[type]; if (!def) return;
+  const a = rand(0, Math.PI*2), sp = rand(0, 6);
+  WORLD.mols.push({ type, x, y, m: mass,
+    vx: Math.cos(a)*sp, vy: Math.sin(a)*sp,
+    r: def.r, dead: false });
+}
+function randomPointInDish(scale){
+  const a = rand(0, Math.PI*2);
+  const r = Math.sqrt(Math.random()) * VIEW.R * scale;
+  return { x: VIEW.cx + Math.cos(a)*r, y: VIEW.cy + Math.sin(a)*r };
+}
+function seedNutrients(){
+  const e = WORLD.env;
+  const density = e.nutrient / 100;
+  const count = Math.round(density * 260);
+  for (let i = 0; i < count; i++){
+    const p = randomPointInDish(0.92);
+    const r = Math.random();
+    let type;
+    if (r < 0.46) type = "glucose";
+    else if (r < 0.74) type = "amino";
+    else if (r < 0.92) type = "oxygen";
+    else type = "lipid";
+    spawnMol(p.x, p.y, type, rand(0.7, 1.3));
+  }
+  const needO2 = Math.round(e.oxygen / 100 * 90);
+  for (let i = 0; i < needO2; i++){
+    const p = randomPointInDish(0.92);
+    spawnMol(p.x, p.y, "oxygen", rand(0.5, 0.9));
+  }
+}
+function autoReplenishNutrients(){
+  const alive = WORLD.cells.filter(c => !c.dead).length;
+  const amount = clamp(Math.round(18 + alive * 5), 20, 100);
+  for (let i = 0; i < amount; i++){
+    const p = randomPointInDish(0.9);
+    const r = Math.random();
+    let type;
+    if (r < 0.50) type = "glucose";
+    else if (r < 0.85) type = "amino";
+    else type = "oxygen";
+    spawnMol(p.x, p.y, type, rand(0.7, 1.3));
+  }
+  pushEvent("补充", `自动补充 ${amount} 单位营养`);
+  Audio.replenish();
+}
+
+/**
+ * 混合营养投放：同时加入葡萄糖 + 氨基酸 + 氧气
+ * 固定比例：葡萄糖 50% · 氨基酸 30% · 氧气 20%
+ * 参差程度：每个分子质量 0.5–1.5 随机，位置在投放半径内随机散射
+ */
+function addMixedNutrients(cx, cy, total = 60, radius = 65){
+  const ratioG = 0.50, ratioA = 0.30; // 余下为氧气
+  let added = 0;
+  for (let i = 0; i < total; i++){
+    const r = Math.random();
+    let type;
+    if (r < ratioG) type = "glucose";
+    else if (r < ratioG + ratioA) type = "amino";
+    else type = "oxygen";
+    // 参差程度 1：质量差异
+    const mass = rand(0.5, 1.5);
+    // 参差程度 2：位置散布
+    const a = rand(0, Math.PI*2);
+    const d = Math.sqrt(Math.random()) * radius;
+    const before = WORLD.mols.length;
+    spawnMol(cx + Math.cos(a)*d, cy + Math.sin(a)*d, type, mass);
+    if (WORLD.mols.length > before) added++;
+  }
+  return added;
+}
+
+/* ============ 亲缘识别 ============ */
+/**
+ * 判断两个细胞是否为"亲缘"：基因相似度 > 65% 且世代差 ≤ 4
+ * 亲缘细胞之间不会互相攻击，模拟细菌的亲缘识别系统
+ */
+function areKin(a, b){
+  if (Math.abs((a.generation||0) - (b.generation||0)) > 4) return false;
+  const minLen = Math.min(a.geneIds.length, b.geneIds.length);
+  if (minLen === 0) return false;
+  const setA = new Set(a.geneIds);
+  let shared = 0;
+  for (const gid of b.geneIds) if (setA.has(gid)) shared++;
+  return shared / minLen > 0.65;
+}
+
+/* ============ 防御乘数 ============ */
+function defenseMult(cell, attackType){
+  const T = cell.traits;
+  let mult = 1;
+  if (attackType === "lysozyme"){
+    mult *= 1 - 0.65 * Math.min(1, (T.peptidoglycan||0));
+    mult *= 1 - 0.50 * Math.min(1, (T.biofilm||0));
+  }
+  if (attackType === "t6ss"){
+    mult *= 1 - 0.75 * Math.min(1, (T.immunity||0));
+    mult *= 1 - 0.50 * Math.min(1, (T.biofilm||0));
+  }
+  if (attackType === "toxin"){
+    mult *= 1 - 0.60 * Math.min(1, (T.antitoxin||0));
+  }
+  return Math.max(0.1, mult);
+}
+
+/* ============ 高级趋化 ============ */
+function findNearestNutrient(cell){
+  let best = null, bd = 1e9;
+  for (const m of WORLD.mols){
+    if (m.dead) continue;
+    if (m.type !== "glucose" && m.type !== "amino") continue;
+    const d = (m.x - cell.x)**2 + (m.y - cell.y)**2;
+    if (d < bd){ bd = d; best = m; }
+  }
+  if (!best) return null;
+  const ang = Math.atan2(best.y - cell.y, best.x - cell.x);
+  return { tx: Math.cos(ang), ty: Math.sin(ang) };
+}
+function findConcentrationCentroid(cell, radius){
+  let sx = 0, sy = 0, sw = 0;
+  const r2 = radius * radius;
+  for (const m of WORLD.mols){
+    if (m.dead) continue;
+    if (m.type !== "glucose" && m.type !== "amino") continue;
+    const dx = m.x - cell.x, dy = m.y - cell.y;
+    const d2 = dx*dx + dy*dy;
+    if (d2 > r2) continue;
+    const w = m.m / (1 + Math.sqrt(d2) * 0.02);
+    sx += m.x * w;
+    sy += m.y * w;
+    sw += w;
+  }
+  if (sw < 0.05) return null;
+  const cx = sx/sw, cy = sy/sw;
+  const tx0 = cx - cell.x, ty0 = cy - cell.y;
+  const len = Math.hypot(tx0, ty0);
+  if (len < 0.5) return null;
+  return { tx: tx0/len, ty: ty0/len };
+}
+
+/* ============ 细胞模拟 ============ */
+function cellStep(c, dt){
+  if (c.dead) return;
+  const env = envNow();
+  const T = c.traits;
+  c.age += dt;
+  c.phase += dt * 2.4;
+  if (c.attackGlow > 0) c.attackGlow = Math.max(0, c.attackGlow - dt * 1.5);
+  if (c.defenseGlow > 0) c.defenseGlow = Math.max(0, c.defenseGlow - dt * 1.0);
+
+  const spanT = 8.5 + 7*(T.heatShock||0) + 7*(T.coldShock||0);
+  const dT = env.temp - 25;
+  const tempF = Math.exp(-(dT*dT) / (2*spanT*spanT));
+  const spanP = 0.95 + 0.7*(T.ionPump||0) + 0.45*(T.osmolyte||0);
+  const dP = env.pH - 7.2;
+  const pHF = Math.exp(-(dP*dP) / (2*spanP*spanP));
+  const oxyStress = Math.max(0, env.oxygen/100 - 0.35) * (1 - 0.55*Math.min(1, T.catalase||0));
+
+  const vigor = tempF * pHF;
+  c.vigor = vigor;
+  c.tempStress = 1 - tempF;
+  const stress = (1 - vigor) * 0.7 + oxyStress * 0.6;
+
+  const area = Math.pow(Math.max(0.08, c.mass), 2/3);
+  const rad = cellRadius(c);
+  const pool = c.pool;
+
+  /* 1. 摄取（摄取半径扩大到 +55） */
+  if ((T.transport||0) > 0){
+    let budget = 2.0 * T.transport * area * vigor * dt;
+    if ((T.biofilm||0) > 0) budget *= (1 - 0.25 * Math.min(1, T.biofilm));
+    const rr = (rad + 55) * (rad + 55);
+    for (let i = 0; i < WORLD.mols.length && budget > 0.002; i++){
+      const m = WORLD.mols[i];
+      if (m.dead) continue;
+      const dx = m.x - c.x, dy = m.y - c.y;
+      if (dx*dx + dy*dy > rr) continue;
+      if (m.type === "toxin" && (T.efflux||0) > 0){
+        if (Math.random() < 0.65) continue;
+      }
+      const take = Math.min(m.m, budget);
+      m.m -= take; budget -= take;
+      pool[m.type] = (pool[m.type] || 0) + take;
+      if (m.m <= 0.02) m.dead = true;
+    }
+  }
+  /* 氧气被动扩散 */
+  {
+    let o2b = 0.9 * area * dt;
+    const rr = (rad + 45) * (rad + 45);
+    for (let i = 0; i < WORLD.mols.length && o2b > 0.002; i++){
+      const m = WORLD.mols[i];
+      if (m.dead || m.type !== "oxygen") continue;
+      const dx = m.x - c.x, dy = m.y - c.y;
+      if (dx*dx + dy*dy > rr) continue;
+      const take = Math.min(m.m, o2b);
+      m.m -= take; o2b -= take;
+      pool.oxygen = (pool.oxygen || 0) + take;
+      if (m.m <= 0.02) m.dead = true;
+    }
+  }
+
+  /* 2. 糖酵解 */
+  if ((pool.glucose || 0) > 0.002 && (T.glycolysis||0) > 0){
+    const rate = Math.min(pool.glucose, 0.85 * area * vigor * dt * (T.glycolysis||1));
+    pool.glucose -= rate;
+    pool.pyruvate = (pool.pyruvate || 0) + rate * 0.88;
+    c.atp += rate * 2.6;
+  }
+
+  /* 3. 丙酮酸去向 */
+  if ((pool.pyruvate || 0) > 0.002){
+    const o2 = pool.oxygen || 0;
+    if ((T.respiration||0) > 0 && o2 > 0.01){
+      const use = Math.min(pool.pyruvate, o2 / 0.75, 0.95 * area * T.respiration * dt);
+      pool.pyruvate -= use;
+      pool.oxygen -= use * 0.75;
+      c.atp += use * 14;
+      spawnMol(c.x + rand(-rad,rad), c.y + rand(-rad,rad), "co2", use * 0.68);
+    } else if ((T.fermentation||0) > 0){
+      const use = Math.min(pool.pyruvate, 0.8 * area * T.fermentation * dt);
+      pool.pyruvate -= use;
+      c.atp += use * 1.8;
+      spawnMol(c.x + rand(-rad,rad), c.y + rand(-rad,rad), "organic", use * 0.5);
+    }
+  }
+
+  /* 4. 光合 */
+  if ((T.photosynthesis||0) > 0 && env.light > 3){
+    const lf = env.light / 100;
+    const rate = 0.62 * T.photosynthesis * (1 + 0.45*(T.pigment||0)) * area * lf * dt;
+    let need = rate * 0.7;
+    for (let i = 0; i < WORLD.mols.length && need > 0.002; i++){
+      const m = WORLD.mols[i];
+      if (m.dead || m.type !== "co2") continue;
+      const dx = m.x-c.x, dy = m.y-c.y;
+      if (dx*dx+dy*dy > (rad+40)*(rad+40)) continue;
+      const take = Math.min(m.m, need);
+      m.m -= take; need -= take;
+      if (m.m <= 0.02) m.dead = true;
+    }
+    const eff = need > rate*0.3 ? 0.45 : 1;
+    c.atp += rate * 9 * eff;
+    spawnMol(c.x + rand(-rad,rad), c.y + rand(-rad,rad), "oxygen", rate * 0.42);
+    c.mass += rate * 0.06;
+  }
+
+  /* 5. 固氮 */
+  if ((T.nitrogenase||0) > 0 && (pool.amino || 0) < 1.5){
+    const rate = 0.045 * T.nitrogenase * area * dt;
+    pool.amino = (pool.amino || 0) + rate * 0.6;
+    c.atp -= rate * 5;
+  }
+
+  /* 6. 蛋白酶 */
+  if ((T.protease||0) > 0){
+    let need = 0.35 * T.protease * area * dt;
+    for (let i = 0; i < WORLD.mols.length && need > 0.002; i++){
+      const m = WORLD.mols[i];
+      if (m.dead || (m.type !== "organic" && m.type !== "co2")) continue;
+      const dx = m.x-c.x, dy = m.y-c.y;
+      if (dx*dx+dy*dy > (rad+34)*(rad+34)) continue;
+      const take = Math.min(m.m, need);
+      m.m -= take; need -= take;
+      pool.amino = (pool.amino || 0) + take * 0.75;
+      if (m.m <= 0.02) m.dead = true;
+    }
+  }
+
+  /* 7. 生物量合成 */
+  if ((pool.amino || 0) > 0.02 && c.atp > 2 && (T.ribosome||0) > 0){
+    const grow = Math.min(pool.amino, 0.42 * T.ribosome * area * vigor * dt);
+    pool.amino -= grow;
+    c.mass += grow * 1.0;
+    c.atp -= grow * 3.2;
+  }
+
+  /* 8. 基础代谢 */
+  const basal = (0.24 + 0.045 * T.burden + 0.20 * stress) * c.mass * dt;
+  c.atp -= basal;
+
+  /* 8.5 毒素合成 */
+  if ((T.toxinSynth||0) > 0){
+    const rate = T.toxinSynth * 0.05 * area * dt;
+    if (c.atp > 6 && Math.random() < rate){
+      spawnMol(c.x + rand(-rad,rad), c.y + rand(-rad,rad), "toxin", rand(0.6, 1.0));
+      c.atp -= 0.4;
+      c.attackGlow = Math.max(c.attackGlow, 0.5);
+    }
+  }
+
+  /* 9. 运动（关键修复：低能耗 + 分级降速 + 缓存趋化 + 不停摆） */
+  const visc = env.viscosity;
+  if ((T.flagellum||0) > 0 && c.atp > 0.2){
+    const power = T.flagellum * 0.85;
+    let tx, ty;
+    let found = false;
+
+    // 高级趋化：缓存 0.6 秒避免每帧抖动
+    if ((T.advancedChemotaxis||0) > 0){
+      if (!c._chemoCache || WORLD.time - c._chemoCacheTime > 0.6){
+        c._chemoCache = findConcentrationCentroid(c, 200);
+        c._chemoCacheTime = WORLD.time;
+      }
+      if (c._chemoCache){ tx = c._chemoCache.tx; ty = c._chemoCache.ty; found = true; }
+    }
+    // 基础趋化：缓存 0.3 秒
+    if (!found && (T.chemotaxis||0) > 0){
+      if (!c._nearestCache || WORLD.time - c._nearestCacheTime > 0.3){
+        c._nearestCache = findNearestNutrient(c);
+        c._nearestCacheTime = WORLD.time;
+      }
+      if (c._nearestCache){ tx = c._nearestCache.tx; ty = c._nearestCache.ty; found = true; }
+    }
+    if (!found){
+      tx = Math.cos(c.angle); ty = Math.sin(c.angle);
+    }
+
+    // ATP 从 12 掉到 0.2 时，速度从 100% 降到 35%，但不停
+    const atpFactor = clamp(c.atp / 12, 0.35, 1);
+    const accel = power * 45 * atpFactor / visc;
+    c.vx += tx * accel * dt;
+    c.vy += ty * accel * dt;
+    // 移动消耗大幅降低：0.3 / 0.08（原本 1.15 / 0.4）
+    const moveCost = (T.flagellum * 0.3 + (T.advancedChemotaxis ? 0.08 : 0)) * atpFactor;
+    c.atp -= moveCost * dt;
+    // 只在没有目标时才随机转向
+    if (!found && Math.random() < 0.008) c.angle = rand(0, Math.PI*2);
+  } else {
+    c.vx += rand(-1,1) * 9 * dt / visc;
+    c.vy += rand(-1,1) * 9 * dt / visc;
+  }
+
+  /* 10. 气囊 */
+  if ((T.gasVesicle||0) > 0) c.vy -= 5 * T.gasVesicle * dt;
+
+  /* 11. 黏附 */
+  if ((T.adhesion||0) > 0){
+    const d = Math.hypot(c.x - VIEW.cx, c.y - VIEW.cy);
+    if (d > VIEW.R * 0.78){
+      c.vx *= 0.85; c.vy *= 0.85;
+      const a = Math.atan2(c.y - VIEW.cy, c.x - VIEW.cx);
+      c.x = VIEW.cx + Math.cos(a) * VIEW.R * 0.78;
+      c.y = VIEW.cy + Math.sin(a) * VIEW.R * 0.78;
+    }
+  }
+
+  /* 12. 毒素伤害 */
+  const toxinIn = pool.toxin || 0;
+  if (toxinIn > 0){
+    const efflux = T.efflux || 0;
+    const catalase = T.catalase || 0;
+    const antitoxin = T.antitoxin || 0;
+    const biofilm = T.biofilm || 0;
+    const resist = Math.min(0.92,
+      efflux * 0.55 + catalase * 0.12 + antitoxin * 0.4 + biofilm * 0.15 + (T.membrane||0) * 0.08);
+    const pumpRate = (0.35 + efflux * 0.9 + antitoxin * 0.3) * (1 - 0.2 * Math.min(1, biofilm));
+    c.atp -= toxinIn * 12 * (1 - resist) * dt;
+    pool.toxin = Math.max(0, toxinIn - pumpRate * dt);
+    if (resist < 0.5){
+      c.mass -= toxinIn * 0.008 * (1 - resist) * dt;
+    }
+  }
+
+  /* 13. 池容量 */
+  const cap = 3 + 6 * (T.storage||0);
+  for (const k of ["glucose","amino","oxygen","pyruvate","lipid","toxin"]){
+    const v = pool[k] || 0;
+    if (v > cap){
+      const spill = v - cap;
+      pool[k] = cap;
+      if (k === "toxin") continue;
+      const t = (k === "pyruvate") ? "organic" : k;
+      spawnMol(c.x + rand(-rad,rad), c.y + rand(-rad,rad), t, spill);
+    }
+  }
+
+  /* 14. 饥饿 */
+  if (c.atp <= 0){
+    c.atp = 0;
+    const decay = 0.05 * dt;
+    c.mass -= decay;
+    spawnMol(c.x + rand(-rad,rad), c.y + rand(-rad,rad), "organic", decay * 0.6);
+    if (c.mass < 0.3){ c.dead = true; return; }
+  }
+  c.atp = clamp(c.atp, 0, 80);
+  if (c.mass > 4.5) c.mass = 4.5;
+
+  /* 15. 物理运动 */
+  c.x += c.vx * dt;
+  c.y += c.vy * dt;
+  c.vx *= Math.pow(0.86, dt * 10);
+  c.vy *= Math.pow(0.86, dt * 10);
+  const sp = Math.hypot(c.vx, c.vy);
+  if (sp > 95){ c.vx *= 95/sp; c.vy *= 95/sp; }
+  if (sp > 2) c.angle = Math.atan2(c.vy, c.vx);
+
+  const d = Math.hypot(c.x - VIEW.cx, c.y - VIEW.cy);
+  const maxR = VIEW.R - rad - 3;
+  if (d > maxR){
+    const a = Math.atan2(c.y - VIEW.cy, c.x - VIEW.cx);
+    c.x = VIEW.cx + Math.cos(a) * maxR;
+    c.y = VIEW.cy + Math.sin(a) * maxR;
+    const nx = Math.cos(a), ny = Math.sin(a);
+    const dot = c.vx*nx + c.vy*ny;
+    c.vx -= 2*dot*nx*0.6;
+    c.vy -= 2*dot*ny*0.6;
+  }
+
+  /* 16. 分裂 */
+  const splitMass = 1.40;
+  if (c.mass >= splitMass && c.atp > 14 && c.age > 10 && (T.replication||0) > 0){
+    divideCell(c);
+  }
+}
+
+/* ============ 细胞间攻击（含亲缘识别） ============ */
+function cellInteractions(dt){
+  const cells = WORLD.cells;
+  for (let i = 0; i < cells.length; i++){
+    const a = cells[i];
+    if (a.dead) continue;
+    const ra = cellRadius(a);
+    const aLyso = a.traits.lysozyme || 0;
+    const aT6  = a.traits.t6ss || 0;
+
+    for (let j = i+1; j < cells.length; j++){
+      const b = cells[j];
+      if (b.dead) continue;
+
+      // 亲缘识别：基因相似度高的细胞互不攻击
+      if (areKin(a, b)) continue;
+
+      const rb = cellRadius(b);
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.hypot(dx, dy) || 0.01;
+      const minD = ra + rb;
+
+      /* 溶菌酶 */
+      if (d < minD + 14){
+        if (aLyso > 0 && (b.traits.lysozyme||0) === 0){
+          const mult = defenseMult(b, "lysozyme");
+          b.atp -= 1.4 * aLyso * mult * dt;
+          b.mass -= 0.006 * aLyso * mult * dt;
+          a.attackGlow = Math.max(a.attackGlow, 0.35);
+          if (mult < 0.7) b.defenseGlow = Math.max(b.defenseGlow, 0.4);
+        }
+        if ((b.traits.lysozyme||0) > 0 && aLyso === 0){
+          const mult = defenseMult(a, "lysozyme");
+          a.atp -= 1.4 * b.traits.lysozyme * mult * dt;
+          a.mass -= 0.006 * b.traits.lysozyme * mult * dt;
+          b.attackGlow = Math.max(b.attackGlow, 0.35);
+          if (mult < 0.7) a.defenseGlow = Math.max(a.defenseGlow, 0.4);
+        }
+      }
+
+      /* T6SS */
+      if (d < minD + 3){
+        const canHitA = aT6 > 0 && (b.traits.t6ss||0) === 0;
+        const canHitB = (b.traits.t6ss||0) > 0 && aT6 === 0;
+
+        if (canHitA){
+          const mult = defenseMult(b, "t6ss");
+          const dmg = 3.2 * aT6 * mult * dt;
+          b.atp -= dmg;
+          b.mass -= 0.012 * dmg;
+          a.atp = Math.min(80, a.atp + 0.35 * dmg);
+          a.pool.amino = (a.pool.amino || 0) + 0.006 * dmg;
+          a.attackGlow = Math.max(a.attackGlow, 1);
+          if (mult < 0.7) b.defenseGlow = Math.max(b.defenseGlow, 1);
+          if (Math.random() < 0.03 * aT6){
+            spawnMol(b.x + rand(-6,6), b.y + rand(-6,6), "organic", 0.25);
+          }
+          if (b.mass < 0.35 && !b.dead){
+            b.dead = true;
+            onCellKilled(b, a);
+          }
+        }
+        if (canHitB){
+          const mult = defenseMult(a, "t6ss");
+          const dmg = 3.2 * b.traits.t6ss * mult * dt;
+          a.atp -= dmg;
+          a.mass -= 0.012 * dmg;
+          b.atp = Math.min(80, b.atp + 0.35 * dmg);
+          b.pool.amino = (b.pool.amino || 0) + 0.006 * dmg;
+          b.attackGlow = Math.max(b.attackGlow, 1);
+          if (mult < 0.7) a.defenseGlow = Math.max(a.defenseGlow, 1);
+          if (Math.random() < 0.03 * b.traits.t6ss){
+            spawnMol(a.x + rand(-6,6), a.y + rand(-6,6), "organic", 0.25);
+          }
+          if (a.mass < 0.35 && !a.dead){
+            a.dead = true;
+            onCellKilled(a, b);
+          }
+        }
+      }
+    }
+  }
+}
+function onCellKilled(victim, killer){
+  for (const other of WORLD.cells){
+    if (other.dead || other === killer) continue;
+    if ((other.traits.competence||0) <= 0) continue;
+    const d = Math.hypot(other.x - victim.x, other.y - victim.y);
+    if (d < 50 && Math.random() < 0.35 * other.traits.competence){
+      const before = other.geneIds.length;
+      rollMutation(other) && applyMutation(other);
+      if (other.geneIds.length > before){
+        pushEvent("感受态", `#${other.id} 从 #${victim.id} 的裂解物中获得 DNA`);
+      }
+    }
+  }
+  pushEvent("裂解", `#${victim.id} 被 #${killer.id} 攻击致死`);
+  Audio.death();
+}
+
+/* ============ 分裂 + 突变 ============ */
+function chooseDivisionMode(c){
+  let budChance = 0.15;
+  if ((c.traits.budding||0) > 0) budChance = 0.80;
+  return Math.random() < budChance ? "budding" : "binary";
+}
+function divideCell(c){
+  if (!WORLD) return;
+  const mode = chooseDivisionMode(c);
+  const parentGenes = c.geneIds.slice();
+  if (mode === "budding"){
+    const budMass = Math.max(0.35, c.mass * 0.28);
+    c.mass -= budMass;
+    c.atp = Math.max(c.atp * 0.6, 5);
+    c.age = 0;
+    const ang = rand(0, Math.PI*2);
+    const dist = cellRadius(c) * 1.8;
+    const bx = clamp(c.x + Math.cos(ang) * dist, 30, VIEW.w - 30);
+    const by = clamp(c.y + Math.sin(ang) * dist, 30, VIEW.h - 30);
+    const bud = makeCellFromTemplate(bx, by, parentGenes, c.generation + 1);
+    bud.mass = budMass;
+    bud.atp = 8;
+    bud.hue = clamp(c.hue + rand(-10, 10), 100, 200);
+    if (rollMutation(c)) applyMutation(bud);
+    WORLD.cells.push(bud);
+    Audio.bud();
+  } else {
+    const halfMass = c.mass / 2;
+    const halfAtp = c.atp / 2;
+    const ang = rand(0, Math.PI*2);
+    const dist = cellRadius(c) * 1.5;
+    const nx = clamp(c.x + Math.cos(ang) * dist, 30, VIEW.w - 30);
+    const ny = clamp(c.y + Math.sin(ang) * dist, 30, VIEW.h - 30);
+    const child = makeCellFromTemplate(nx, ny, parentGenes, c.generation + 1);
+    child.mass = halfMass;
+    child.atp = halfAtp;
+    child.hue = clamp(c.hue + rand(-6, 6), 100, 200);
+    c.mass = halfMass;
+    c.atp = halfAtp;
+    c.age = 0;
+    const mutA = rollMutation(c);
+    const mutB = rollMutation(child);
+    if (mutA) applyMutation(c);
+    if (mutB) applyMutation(child);
+    WORLD.cells.push(child);
+    Audio.split();
+  }
+  if (WORLD.generation < c.generation + 1) WORLD.generation = c.generation + 1;
+}
+function rollMutation(c){
+  const env = envNow();
+  let rate = 0.18;
+  rate *= (1 + env.mutagen * 2);
+  if (c.traits.repair) rate *= Math.pow(0.35, c.traits.repair);
+  if (c.traits.mutator) rate *= (1 + 0.9 * c.traits.mutator);
+  const stress = 1 - c.vigor;
+  rate *= (1 + stress * 1.5);
+  return Math.random() < rate;
+}
+function applyMutation(cell){
+  const known = new Set(cell.geneIds);
+  const pool = GENES.filter(g => !known.has(g.id));
+  if (!pool.length) return false;
+  const env = envNow();
+  const T = cell.traits;
+
+  // 预先计算全局营养状况（避免每个基因重复循环）
+  let totalNutrient = 0;
+  for (const m of WORLD.mols) if (!m.dead && (m.type === "glucose" || m.type === "amino")) totalNutrient += m.m;
+  const aliveCount = WORLD.cells.filter(cc => !cc.dead).length;
+  // 只有"真的食物不够了"时，攻击基因才获得权重加成（原本是密度 > 6 就加）
+  const scarce = totalNutrient < 25 && aliveCount > 4;
+
+  const weights = pool.map(g => {
+    let w = 1;
+    const dT = env.temp - 25;
+    if (dT > 8)  { if (g.id === "heatShock") w += 9; if (g.id === "repair") w += 2; }
+    if (dT < -8) { if (g.id === "coldShock") w += 9; }
+    if (env.oxygen < 20) { if (g.id === "fermentation") w += 9; if (g.id === "efflux") w += 2; }
+    if (env.oxygen > 70) { if (g.id === "respiration") w += 8; if (g.id === "catalase") w += 5; }
+    if (env.light > 45)  { if (g.id === "photosynthesis") w += 10; if (g.id === "pigment") w += 7; }
+    if (env.light < 8)   { if (g.id === "chemotaxis") w += 4; }
+    if (Math.abs(env.pH - 7.2) > 1) { if (g.id === "ionPump") w += 6; if (g.id === "osmolyte") w += 5; }
+
+    // 攻击基因：只在真正营养稀缺时小幅加成（原本密度 > 6 就 +3）
+    if (scarce){
+      if (g.id === "lysozyme") w += 1.5;
+      if (g.id === "t6ss") w += 1.2;
+      if (g.id === "toxinSynth") w += 0.8;
+    }
+    // 防御基因：细胞密集时更容易获得（防止群灭）
+    if (aliveCount > 6){
+      if (g.id === "peptidoglycan") w += 1.2;
+      if (g.id === "immunity") w += 1.2;
+      if (g.id === "antitoxin") w += 1.0;
+      if (g.id === "biofilm") w += 0.6;
+    }
+
+    // 细胞少/营养少时更易获得运动与感知基因（饿了要去找吃的）
+    let molCount = 0;
+    for (const m of WORLD.mols) if (!m.dead && (m.type === "glucose" || m.type === "amino")) molCount++;
+    const nutrientScarce = molCount < 80 || aliveCount < 4;
+    if (nutrientScarce){
+      if (g.id === "flagellum") w += 5;
+      if (g.id === "chemotaxis") w += 5;
+      if (g.id === "advancedChemotaxis") w += 7;
+      if (g.id === "storage") w += 4;
+      if (g.id === "protease") w += 3;
+    }
+
+    if ((T.flagellum||0) > 0 && g.id === "chemotaxis") w += 4;
+    if ((T.chemotaxis||0) > 0 && g.id === "advancedChemotaxis") w += 6;
+    if ((T.advancedChemotaxis||0) > 0 && g.id === "flagellum") w += 4;
+    if ((T.photosynthesis||0) > 0 && g.id === "pigment") w += 5;
+    if (g.id === "storage" && (cell.pool.glucose || 0) > 2) w += 3;
+    if (T.recombination) w += 0.6;
+    if (T.plasmid) w += 0.4;
+    if (T.mutator && g.id === "repair") w += 3;
+    if (T.lysozyme && g.id === "t6ss") w += 3;
+    if (T.toxinSynth && g.id === "efflux") w += 4;
+    if (T.lysozyme && g.id === "peptidoglycan") w += 1;
+    if (T.t6ss && g.id === "immunity") w += 1;
+    if (T.toxinSynth && g.id === "antitoxin") w += 1;
+    return w;
+  });
+  const total = weights.reduce((a,b) => a+b, 0);
+  let r = Math.random() * total, idx = 0;
+  for (let i = 0; i < weights.length; i++){
+    r -= weights[i];
+    if (r <= 0){ idx = i; break; }
+  }
+  const gene = pool[idx];
+  cell.geneIds.push(gene.id);
+  cell.traits = deriveTraits(cell.geneIds);
+  cell.mutant = true;
+  if (!CURRENT.discovered.includes(gene.id)) CURRENT.discovered.push(gene.id);
+  if (!CURRENT.newGenes.includes(gene.id)) CURRENT.newGenes.push(gene.id);
+  saveCurrent();
+  pushEvent("突变", `#${cell.id} G${cell.generation} 获得 ${gene.name}`);
+  notify(`突变：${gene.name}（#${cell.id} G${cell.generation}）`);
+  Audio.mutate();
+  return true;
+}
+function pushEvent(kind, text){
+  WORLD.eventLog.unshift({ t: WORLD.time, kind, text });
+  if (WORLD.eventLog.length > 10) WORLD.eventLog.pop();
+}
+
+/* ============ 世界步进 ============ */
+function stepWorld(dt){
+  if (!WORLD || !WORLD.running) return;
+  WORLD.time += dt * WORLD.speed;
+  const sdt = dt * WORLD.speed;
+
+  if (WORLD.autoNutrientInterval > 0){
+    WORLD.autoNutrientTimer -= sdt;
+    if (WORLD.autoNutrientTimer <= 0){
+      WORLD.autoNutrientTimer = WORLD.autoNutrientInterval;
+      autoReplenishNutrients();
+    }
+  }
+
+  const visc = WORLD.env.viscosity;
+  for (const m of WORLD.mols){
+    if (m.dead) continue;
+    const def = MOLS[m.type];
+    m.vx += rand(-1,1) * def.drift * 22 * sdt / visc;
+    m.vy += rand(-1,1) * def.drift * 22 * sdt / visc;
+    m.vx *= Math.pow(0.9, sdt*10);
+    m.vy *= Math.pow(0.9, sdt*10);
+    m.x += m.vx * sdt;
+    m.y += m.vy * sdt;
+    const dx = m.x - VIEW.cx, dy = m.y - VIEW.cy;
+    const d = Math.hypot(dx, dy);
+    if (d > VIEW.R - 3){
+      const a = Math.atan2(dy, dx);
+      m.x = VIEW.cx + Math.cos(a) * (VIEW.R - 4);
+      m.y = VIEW.cy + Math.sin(a) * (VIEW.R - 4);
+      const nx = Math.cos(a), ny = Math.sin(a);
+      const dot = m.vx*nx + m.vy*ny;
+      m.vx -= 2*dot*nx; m.vy -= 2*dot*ny;
+    }
+  }
+
+  const snapshot = WORLD.cells.slice();
+  for (const c of snapshot){
+    if (c.dead) continue;
+    cellStep(c, sdt);
+  }
+
+  cellInteractions(sdt);
+
+  const cells = WORLD.cells;
+  for (let i = 0; i < cells.length; i++){
+    const a = cells[i];
+    if (a.dead) continue;
+    const ra = cellRadius(a);
+    for (let j = i+1; j < cells.length; j++){
+      const b = cells[j];
+      if (b.dead) continue;
+      const rb = cellRadius(b);
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.hypot(dx, dy) || 0.01;
+      const minD = ra + rb;
+      if (d < minD){
+        const push = (minD - d) / 2;
+        const nx = dx/d, ny = dy/d;
+        a.x -= nx * push; a.y -= ny * push;
+        b.x += nx * push; b.y += ny * push;
+        a.vx -= nx * 8; a.vy -= ny * 8;
+        b.vx += nx * 8; b.vy += ny * 8;
+      }
+    }
+  }
+
+  WORLD.mols = WORLD.mols.filter(m => !m.dead && m.m > 0.015);
+  WORLD.cells = WORLD.cells.filter(c => {
+    if (c.dead && !c.logged){
+      for (let i = 0; i < 4; i++){
+        spawnMol(c.x + rand(-8,8), c.y + rand(-8,8), "organic", c.mass / 4);
+      }
+      c.logged = true;
+      return false;
+    }
+    return !c.dead;
+  });
+
+  if (WORLD.mols.length > 880){
+    const toRemove = [];
+    for (let i = WORLD.mols.length - 1; i >= 0 && WORLD.mols.length - toRemove.length > 850; i--){
+      const m = WORLD.mols[i];
+      if (m.type === "co2" || m.type === "organic") toRemove.push(i);
+    }
+    toRemove.sort((a,b) => b-a);
+    for (const idx of toRemove) WORLD.mols.splice(idx, 1);
+  }
+  if (WORLD.mols.length > 950) WORLD.mols.length = 950;
+  if (WORLD.cells.length > 120) WORLD.cells.splice(120);
+}
+
+/* ============ 渲染 ============ */
+const canvas = $("#world");
+const ctx = canvas.getContext("2d");
+function resizeCanvas(){
+  const rect = $("#viewport").getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, rect.width * dpr);
+  canvas.height = Math.max(1, rect.height * dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  VIEW.w = rect.width; VIEW.h = rect.height;
+  VIEW.cx = rect.width / 2; VIEW.cy = rect.height / 2;
+  VIEW.R = Math.min(rect.width, rect.height) * 0.45;
+}
+function drawWorld(){
+  if (!WORLD) return;
+  const W = VIEW.w, H = VIEW.h;
+  const env = envNow();
+  ctx.clearRect(0, 0, W, H);
+  const bg = ctx.createRadialGradient(VIEW.cx, VIEW.cy, VIEW.R*0.2, VIEW.cx, VIEW.cy, Math.max(W,H)*0.8);
+  bg.addColorStop(0, "#080f12"); bg.addColorStop(1, "#040709");
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  const halo = ctx.createRadialGradient(VIEW.cx, VIEW.cy, VIEW.R*0.5, VIEW.cx, VIEW.cy, VIEW.R*1.9);
+  const lightN = env.light / 100;
+  halo.addColorStop(0, `rgba(70,190,170,${0.05 + lightN*0.05})`);
+  halo.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = halo;
+  ctx.beginPath(); ctx.arc(VIEW.cx, VIEW.cy, VIEW.R*1.9, 0, Math.PI*2); ctx.fill();
+  const tN = clamp(env.temp/60, 0, 1);
+  const inner = ctx.createRadialGradient(
+    VIEW.cx - VIEW.R*0.22, VIEW.cy - VIEW.R*0.28, VIEW.R*0.05,
+    VIEW.cx, VIEW.cy, VIEW.R);
+  inner.addColorStop(0, `rgba(${14+tN*46},${40+env.oxygen*0.30},${48+env.oxygen*0.22},1)`);
+  inner.addColorStop(1, "#04090b");
+  ctx.beginPath(); ctx.arc(VIEW.cx, VIEW.cy, VIEW.R, 0, Math.PI*2);
+  ctx.fillStyle = inner; ctx.fill();
+  ctx.save();
+  ctx.beginPath(); ctx.arc(VIEW.cx, VIEW.cy, VIEW.R, 0, Math.PI*2); ctx.clip();
+  ctx.strokeStyle = "rgba(110,200,180,0.035)"; ctx.lineWidth = 1;
+  for (let i = 1; i <= 7; i++){ ctx.beginPath(); ctx.arc(VIEW.cx, VIEW.cy, VIEW.R * i / 8, 0, Math.PI*2); ctx.stroke(); }
+  ctx.strokeStyle = "rgba(110,200,180,0.03)";
+  for (let i = 0; i < 12; i++){
+    const a = i * Math.PI/6;
+    ctx.beginPath();
+    ctx.moveTo(VIEW.cx + Math.cos(a)*VIEW.R*0.12, VIEW.cy + Math.sin(a)*VIEW.R*0.12);
+    ctx.lineTo(VIEW.cx + Math.cos(a)*VIEW.R, VIEW.cy + Math.sin(a)*VIEW.R);
+    ctx.stroke();
+  }
+  for (const m of WORLD.mols){
+    const def = MOLS[m.type]; if (!def) continue;
+    const s = def.r * (0.75 + Math.min(1, m.m) * 0.5);
+    ctx.globalAlpha = 0.72;
+    ctx.fillStyle = def.color;
+    ctx.beginPath(); ctx.arc(m.x, m.y, s, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  for (const c of WORLD.cells) drawCell(c);
+  ctx.restore();
+  ctx.strokeStyle = "rgba(130,225,200,0.22)"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(VIEW.cx, VIEW.cy, VIEW.R, 0, Math.PI*2); ctx.stroke();
+  ctx.strokeStyle = "rgba(130,225,200,0.07)"; ctx.lineWidth = 7;
+  ctx.beginPath(); ctx.arc(VIEW.cx, VIEW.cy, VIEW.R + 5, 0, Math.PI*2); ctx.stroke();
+  ctx.strokeStyle = "rgba(130,225,200,0.035)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(VIEW.cx, VIEW.cy, VIEW.R + 12, 0, Math.PI*2); ctx.stroke();
+}
+function drawCell(c){
+  const r = cellRadius(c);
+  const T = c.traits;
+  const hue = c.hue;
+
+  if ((T.advancedChemotaxis||0) > 0 && c.atp > 3){
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    const pulse = 0.5 + 0.5*Math.sin(c.phase*1.5);
+    ctx.strokeStyle = `rgba(123,168,255,${0.08 + pulse*0.06})`;
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.arc(0, 0, 200, 0, Math.PI*2); ctx.stroke();
+    ctx.restore();
+  }
+
+  if ((T.flagellum||0) > 0){
+    const n = Math.min(T.flagellum, 2);
+    const len = 26 + T.flagellum * 9;
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.rotate(c.angle);
+    for (let k = 0; k < n; k++){
+      const off = (k - (n-1)/2) * 0.34;
+      ctx.save(); ctx.rotate(off);
+      ctx.strokeStyle = `hsla(${hue},58%,66%,0.55)`;
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      for (let i = 0; i <= 16; i++){
+        const t = i/16;
+        const wig = Math.sin(c.phase*4.2 - t*7.5) * 7 * t * t;
+        const px = -(r + t*len);
+        const py = wig;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.translate(c.x, c.y);
+
+  const atkIntensity = (T.lysozyme||0)*0.6 + (T.t6ss||0)*0.9 + (T.toxinSynth||0)*0.5 + c.attackGlow;
+  if (atkIntensity > 0){
+    const pulse = 0.5 + 0.5*Math.sin(c.phase*3);
+    ctx.strokeStyle = `rgba(255,95,109,${0.35 + pulse*0.35})`;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(0, 0, r + 8 + pulse*2, 0, Math.PI*2); ctx.stroke();
+  }
+  const defIntensity = (T.peptidoglycan||0)*0.6 + (T.immunity||0)*0.7 + (T.antitoxin||0)*0.4 + (T.biofilm||0)*0.9 + c.defenseGlow;
+  if (defIntensity > 0){
+    const pulse2 = 0.5 + 0.5*Math.sin(c.phase*2.2 + 1.2);
+    ctx.strokeStyle = `rgba(123,168,255,${0.30 + pulse2*0.30})`;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.arc(0, 0, r + 5 + pulse2*2, 0, Math.PI*2); ctx.stroke();
+  }
+
+  if (WORLD.selected === c){
+    ctx.strokeStyle = "rgba(255,180,92,0.85)";
+    ctx.lineWidth = 1.4;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.arc(0, 0, r + 15, 0, Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  if ((T.biofilm||0) > 0){
+    ctx.fillStyle = "rgba(123,168,255,0.10)";
+    ctx.beginPath(); ctx.arc(0, 0, r * 1.5, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = "rgba(123,168,255,0.35)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, 0, r * 1.5, 0, Math.PI*2); ctx.stroke();
+  }
+
+  const glow = ctx.createRadialGradient(0,0,r*0.4,0,0,r*2.4);
+  const glowA = 0.10 + c.vigor * 0.09;
+  glow.addColorStop(0, `hsla(${hue},72%,58%,${glowA})`);
+  glow.addColorStop(1, "hsla(0,0%,0%,0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath(); ctx.arc(0,0,r*2.4,0,Math.PI*2); ctx.fill();
+
+  if ((T.adhesion||0) > 0){
+    ctx.strokeStyle = `hsla(${hue},45%,58%,0.35)`;
+    ctx.lineWidth = 0.9;
+    for (let i = 0; i < 7; i++){
+      const a = (i/7)*Math.PI*2 + c.phase*0.16;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a)*r*0.92, Math.sin(a)*r*0.92);
+      ctx.lineTo(Math.cos(a)*(r+8), Math.sin(a)*(r+8));
+      ctx.stroke();
+    }
+  }
+
+  const membraneThickness = 1.5 + 1.4 * Math.min(1, (T.peptidoglycan||0)) + 0.5 * Math.min(1, (T.biofilm||0));
+
+  const grad = ctx.createRadialGradient(-r*0.32, -r*0.36, r*0.08, 0, 0, r);
+  const lightness = 34 + c.vigor * 20;
+  grad.addColorStop(0, `hsla(${hue},58%,${lightness+22}%,0.95)`);
+  grad.addColorStop(0.65, `hsla(${hue},55%,${lightness}%,0.88)`);
+  grad.addColorStop(1, `hsla(${hue},48%,${lightness-12}%,0.82)`);
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2);
+  ctx.fillStyle = grad; ctx.fill();
+
+  if ((T.peptidoglycan||0) > 0){
+    ctx.strokeStyle = `rgba(123,168,255,${0.5 + 0.2*Math.min(1, T.peptidoglycan)})`;
+    ctx.lineWidth = membraneThickness;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.stroke();
+  } else {
+    ctx.strokeStyle = `hsla(${hue},70%,${68 + c.vigor*12}%,0.9)`;
+    ctx.lineWidth = membraneThickness;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.stroke();
+  }
+
+  ctx.strokeStyle = `hsla(${hue},70%,80%,0.18)`;
+  ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(0, 0, r*0.82, 0, Math.PI*2); ctx.stroke();
+
+  ctx.save();
+  ctx.beginPath(); ctx.arc(0, 0, r*0.9, 0, Math.PI*2); ctx.clip();
+
+  if ((T.replication||0) > 0){
+    ctx.fillStyle = `hsla(${hue+40},70%,78%,0.4)`;
+    ctx.beginPath(); ctx.arc(rand(-0.5,0.5), rand(-0.5,0.5), r*0.28, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = `hsla(${hue+40},80%,85%,0.55)`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(0, 0, r*0.32, c.phase*0.7, c.phase*0.7 + 4.2);
+    ctx.stroke();
+  }
+  if ((T.ribosome||0) > 0){
+    ctx.fillStyle = `hsla(${hue},80%,88%,0.42)`;
+    for (let i = 0; i < 5 + T.ribosome*3; i++){
+      const a = (i*2.399 + c.phase*0.3) % (Math.PI*2);
+      const rr = r * (0.32 + ((i*0.37)%1) * 0.45);
+      ctx.beginPath(); ctx.arc(Math.cos(a)*rr, Math.sin(a)*rr, 1.05, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  if ((T.t6ss||0) > 0){
+    ctx.strokeStyle = "rgba(255,95,109,0.55)";
+    ctx.lineWidth = 1.2;
+    for (let i = 0; i < T.t6ss; i++){
+      const a = c.angle + (i - (T.t6ss-1)/2) * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a)*r*0.7, Math.sin(a)*r*0.7);
+      ctx.lineTo(Math.cos(a)*r*1.15, Math.sin(a)*r*1.15);
+      ctx.stroke();
+    }
+  }
+  if ((T.lysozyme||0) > 0){
+    ctx.fillStyle = "rgba(255,180,92,0.4)";
+    for (let i = 0; i < 4; i++){
+      const a = (i*1.57 + c.phase*0.5);
+      ctx.beginPath(); ctx.arc(Math.cos(a)*r*0.7, Math.sin(a)*r*0.7, 1.5, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  if ((T.immunity||0) > 0){
+    ctx.strokeStyle = "rgba(123,168,255,0.4)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, 0, r*0.72, 0, Math.PI*2); ctx.stroke();
+  }
+  if ((T.antitoxin||0) > 0){
+    ctx.fillStyle = "rgba(200,180,255,0.5)";
+    for (let i = 0; i < 4; i++){
+      const a = i*1.57 + c.phase*0.4;
+      ctx.beginPath(); ctx.arc(Math.cos(a)*r*0.55, Math.sin(a)*r*0.55, 1.3, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  if ((T.advancedChemotaxis||0) > 0){
+    ctx.strokeStyle = "rgba(123,168,255,0.45)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, 0, r*0.4, 0, Math.PI*2); ctx.stroke();
+  }
+  if ((T.storage||0) > 0){
+    ctx.fillStyle = "rgba(255,220,140,0.55)";
+    for (let i = 0; i < T.storage; i++){
+      const a = i * 2.1 + c.phase * 0.2;
+      ctx.beginPath(); ctx.arc(Math.cos(a)*r*0.5, Math.sin(a)*r*0.5, r*0.16, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  if ((T.pigment||0) > 0){
+    ctx.fillStyle = `hsla(95,70%,55%,0.28)`;
+    for (let i = 0; i < Math.min(T.pigment,5); i++){
+      const a = i * 1.57 + c.phase * 0.12;
+      ctx.beginPath(); ctx.arc(Math.cos(a)*r*0.62, Math.sin(a)*r*0.62, r*0.19, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  if ((T.gasVesicle||0) > 0){
+    ctx.fillStyle = "rgba(200,235,255,0.30)";
+    for (let i = 0; i < Math.min(3,T.gasVesicle); i++){
+      ctx.beginPath();
+      ctx.arc(-r*0.3 + i*r*0.3, -r*0.45, r*0.11, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+  const atpN = clamp(c.atp / 60, 0, 1);
+  ctx.fillStyle = `rgba(255,255,255,${0.04 + atpN*0.09})`;
+  ctx.beginPath(); ctx.arc(0, 0, r*0.95, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  if (c.mutant){
+    ctx.strokeStyle = "rgba(255,180,92,0.55)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(0, 0, r + 5.5, c.phase*1.6, c.phase*1.6 + Math.PI*1.3);
+    ctx.stroke();
+  }
+  if (c.atp < 4){
+    const blink = 0.5 + 0.5*Math.sin(WORLD.time*9);
+    ctx.strokeStyle = `rgba(255,77,94,${blink*0.75})`;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.arc(0, 0, r + 2, 0, Math.PI*2); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ============ HUD ============ */
+function buildEnvMeters(){
+  $("#envMeters").innerHTML = `
+    <div class="meter"><div class="meterTop"><span>温度</span><b id="mTemp">—</b></div>
+      <div class="meterBar"><i id="bTemp"></i></div></div>
+    <div class="meter"><div class="meterTop"><span>pH</span><b id="mPH">—</b></div>
+      <div class="meterBar"><i id="bPH"></i></div></div>
+    <div class="meter"><div class="meterTop"><span>溶解氧</span><b id="mOxy">—</b></div>
+      <div class="meterBar"><i id="bOxy"></i></div></div>
+    <div class="meter"><div class="meterTop"><span>光照</span><b id="mLight">—</b></div>
+      <div class="meterBar"><i id="bLight"></i></div></div>
+    <div class="meter"><div class="meterTop"><span>黏度</span><b id="mVisc">—</b></div>
+      <div class="meterBar"><i id="bVisc"></i></div></div>
+    <div class="meter"><div class="meterTop"><span>诱变剂</span><b id="mMut">—</b></div>
+      <div class="meterBar"><i id="bMut"></i></div></div>
+  `;
+}
+function updateHUD(){
+  if (!WORLD) return;
+  const env = envNow();
+  $("#envName").textContent = CURRENT ? CURRENT.name : "—";
+  $("#mTemp").textContent = fmt(env.temp,1) + "°C";
+  $("#bTemp").style.width = clamp(env.temp/60*100, 0, 100) + "%";
+  $("#bTemp").style.background = env.temp > 40 ? "var(--warn)" : env.temp < 10 ? "var(--accent2)" : "var(--accent)";
+  $("#mPH").textContent = fmt(env.pH,2);
+  $("#bPH").style.width = clamp((env.pH-3)/8*100, 0, 100) + "%";
+  $("#bPH").style.background = (env.pH < 5.5 || env.pH > 9) ? "var(--amber)" : "var(--accent)";
+  $("#mOxy").textContent = fmt(env.oxygen,0) + "%";
+  $("#bOxy").style.width = env.oxygen + "%";
+  $("#bOxy").style.background = env.oxygen < 15 ? "var(--warn)" : "var(--accent2)";
+  $("#mLight").textContent = fmt(env.light,0) + "%";
+  $("#bLight").style.width = env.light + "%";
+  $("#bLight").style.background = "var(--amber)";
+  $("#mVisc").textContent = fmt(env.viscosity,1);
+  $("#bVisc").style.width = clamp(env.viscosity/3*100,0,100) + "%";
+  $("#mMut").textContent = fmt(env.mutagen,2);
+  $("#bMut").style.width = clamp(env.mutagen/2*100,0,100) + "%";
+  $("#bMut").style.background = "var(--violet)";
+
+  const alive = WORLD.cells.filter(c => !c.dead);
+  const bio = alive.reduce((a,c) => a + c.mass, 0);
+  $("#stCells").textContent = alive.length;
+  $("#stGen").textContent = WORLD.generation;
+  $("#stBio").textContent = fmt(bio,1);
+  $("#stMol").textContent = WORLD.mols.length;
+  $("#simStatus").textContent = WORLD.running
+    ? `运行中 · ${fmt(WORLD.time,0)}s · ${WORLD.speed}×`
+    : (alive.length ? `已暂停 · ${fmt(WORLD.time,0)}s` : "就绪");
+  $("#emptyOverlay").style.display = alive.length === 0 ? "flex" : "none";
+
+  const badge = $("#autoBadge");
+  if (WORLD.autoNutrientInterval > 0){
+    badge.style.display = "";
+    const remain = Math.max(0, WORLD.autoNutrientTimer);
+    badge.textContent = `自动补充：开 · 下次 ${fmt(remain,0)}s`;
+  } else {
+    badge.style.display = "none";
+  }
+
+  const sel = WORLD.selected;
+  const panel = $("#cellPanel");
+  if (sel && !sel.dead){
+    const counts = {};
+    sel.geneIds.forEach(id => counts[id] = (counts[id]||0)+1);
+    const geneNames = Object.keys(counts).map(id => {
+      const g = GENE_MAP[id];
+      const isNew = CURRENT.newGenes.includes(id);
+      const isDup = counts[id] > 1;
+      const isAtk = g && g.cat === "攻击";
+      const isDef = g && g.cat === "防御";
+      const cls = isNew ? "new" : (isDup ? "dup" : (isAtk ? "atk" : (isDef ? "def" : "")));
+      return `<span class="chip ${cls}" title="拷贝数 ${counts[id]}">${esc(g ? g.name : id)}${counts[id]>1?" ×"+counts[id]:""}</span>`;
+    }).join("");
+    const atkCount = (sel.traits.lysozyme||0) + (sel.traits.t6ss||0) + (sel.traits.toxinSynth||0);
+    const defCount = (sel.traits.peptidoglycan||0) + (sel.traits.immunity||0) + (sel.traits.antitoxin||0) + (sel.traits.biofilm||0);
+    panel.innerHTML = `
+      <div><span class="k">编号</span> #${sel.id}</div>
+      <div><span class="k">世代</span> ${sel.generation}</div>
+      <div><span class="k">生物量</span> ${fmt(sel.mass,2)}</div>
+      <div><span class="k">ATP</span> ${fmt(sel.atp,1)}</div>
+      <div><span class="k">活力</span> ${fmt(sel.vigor*100,0)}%</div>
+      <div><span class="k">年龄</span> ${fmt(sel.age,0)}s</div>
+      <div><span class="k">葡萄糖</span> ${fmt(sel.pool.glucose||0,2)}</div>
+      <div><span class="k">氨基酸</span> ${fmt(sel.pool.amino||0,2)}</div>
+      <div><span class="k">胞内毒素</span> ${fmt(sel.pool.toxin||0,2)}</div>
+      <div><span class="k">攻击基因</span> ${atkCount} · <span class="k">防御基因</span> ${defCount}</div>
+      <div><span class="k">基因数</span> ${sel.geneIds.length}</div>
+      <div style="margin-top:10px"><span class="k">基因组</span></div>
+      <div class="geneChips">${geneNames}</div>
+    `;
+  } else if (!alive.length){
+    panel.innerHTML = `<span style="color:var(--dim)">培养皿中没有活细胞</span>`;
+  } else {
+    panel.innerHTML = `<span style="color:var(--dim)">点击培养皿中的细胞查看详情</span>`;
+  }
+
+  const log = $("#mutLog");
+  if (WORLD.eventLog.length){
+    log.innerHTML = WORLD.eventLog.map(r => {
+      let color = "var(--dim)";
+      if (r.kind === "突变") color = "var(--amber)";
+      else if (r.kind === "裂解") color = "#ff8894";
+      else if (r.kind === "感受态") color = "var(--def)";
+      else if (r.kind === "补充") color = "var(--accent)";
+      else color = "var(--accent2)";
+      return `<div style="margin-bottom:6px">
+        <span style="color:${color}">[${esc(r.kind)}]</span>
+        <span style="color:var(--dim)"> ${fmt(r.t,0)}s · ${esc(r.text)}</span>
+      </div>`;
+    }).join("");
+  } else {
+    log.innerHTML = `<span style="color:var(--dim)">尚无记录</span>`;
+  }
+
+  const sg = $("#selGroup");
+  if (sel && !sel.dead){
+    sg.classList.add("show");
+    $("#selLabel").textContent = `已选中 #${sel.id}`;
+  } else {
+    sg.classList.remove("show");
+  }
+}
+
+/* ============ 投放栏 ============ */
+function buildNutrientBar(){
+  const bar = $("#nutrientBar");
+  bar.querySelectorAll("[data-nut]").forEach(b => {
+    b.onclick = () => {
+      const id = b.dataset.nut;
+      if (id === "__clear"){
+        WORLD.mols = WORLD.mols.filter(m => m.type === "oxygen" && m.m > 0.1).slice(0, 60);
+        notify("已清空大部分游离分子");
+        Audio.delete();
+        return;
+      }
+      if (id === "__mix"){
+        // 混合营养：在培养皿中心添加 60 单位（葡萄糖 50% · 氨基酸 30% · 氧气 20%）
+        const added = addMixedNutrients(VIEW.cx, VIEW.cy, 60, 90);
+        if (added === 0){
+          notify("培养皿已满，无法添加");
+          Audio.error();
+          return;
+        }
+        notify(`已混合投放 ${added} 单位营养（葡萄糖 · 氨基酸 · 氧气）`);
+        pushEvent("投放", `混合营养 +${added}（中心区域）`);
+        Audio.mix();
+        return;
+      }
+      WORLD.addTool = (WORLD.addTool === id) ? null : id;
+      bar.querySelectorAll("[data-nut]").forEach(x => x.classList.remove("on"));
+      if (WORLD.addTool){
+        b.classList.add("on");
+        $("#npHint").textContent = "点击培养皿投放";
+        Audio.click();
+      } else {
+        $("#npHint").textContent = "";
+      }
+    };
+  });
+}
+const TOOL_LABEL = { glucose:"葡萄糖", amino:"氨基酸", oxygen:"氧气", lipid:"脂质", co2:"CO₂", toxin:"毒素" };
+
+/* ============ 画布交互 ============ */
+canvas.addEventListener("click", e => {
+  if (!WORLD) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  if (WORLD.addTool){
+    const def = TOOL_LABEL[WORLD.addTool];
+    if (def){
+      const inside = Math.hypot(mx - VIEW.cx, my - VIEW.cy) < VIEW.R - 6;
+      if (!inside){ notify("请点击培养皿内部"); return; }
+      const amount = WORLD.addTool === "oxygen" ? 22 : (WORLD.addTool === "toxin" ? 10 : 14);
+      for (let i = 0; i < amount; i++){
+        spawnMol(mx + rand(-18,18), my + rand(-18,18), WORLD.addTool, rand(0.7, 1.3));
+      }
+      notify(`已投放 ${amount} 单位${def}`);
+      Audio.addMol();
+    }
+    return;
+  }
+  let hit = null, bd = 1e9;
+  for (const c of WORLD.cells){
+    if (c.dead) continue;
+    const r = cellRadius(c);
+    const d = Math.hypot(c.x - mx, c.y - my);
+    if (d < r + 7 && d < bd){ bd = d; hit = c; }
+  }
+  if (hit !== WORLD.selected){
+    WORLD.selected = hit;
+    if (hit) Audio.click();
+    updateHUD();
+  }
+});
+
+/* ============ DNA 编辑器 ============ */
+function openDNA(mode, targetCell){
+  if (!CURRENT) return;
+  const baseChromosomes = (mode === "edit" && targetCell)
+    ? groupGenesToChromosomes(targetCell.geneIds)
+    : deep(CURRENT.template.chromosomes);
+  DNA_STATE = { mode, targetCell: targetCell || null, chromosomes: baseChromosomes,
+    selected: null, cat: "全部", query: "" };
+  $("#dnaTitle").textContent = mode === "edit" ? `编辑生物 #${targetCell.id} 的基因组` : "创建新生物";
+  $("#btnDnaApply").textContent = mode === "edit" ? "更新基因组" : "投放进培养皿";
+  renderDNA();
+  showScreen("dna");
+}
+function groupGenesToChromosomes(genes){
+  const chrs = [{ id:"chr1", type:"main", capacity: MAIN_CAPACITY, genes: [] }];
+  let i = 0;
+  while (i < genes.length){
+    const cur = chrs[chrs.length - 1];
+    const cap = chromosomeCapacity(cur);
+    while (cur.genes.length < cap && i < genes.length) cur.genes.push(genes[i++]);
+    if (i < genes.length) chrs.push({ id:"chr" + (chrs.length+1), type:"plasmid", capacity: PLASMID_CAPACITY, genes: [] });
+  }
+  return chrs;
+}
+function dnaGenes(){ return DNA_STATE.chromosomes.flatMap(c => c.genes); }
+
+function renderGeneLibrary(){
+  const tabs = $("#geneTabs");
+  tabs.innerHTML = CATS.map(c => {
+    const isAtk = c === "攻击";
+    const isDef = c === "防御";
+    let cls = "";
+    if (isAtk) cls = "atk";
+    if (isDef) cls = "def";
+    return `<button class="${DNA_STATE.cat===c?"on":""} ${cls}" data-cat="${c}">${c}</button>`;
+  }).join("");
+  tabs.querySelectorAll("button").forEach(b => {
+    b.onclick = () => { DNA_STATE.cat = b.dataset.cat; Audio.click(); renderGeneLibrary(); };
+  });
+  const q = DNA_STATE.query.toLowerCase();
+  const list = GENES.filter(g =>
+    CURRENT.discovered.includes(g.id) &&
+    (DNA_STATE.cat === "全部" || g.cat === DNA_STATE.cat) &&
+    (g.name + g.desc + g.cat).toLowerCase().includes(q)
+  );
+  const box = $("#geneList");
+  if (!list.length){
+    box.innerHTML = `<div class="empty" style="padding:20px 0;font-size:11px">没有匹配的基因片段</div>`;
+    return;
+  }
+  box.innerHTML = list.map(g => {
+    const isNew = CURRENT.newGenes.includes(g.id);
+    const isAtk = g.cat === "攻击";
+    const isDef = g.cat === "防御";
+    let cls = "";
+    if (isAtk) cls = "atk";
+    if (isDef) cls = "def";
+    return `<div class="geneCard ${DNA_STATE.selected===g.id?"sel":""} ${cls}" data-id="${g.id}" draggable="true">
+      ${isNew ? '<span class="newFlag">!</span>' : ''}
+      <b><span class="catTag ${isAtk?"atk":(isDef?"def":"")}">${g.cat}</span>${esc(g.name)}</b>
+      <small>${g.effect}</small>
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".geneCard").forEach(el => {
+    el.onclick = () => {
+      DNA_STATE.selected = el.dataset.id;
+      Audio.click();
+      renderGeneLibrary(); renderGeneInfo();
+    };
+    el.ondragstart = e => {
+      e.dataTransfer.setData("text/gene", el.dataset.id);
+      DNA_STATE.selected = el.dataset.id;
+      renderGeneInfo();
+    };
+  });
+}
+function renderGeneInfo(){
+  const box = $("#geneInfoBox");
+  const id = DNA_STATE.selected;
+  if (!id || !GENE_MAP[id]){
+    box.innerHTML = `<div class="infoTitle">选择一个片段</div>
+      <div class="infoDesc">从左侧基因库中拖拽或点击基因，再点击染色体上的空位即可放入。<br><br>随已发现基因数增加，最多可解锁 5 个质粒。</div>`;
+    return;
+  }
+  const g = GENE_MAP[id];
+  const copies = dnaGenes().filter(x => x === id).length;
+  const isAtk = g.cat === "攻击";
+  const isDef = g.cat === "防御";
+  const catCls = isAtk ? "atk" : (isDef ? "def" : "");
+  box.innerHTML = `
+    <div class="infoTitle">${esc(g.name)}</div>
+    <div class="infoCat ${catCls}">${g.cat}${g.essential ? " · 必需模块" : ""}</div>
+    <div class="infoDesc">${esc(g.desc)}</div>
+    <div class="infoEffect">→ ${esc(g.effect)}<br>→ 单拷贝 ATP 负担 +${g.cost}<br>→ 当前基因组中拷贝数 ${copies}</div>
+  `;
+}
+function renderChromosomes(){
+  const box = $("#chromoList");
+  box.innerHTML = DNA_STATE.chromosomes.map((chr, ci) => {
+    const cap = chromosomeCapacity(chr);
+    const isPlasmid = chr.type === "plasmid";
+    const slots = [];
+    for (let i = 0; i < cap; i++){
+      const gid = chr.genes[i];
+      if (gid){
+        const g = GENE_MAP[gid];
+        const isNew = CURRENT.newGenes.includes(gid);
+        const isAtk = g && g.cat === "攻击";
+        const isDef = g && g.cat === "防御";
+        let cls = "";
+        if (isAtk) cls = "atk";
+        if (isDef) cls = "def";
+        slots.push(`<div class="slot filled ${cls}" data-chr="${ci}" data-slot="${i}">
+          ${isNew ? '<span class="newFlag" style="top:-6px;right:-6px">!</span>' : ''}
+          <b>${esc(g ? g.name : gid)}</b>
+          <small>${g ? g.cat : "?"}</small>
+          <button class="x" data-remove="${ci}:${i}">×</button>
+        </div>`);
+      } else {
+        slots.push(`<div class="slot" data-chr="${ci}" data-slot="${i}">
+          <div class="slotHint">空位 ${i+1}</div>
+        </div>`);
+      }
+    }
+    return `<div class="chromosome ${isPlasmid?"plasmid":""}">
+      <div class="chrHead">
+        <span><span class="badge ${isPlasmid?"plasmid":""}">${isPlasmid?"质粒 " + (ci):"主染色体"}</span></span>
+        <span>${chr.genes.length} / ${cap}</span>
+      </div>
+      <div class="slots">${slots.join("")}</div>
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".slot[data-chr]").forEach(el => {
+    const ci = parseInt(el.dataset.chr), si = parseInt(el.dataset.slot);
+    el.ondragover = e => { e.preventDefault(); el.classList.add("drop"); };
+    el.ondragleave = () => el.classList.remove("drop");
+    el.ondrop = e => {
+      e.preventDefault(); el.classList.remove("drop");
+      const gid = e.dataTransfer.getData("text/gene");
+      if (gid) placeGene(gid, ci, si);
+    };
+    el.onclick = e => {
+      if (e.target.classList.contains("x")) return;
+      if (el.classList.contains("filled")) return;
+      if (DNA_STATE.selected) placeGene(DNA_STATE.selected, ci, si);
+      else notify("请先在左侧选择一个基因片段");
+    };
+  });
+  box.querySelectorAll("[data-remove]").forEach(btn => {
+    btn.onclick = e => {
+      e.stopPropagation();
+      const [ci, si] = btn.dataset.remove.split(":").map(Number);
+      DNA_STATE.chromosomes[ci].genes.splice(si, 1);
+      Audio.delete();
+      renderDNA();
+    };
+  });
+}
+function placeGene(gid, ci, si){
+  const chr = DNA_STATE.chromosomes[ci];
+  if (!chr) return;
+  const cap = chromosomeCapacity(chr);
+  if (chr.genes.length >= cap){ notify("这条染色体已满"); Audio.error(); return; }
+  if (chr.genes[si] && si < chr.genes.length){ notify("这个位置已被占用"); Audio.error(); return; }
+  chr.genes.push(gid);
+  const ni = CURRENT.newGenes.indexOf(gid);
+  if (ni >= 0) CURRENT.newGenes.splice(ni, 1);
+  Audio.place();
+  renderDNA();
+}
+function updateSlotInfo(){
+  const total = DNA_STATE.chromosomes.reduce((a,c) => a + chromosomeCapacity(c), 0);
+  const used = dnaGenes().length;
+  const discovered = CURRENT.discovered.length;
+  $("#dnaSlotInfo").textContent = `${used} / ${total} 位点 · ${DNA_STATE.chromosomes.length} / ${maxChromosomes()} 染色体 · 已发现 ${discovered} 基因`;
+}
+function validateDNA(){
+  const genes = dnaGenes();
+  const missing = GENES.filter(g => g.essential && !genes.includes(g.id));
+  const box = $("#dnaValidation");
+  const applyBtn = $("#btnDnaApply");
+  if (missing.length){
+    box.innerHTML = `<div class="validBox bad">✕ 缺少必需模块：${missing.map(g => esc(g.name)).join("、")}<br>细胞无法存活。</div>`;
+    applyBtn.disabled = true;
+    return false;
+  }
+  if (!genes.length){
+    box.innerHTML = `<div class="validBox bad">✕ 基因组为空。</div>`;
+    applyBtn.disabled = true;
+    return false;
+  }
+  const counts = {};
+  genes.forEach(id => counts[id] = (counts[id]||0)+1);
+  const dupes = Object.entries(counts).filter(([k,v]) => v > 1);
+  const burden = deriveTraits(genes).burden;
+  const atkGenes = genes.filter(id => GENE_MAP[id] && GENE_MAP[id].cat === "攻击");
+  const defGenes = genes.filter(id => GENE_MAP[id] && GENE_MAP[id].cat === "防御");
+  let extra = "";
+  if (dupes.length) extra += `<br>检测到 ${dupes.length} 个基因存在多拷贝——将产生剂量效应。`;
+  if (atkGenes.length) extra += `<br><span style="color:#ff8894">攻击基因 ${atkGenes.length} 个。</span>`;
+  if (defGenes.length) extra += `<span style="color:var(--def)"> 防御基因 ${defGenes.length} 个。</span>`;
+  box.innerHTML = `<div class="validBox good">✓ 基因组结构完整 · ${genes.length} 个基因位点<br>ATP 负担 +${burden}${extra}</div>`;
+  applyBtn.disabled = false;
+  return true;
+}
+function renderDNA(){
+  if (!DNA_STATE) return;
+  renderGeneLibrary();
+  renderChromosomes();
+  renderGeneInfo();
+  validateDNA();
+  updateSlotInfo();
+}
+
+/* ============ 存档流程 ============ */
+function openSaveList(){
+  const list = readSaves().sort((a,b) => b.updated - a.updated);
+  const box = $("#saveListBody");
+  if (!list.length){
+    box.innerHTML = `<div class="empty">还没有任何培养皿档案。<br>点击「新建培养皿」开始第一次实验。</div>`;
+    return;
+  }
+  box.innerHTML = list.map(s => `
+    <div class="saveRow">
+      <div>
+        <b>${esc(s.name)}</b>
+        <div class="saveMeta">
+          细胞 ${s.stats?.cells ?? 0} · 世代 ${s.stats?.generation ?? 0} · 已发现基因 ${(s.discovered||[]).length} ·
+          ${s.autoNutrientInterval > 0 ? "自动补营养 · " : ""}
+          ${new Date(s.updated).toLocaleString("zh-CN")}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button data-open="${s.id}">打开</button>
+        <button data-del="${s.id}" class="danger">删除</button>
+      </div>
+    </div>`).join("");
+  box.querySelectorAll("[data-open]").forEach(b => {
+    b.onclick = () => { Audio.click(); openSave(b.dataset.open); };
+  });
+  box.querySelectorAll("[data-del]").forEach(b => {
+    b.onclick = () => {
+      const list2 = readSaves().filter(s => s.id !== b.dataset.del);
+      writeSaves(list2);
+      Audio.delete();
+      openSaveList();
+    };
+  });
+}
+function createSave(name, params, autoNutrientInterval){
+  const save = {
+    id: makeId(), name: name || "培养皿",
+    created: Date.now(), updated: Date.now(),
+    env: deep(params), template: newMinimalTemplate(),
+    discovered: MINIMAL_GENOME.slice(), newGenes: [],
+    autoNutrientInterval: autoNutrientInterval || 0,
+    stats: { cells:0, generation:0, mutations:0 },
+    worldSnapshot: null,
+  };
+  upsertSave(save);
+  try { localStorage.setItem(LAST_KEY, save.id); } catch(e){}
+  return save;
+}
+function openSave(id){
+  const s = findSave(id);
+  if (!s){ notify("存档不存在"); Audio.error(); return; }
+  if (!s.discovered) s.discovered = MINIMAL_GENOME.slice();
+  if (!s.newGenes) s.newGenes = [];
+  if (!s.template) s.template = newMinimalTemplate();
+  if (s.autoNutrientInterval === undefined) s.autoNutrientInterval = 0;
+  CURRENT = s;
+  try { localStorage.setItem(LAST_KEY, s.id); } catch(e){}
+  enterGame();
+}
+function saveCurrent(){
+  if (!CURRENT) return;
+  CURRENT.stats.cells = WORLD ? WORLD.cells.filter(c => !c.dead).length : 0;
+  CURRENT.stats.generation = WORLD ? WORLD.generation : 0;
+  CURRENT.stats.mutations = WORLD ? WORLD.eventLog.filter(e => e.kind === "突变").length : 0;
+  CURRENT.worldSnapshot = WORLD ? serializeWorld() : null;
+  upsertSave(CURRENT);
+}
+function serializeWorld(){
+  return {
+    time: WORLD.time, generation: WORLD.generation, nextId: WORLD.nextId,
+    eventLog: WORLD.eventLog.slice(0, 10),
+    cells: WORLD.cells.filter(c => !c.dead).map(c => ({
+      id: c.id, x: c.x, y: c.y, vx: c.vx, vy: c.vy,
+      angle: c.angle, phase: c.phase,
+      mass: c.mass, atp: c.atp, pool: {...c.pool},
+      geneIds: c.geneIds.slice(),
+      age: c.age, generation: c.generation,
+      hue: c.hue, mutant: c.mutant,
+    })),
+    mols: WORLD.mols.filter(m => !m.dead).map(m => ({
+      type: m.type, x: m.x, y: m.y, vx: m.vx, vy: m.vy, m: m.m, r: m.r,
+    })).slice(0, 900),
+  };
+}
+function restoreWorld(snap){
+  if (!snap) return false;
+  try {
+    WORLD.time = snap.time || 0;
+    WORLD.generation = snap.generation || 0;
+    WORLD.nextId = snap.nextId || 1;
+    WORLD.eventLog = snap.eventLog || [];
+    WORLD.cells = [];
+    for (const cd of (snap.cells || [])){
+      const c = makeCellFromTemplate(cd.x, cd.y, cd.geneIds, cd.generation);
+      c.id = cd.id;
+      c.vx = cd.vx; c.vy = cd.vy;
+      c.angle = cd.angle; c.phase = cd.phase;
+      c.mass = cd.mass; c.atp = cd.atp;
+      c.pool = {...cd.pool};
+      c.age = cd.age; c.hue = cd.hue; c.mutant = cd.mutant;
+      c.traits = deriveTraits(c.geneIds);
+      WORLD.cells.push(c);
+    }
+    WORLD.mols = (snap.mols || []).map(m => ({...m, dead:false}));
+    return true;
+  } catch(e){ return false; }
+}
+
+/* ============ 进入游戏 ============ */
+function enterGame(){
+  showScreen("game");
+  requestAnimationFrame(() => {
+    resizeCanvas();
+    WORLD = createWorld(CURRENT.env);
+    WORLD.autoNutrientInterval = CURRENT.autoNutrientInterval || 0;
+    WORLD.autoNutrientTimer = WORLD.autoNutrientInterval;
+    buildEnvMeters();
+    buildNutrientBar();
+    const restored = restoreWorld(CURRENT.worldSnapshot);
+    if (!restored) seedNutrients();
+    WORLD.running = false;
+    WORLD.selected = null;
+    updateRunButton();
+    updateHUD();
+    if (!RUNNING_LOOP){ RUNNING_LOOP = true; lastFrame = performance.now(); requestAnimationFrame(mainLoop); }
+    if (WORLD.cells.length > 0){
+      WORLD.running = true;
+      updateRunButton();
+      updateHUD();
+    }
+  });
+}
+
+/* ============ 主循环 ============ */
+function mainLoop(now){
+  requestAnimationFrame(mainLoop);
+  const dt = Math.min(0.05, (now - lastFrame) / 1000 || 0.016);
+  lastFrame = now;
+  if (WORLD){
+    const steps = 2;
+    for (let i = 0; i < steps; i++) stepWorld(dt / steps);
+    if ($("#game").classList.contains("active")){
+      drawWorld();
+      updateHUD();
+    }
+  }
+}
+function updateRunButton(){
+  const btn = $("#btnRun");
+  if (!WORLD) { btn.textContent = "▶ 开始"; btn.className = "btnRun paused"; return; }
+  if (WORLD.running){ btn.textContent = "⏸ 暂停"; btn.className = "btnRun running"; }
+  else { btn.textContent = "▶ 开始"; btn.className = "btnRun paused"; }
+}
+
+/* ============ 导入 / 导出 ============ */
+function exportOrganism(cell){
+  if (!cell) return;
+  const data = {
+    kind: ORGANISM_KIND, version: 2,
+    name: `生物 #${cell.id}`,
+    generation: cell.generation,
+    chromosomes: groupGenesToChromosomes(cell.geneIds),
+    exportedAt: Date.now(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `organism_${cell.id}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  notify("生物基因组已导出");
+  Audio.toggleOn();
+}
+function importOrganismFile(file){
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const data = JSON.parse(r.result);
+      if (!data || data.kind !== ORGANISM_KIND || !Array.isArray(data.chromosomes)) throw new Error("invalid");
+      const genes = data.chromosomes.flatMap(c => c.genes || []).filter(id => GENE_MAP[id]);
+      if (!genes.length) throw new Error("empty");
+      const missing = GENES.filter(g => g.essential && !genes.includes(g.id));
+      if (missing.length){
+        notify("导入失败：缺少必需模块 " + missing.map(g=>g.name).join("、"));
+        Audio.error(); return;
+      }
+      if (!WORLD){ notify("请先建立培养皿"); Audio.error(); return; }
+      const p = randomPointInDish(0.55);
+      const c = makeCellFromTemplate(p.x, p.y, genes, 0);
+      WORLD.cells.push(c);
+      let newGeneCount = 0;
+      genes.forEach(id => {
+        if (!CURRENT.discovered.includes(id)){ CURRENT.discovered.push(id); newGeneCount++; }
+        if (!CURRENT.newGenes.includes(id)) CURRENT.newGenes.push(id);
+      });
+      const curTplGenes = CURRENT.template.chromosomes.flatMap(ch => ch.genes).filter(Boolean);
+      let templateUpgraded = false;
+      if (genes.length > curTplGenes.length){
+        CURRENT.template.chromosomes = data.chromosomes.map((ch, i) => ({
+          id: "chr" + (i + 1),
+          type: i === 0 ? "main" : "plasmid",
+          capacity: i === 0 ? MAIN_CAPACITY : PLASMID_CAPACITY,
+          genes: (ch.genes || []).slice()
+        }));
+        templateUpgraded = true;
+      }
+      WORLD.running = true;
+      updateRunButton();
+      saveCurrent();
+      if (templateUpgraded){
+        notify(`已导入 · 默认模板升级为 ${genes.length} 个位点，新增 ${newGeneCount} 个基因`);
+      } else {
+        notify(`已导入生物 · ${genes.length} 个位点，新增 ${newGeneCount} 个基因`);
+      }
+      Audio.spawn();
+      updateHUD();
+    } catch(e){
+      notify("文件格式无效"); Audio.error();
+    }
+  };
+  r.readAsText(file);
+}
+
+/* ============ 事件绑定 ============ */
+function bindEvents(){
+  $("#btnNewSave").onclick = () => {
+    Audio.click();
+    setupState = {
+      presetId:"pond",
+      params: deep(PRESETS[0].params),
+      name:"培养皿 01",
+      autoNutrientInterval: 60,
+    };
+    $("#saveNameInput").value = setupState.name;
+    $("#autoNutrientFreq").value = "60";
+    renderPresets(); renderParams();
+    showScreen("dishSetup");
+    setTimeout(drawPreview, 40);
+  };
+  $("#btnLoadSave").onclick = () => { Audio.click(); openSaveList(); showScreen("saves"); };
+  $("#btnContinue").onclick = () => {
+    Audio.click();
+    let id = null;
+    try { id = localStorage.getItem(LAST_KEY); } catch(e){}
+    const list = readSaves();
+    if (!list.length){ notify("还没有任何培养皿档案"); Audio.error(); return; }
+    const target = id ? list.find(s => s.id === id) : null;
+    openSave((target || list.sort((a,b)=>b.updated-a.updated)[0]).id);
+  };
+  $("#btnToggleAudio").onclick = () => {
+    const on = Audio.toggle();
+    $("#btnToggleAudio").textContent = "音效：" + (on ? "开" : "关");
+    $("#btnAudio").textContent = on ? "♪ 音效" : "♪ 静音";
+  };
+  $("#btnSavesClose").onclick = () => { Audio.click(); showScreen("home"); };
+  $("#btnSavesBack").onclick = () => { Audio.click(); showScreen("home"); };
+  $("#saveNameInput").oninput = e => { setupState.name = e.target.value; };
+  $("#autoNutrientFreq").onchange = e => {
+    setupState.autoNutrientInterval = parseInt(e.target.value) || 0;
+    Audio.click();
+  };
+  $("#btnSetupBack").onclick = () => { Audio.click(); showScreen("home"); };
+  $("#btnCreateSave").onclick = () => {
+    const name = ($("#saveNameInput").value || "").trim() || "培养皿";
+    const s = createSave(name, setupState.params, setupState.autoNutrientInterval);
+    Audio.spawn();
+    openSave(s.id);
+    notify(`培养皿已建立 · 自动补营养：${setupState.autoNutrientInterval > 0 ? "每 " + setupState.autoNutrientInterval + " 秒" : "关闭"}`);
+  };
+  $("#btnRun").onclick = () => {
+    if (!WORLD) return;
+    WORLD.running = !WORLD.running;
+    updateRunButton();
+    if (WORLD.running) Audio.click(); else Audio.drop();
+    updateHUD();
+  };
+  $("#btnSpeed").onclick = () => {
+    if (!WORLD) return;
+    WORLD.speed = WORLD.speed === 1 ? 2 : WORLD.speed === 2 ? 4 : WORLD.speed === 4 ? 0.5 : 1;
+    $("#btnSpeed").textContent = WORLD.speed + "×";
+    Audio.click(); updateHUD();
+  };
+  $("#btnCreate").onclick = () => {
+    if (!CURRENT){ notify("请先建立培养皿"); return; }
+    Audio.click(); openDNA("create");
+  };
+  $("#btnCreateBio2").onclick = () => {
+    if (!CURRENT){ notify("请先建立培养皿"); return; }
+    Audio.click(); openDNA("create");
+  };
+  $("#btnImport").onclick = () => { Audio.click(); $("#fileInput").click(); };
+  $("#fileInput").onchange = e => {
+    const f = e.target.files[0];
+    if (f) importOrganismFile(f);
+    e.target.value = "";
+  };
+  $("#btnEdit").onclick = () => {
+    if (!WORLD || !WORLD.selected){ notify("请先选中一个生物"); return; }
+    Audio.click();
+    openDNA("edit", WORLD.selected);
+  };
+  $("#btnSetTemplate").onclick = () => {
+    if (!WORLD || !WORLD.selected){ notify("请先选中一个生物"); return; }
+    const src = WORLD.selected;
+    CURRENT.template.chromosomes = groupGenesToChromosomes(src.geneIds).map((ch, i) => ({
+      id: "chr" + (i + 1),
+      type: i === 0 ? "main" : "plasmid",
+      capacity: i === 0 ? MAIN_CAPACITY : PLASMID_CAPACITY,
+      genes: ch.genes.slice()
+    }));
+    src.geneIds.forEach(id => {
+      if (!CURRENT.discovered.includes(id)) CURRENT.discovered.push(id);
+    });
+    saveCurrent();
+    Audio.toggleOn();
+    notify(`已将 #${src.id} 的基因组设为新建模板（${src.geneIds.length} 个位点）`);
+  };
+  $("#btnClone").onclick = () => {
+    if (!WORLD || !WORLD.selected){ notify("请先选中一个生物"); return; }
+    const src = WORLD.selected;
+    const a = rand(0, Math.PI*2);
+    const dist = cellRadius(src) * 2.4;
+    const nx = src.x + Math.cos(a) * dist;
+    const ny = src.y + Math.sin(a) * dist;
+    const child = makeCellFromTemplate(nx, ny, src.geneIds.slice(), src.generation);
+    child.mass = src.mass;
+    child.atp = src.atp * 0.9;
+    child.hue = src.hue;
+    WORLD.cells.push(child);
+    WORLD.selected = child;
+    Audio.spawn();
+    notify(`已克隆 #${src.id} → #${child.id}`);
+    updateHUD();
+  };
+  $("#btnExportBio").onclick = () => {
+    if (!WORLD || !WORLD.selected){ notify("请先选中一个生物"); return; }
+    exportOrganism(WORLD.selected);
+  };
+  $("#btnDelete").onclick = () => {
+    if (!WORLD || !WORLD.selected){ notify("请先选中一个生物"); return; }
+    const c = WORLD.selected;
+    c.dead = true;
+    WORLD.selected = null;
+    Audio.delete();
+    notify(`已删除生物 #${c.id}`);
+    updateHUD();
+  };
+  $("#btnSave").onclick = () => {
+    saveCurrent();
+    Audio.toggleOn();
+    notify("培养皿已保存到本机");
+  };
+  $("#btnQuit").onclick = () => {
+    saveCurrent();
+    WORLD = null; CURRENT = null;
+    Audio.stopBGM();
+    showScreen("home");
+  };
+  $("#btnAudio").onclick = () => {
+    const on = Audio.toggle();
+    $("#btnAudio").textContent = on ? "♪ 音效" : "♪ 静音";
+    $("#btnToggleAudio").textContent = "音效：" + (on ? "开" : "关");
+  };
+  $("#btnDnaBack").onclick = () => {
+    Audio.click();
+    if (DNA_STATE && DNA_STATE.mode === "create"){
+      CURRENT.template.chromosomes = deep(DNA_STATE.chromosomes);
+      saveCurrent();
+    }
+    showScreen("game");
+    if (WORLD){ resizeCanvas(); updateHUD(); }
+  };
+  $("#btnDnaReset").onclick = () => {
+    DNA_STATE.chromosomes = newMinimalTemplate().chromosomes;
+    Audio.delete();
+    renderDNA();
+  };
+  $("#btnAddChr").onclick = () => {
+    const max = maxChromosomes();
+    if (DNA_STATE.chromosomes.length >= max){
+      const next = CURRENT.discovered.length < 8 ? 8 : CURRENT.discovered.length < 12 ? 12 : CURRENT.discovered.length < 16 ? 16 : CURRENT.discovered.length < 21 ? 21 : 26;
+      notify(`当前最多 ${max} 条染色体，已发现 ${CURRENT.discovered.length} 个基因（${next} 个时解锁下一个质粒）`);
+      Audio.error(); return;
+    }
+    DNA_STATE.chromosomes.push({
+      id: "chr" + (DNA_STATE.chromosomes.length + 1),
+      type: "plasmid", capacity: PLASMID_CAPACITY, genes: []
+    });
+    Audio.place();
+    renderChromosomes(); updateSlotInfo(); validateDNA();
+  };
+  $("#geneSearch").oninput = e => { DNA_STATE.query = e.target.value; renderGeneLibrary(); };
+  $("#btnDnaApply").onclick = () => {
+    if (!validateDNA()) return;
+    const genes = dnaGenes();
+    CURRENT.template.chromosomes = deep(DNA_STATE.chromosomes);
+    CURRENT.newGenes = CURRENT.newGenes.filter(id => !genes.includes(id));
+    genes.forEach(id => { if (!CURRENT.discovered.includes(id)) CURRENT.discovered.push(id); });
+    if (!WORLD){
+      saveCurrent();
+      showScreen("game");
+      requestAnimationFrame(() => {
+        resizeCanvas();
+        WORLD = createWorld(CURRENT.env);
+        WORLD.autoNutrientInterval = CURRENT.autoNutrientInterval || 0;
+        WORLD.autoNutrientTimer = WORLD.autoNutrientInterval;
+        buildEnvMeters(); buildNutrientBar();
+        seedNutrients();
+        WORLD.running = false;
+        updateRunButton();
+        placeOrganismFromEditor(genes);
+      });
+      return;
+    }
+    showScreen("game");
+    requestAnimationFrame(() => {
+      resizeCanvas();
+      placeOrganismFromEditor(genes);
+    });
+  };
+  window.addEventListener("resize", () => {
+    if ($("#game").classList.contains("active") && WORLD) resizeCanvas();
+    if ($("#dishSetup").classList.contains("active")) drawPreview();
+  });
+}
+function placeOrganismFromEditor(genes){
+  const p = randomPointInDish(0.45);
+  if (DNA_STATE.mode === "edit" && DNA_STATE.targetCell && !DNA_STATE.targetCell.dead){
+    const tgt = DNA_STATE.targetCell;
+    tgt.geneIds = genes.slice();
+    tgt.traits = deriveTraits(genes);
+    tgt.mutant = false;
+    WORLD.selected = tgt;
+    notify(`生物 #${tgt.id} 的基因组已更新`);
+  } else {
+    const c = makeCellFromTemplate(p.x, p.y, genes, 0);
+    WORLD.cells.push(c);
+    WORLD.selected = c;
+    notify(`已投放新生物 · ${genes.length} 个基因位点`);
+  }
+  WORLD.running = true;
+  updateRunButton();
+  saveCurrent();
+  Audio.spawn();
+  updateHUD();
+}
+
+function boot(){
+  bindEvents();
+  buildEnvMeters();
+  showScreen("home");
+  lastFrame = performance.now();
+  requestAnimationFrame(mainLoop);
+}
+boot();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,2297 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SINGULARITY — 物理世界构造器</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#fff;color:#111;font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif;user-select:none;-webkit-user-select:none}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.screen{position:absolute;inset:0;background:#fff;display:flex;align-items:center;justify-content:center}
+.screen.hidden{display:none}
+#screen-start .title{text-align:center}
+.logo{font-size:clamp(42px,6vw,74px);font-weight:300;letter-spacing:.24em}
+.sub{font-size:11px;color:#888;letter-spacing:.35em;margin-top:10px}
+.menu{display:flex;flex-direction:column;gap:8px;margin-top:55px}
+.menu button{border:0;background:none;padding:9px 35px;font-size:13px;letter-spacing:.16em;transition:.15s}
+.menu button:hover:not(:disabled){background:#111;color:#fff}
+.menu button:disabled{color:#ccc;cursor:default}
+.ver{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:#aaa;font-size:10px;letter-spacing:.2em}
+.modal{position:absolute;inset:0;z-index:100;background:rgba(255,255,255,.72);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
+.modal.show{display:flex}
+.panel{width:min(460px,90vw);background:#fff;border:1px solid #ccc;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,.12)}
+.panel h2{font-size:14px;font-weight:500;letter-spacing:.1em;margin:0 0 20px}
+.setting-row{display:flex;align-items:center;gap:14px;margin-bottom:15px}
+.setting-row label{width:80px;font-size:12px;color:#555}
+.setting-row input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:2px;background:#ddd;outline:none}
+.setting-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#111;cursor:pointer}
+.setting-row input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:#111;cursor:pointer}
+.setting-row select{flex:1;border:1px solid #ccc;background:#fff;padding:7px 10px;outline:none;font-size:12px}
+.setting-row input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#111}
+.val{min-width:30px;text-align:right;font-size:12px;color:#777;font-family:monospace}
+.panel-actions{text-align:right;margin-top:22px}
+.panel-actions button{border:1px solid #ccc;background:#fff;padding:8px 20px;font-size:12px;letter-spacing:.1em;transition:.15s}
+.panel-actions button:hover{background:#111;color:#fff;border-color:#111}
+.panel-actions .primary{background:#111;color:#fff;border-color:#111}
+.value-panel .row2{display:flex;gap:12px}
+.value-panel .field{flex:1;margin-bottom:13px}
+.value-panel .field label{font-size:11px;color:#888;display:block;margin-bottom:5px;letter-spacing:.05em}
+.value-panel input[type=number]{width:100%;padding:9px 11px;border:1px solid #ccc;background:#fff;outline:none;font-size:14px;font-family:monospace}
+.value-panel input[type=number]:focus{border-color:#111}
+.value-panel .symbol-box{width:50px;height:50px;display:flex;align-items:center;justify-content:center;border:1px solid #ddd;font:italic 26px Georgia;color:#111;flex-shrink:0}
+.value-panel .symbol-meta{font-size:11px;color:#888;line-height:1.7}
+.value-panel .head-row{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.pad-wrap{display:flex;justify-content:center;margin-bottom:16px}
+.pad-wrap canvas{border:1px solid #eee;border-radius:8px;background:#fafafa;cursor:crosshair;display:block}
+#screen-game{flex-direction:column;align-items:stretch;justify-content:stretch}
+#toolbar{height:50px;flex-shrink:0;border-bottom:1px solid #ddd;background:#fff;display:flex;align-items:center;padding:0 12px;gap:2px;position:relative;z-index:10}
+.brand{font-size:12px;letter-spacing:.16em;color:#111;font-weight:500;margin-right:8px}
+.sep{width:1px;height:20px;background:#ddd;margin:0 5px;flex-shrink:0}
+.tb{border:0;background:none;color:#555;font-size:11px;padding:7px 9px;border-radius:4px;letter-spacing:.03em;transition:.15s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.tb svg{width:14px;height:14px;flex-shrink:0;pointer-events:none}
+.tb span{pointer-events:none}
+.tb:hover:not(:disabled){color:#111;background:#f2f2f2}
+.tb.active{color:#fff;background:#111}
+.tb.accent{color:#0369a1}
+.tb.accent.active{color:#fff;background:#0369a1}
+.tb.measure{color:#ca8a04}
+.tb.measure.active{color:#fff;background:#ca8a04}
+.tb.collide{color:#dc2626}
+.tb.collide.active{color:#fff;background:#dc2626}
+.tb:disabled{color:#ccc;cursor:default}
+#toolbar .status{margin-left:auto;font-size:11px;color:#888;white-space:nowrap}
+#canvas-wrap{flex:1;min-height:0;position:relative;overflow:hidden;background:#fff}
+#world{display:block;cursor:default;position:absolute;top:0;left:0;touch-action:none}
+#legend{position:absolute;left:16px;bottom:16px;background:rgba(255,255,255,.96);border:1px solid #ddd;border-radius:6px;padding:11px 14px;font-size:10.5px;line-height:1.9;color:#555;display:none;z-index:9;min-width:210px;pointer-events:none}
+#legend.show{display:block}
+#legend .lt{font-size:10px;letter-spacing:.14em;color:#999;margin-bottom:6px}
+#legend .lrow{display:flex;align-items:center;gap:8px}
+#legend .swatch{width:22px;height:0;border-top:2px solid;flex-shrink:0}
+#legend .swatch.dash{border-style:dashed}
+#legend .lbl{color:#333}
+#side-panel{position:absolute;right:0;top:50px;bottom:32px;width:224px;background:rgba(255,255,255,.98);border-left:1px solid #ddd;display:flex;flex-direction:column;transition:width .25s;z-index:8}
+#side-panel.collapsed{width:38px}
+#side-header{height:44px;flex-shrink:0;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid #eee;gap:8px}
+#side-title{font-size:11px;letter-spacing:.14em;color:#333;flex:1;white-space:nowrap;overflow:hidden}
+#side-toggle{border:0;background:none;color:#888;padding:5px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center}
+#side-toggle:hover{background:#f2f2f2;color:#111}
+#side-toggle svg{width:14px;height:14px;transition:transform .25s;pointer-events:none}
+#side-panel.collapsed #side-title,
+#side-panel.collapsed #side-body{display:none}
+#side-panel.collapsed #side-toggle svg{transform:rotate(180deg)}
+#side-body{flex:1;overflow-y:auto;padding:8px}
+.side-section{font-size:9.5px;color:#aaa;letter-spacing:.16em;margin:10px 6px 5px}
+.side-item{display:flex;align-items:center;gap:11px;padding:9px 10px;margin-bottom:5px;border:1px solid #e5e5e5;border-radius:6px;background:#fff;cursor:grab;transition:.15s;touch-action:none}
+.side-item:hover{border-color:#888;transform:translateX(-2px)}
+.side-item:active{cursor:grabbing}
+.side-item.active{border-color:#b45309;background:#fef3c7}
+.side-item.active .name{color:#92400e}
+.side-item .glyph{width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font:italic 21px Georgia;color:#111;border:1px solid #e5e5e5;border-radius:5px;pointer-events:none}
+.side-item .glyph.dot{font-size:0}
+.side-item .glyph.dot::after{content:"";width:12px;height:12px;background:#111;border-radius:50%;display:block}
+.side-item .glyph.rect{font-size:0}
+.side-item .glyph.rect::after{content:"";width:18px;height:12px;background:#111;border-radius:2px;display:block}
+.side-item .glyph.spring{font-size:12px;color:#b45309}
+.side-item .meta{flex:1;min-width:0;pointer-events:none}
+.side-item .name{font-size:12px;color:#222}
+.side-item .desc{font-size:9.5px;color:#999;margin-top:2px}
+#statusbar{height:32px;flex-shrink:0;border-top:1px solid #ddd;background:#fff;display:flex;align-items:center;padding:0 16px;gap:24px;font-size:11px;color:#888;position:relative;z-index:10}
+#sbTime{font-family:monospace}
+#sbMsg{color:#555}
+#ghost{position:fixed;pointer-events:none;z-index:200;width:44px;height:44px;border-radius:5px;background:rgba(17,17,17,.92);color:#fff;display:flex;align-items:center;justify-content:center;font:italic 20px Georgia;transform:translate(-50%,-50%);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+#hint{position:absolute;left:50%;top:16px;transform:translateX(-50%);background:rgba(17,17,17,.9);color:#fff;padding:8px 16px;border-radius:18px;font-size:12px;letter-spacing:.03em;z-index:15;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+#hint.show{opacity:1}
+#info{position:absolute;right:248px;top:16px;background:rgba(255,255,255,.96);border:1px solid #ddd;border-radius:6px;padding:11px 14px;font-size:10.5px;line-height:1.85;color:#555;display:none;z-index:9;min-width:220px;max-width:300px;pointer-events:none}
+#info.show{display:block}
+#info .it{font-size:10px;letter-spacing:.14em;color:#999;margin-bottom:6px}
+#info .ir{display:flex;justify-content:space-between;gap:12px}
+#info .ik{color:#666}
+#info .iv{color:#111;font-family:monospace}
+#info .sep2{border-top:1px dashed #e0e0e0;margin:6px 0}
+#info .c{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle}
+</style>
+</head>
+<body>
+
+<div id="screen-start" class="screen">
+  <div class="title">
+    <div class="logo">SINGULARITY</div>
+    <div class="sub">物理世界构造器</div>
+    <div class="menu">
+      <button id="startBtn">开始游戏</button>
+      <button id="contBtn">继续游戏</button>
+      <button id="setBtn">设置</button>
+    </div>
+  </div>
+  <div class="ver">v2.1 · 弹簧侧栏 · 碰撞 · 颜色</div>
+</div>
+
+<div id="modal-settings" class="modal">
+  <div class="panel">
+    <h2>设置</h2>
+    <div class="setting-row"><label>音量</label><input type="range" id="volume" min="0" max="100" value="50"><span id="volumeVal" class="val">50</span></div>
+    <div class="setting-row"><label>语言</label><select id="lang"><option value="zh">中文</option><option value="en">English</option></select></div>
+    <div class="setting-row"><label>背景音</label><input type="checkbox" id="bgSound"></div>
+    <div class="setting-row"><label>恢复系数</label><input type="range" id="restitution" min="0" max="100" value="50"><span id="restitutionVal" class="val">0.50</span></div>
+    <div class="panel-actions"><button id="setClose">关闭</button></div>
+  </div>
+</div>
+
+<div id="modal-spring" class="modal">
+  <div class="panel value-panel">
+    <h2 id="springTitle">弹簧参数</h2>
+    <div class="row2">
+      <div class="field"><label>k 劲度系数 (N/m)</label><input type="number" id="springK" step="any" value="500" min="0"></div>
+      <div class="field"><label>rest 自然长度 (px)</label><input type="number" id="springRest" step="any" value="100" min="0"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>c 阻尼系数</label><input type="number" id="springDamp" step="any" value="5" min="0"></div>
+      <div class="field"><label>当前距离 (px)</label><input type="number" id="springCurrent" readonly style="background:#f4f4f4"></div>
+    </div>
+    <div class="panel-actions">
+      <button id="springCancel">取消</button>
+      <button id="springOk" class="primary">确认</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-velocity" class="modal">
+  <div class="panel value-panel">
+    <h2>初速度 v</h2>
+    <div class="pad-wrap"><canvas id="velPad" width="200" height="200"></canvas></div>
+    <div class="row2">
+      <div class="field"><label>速度大小 (px/s)</label><input type="number" id="velSize" step="any" value="50" min="0"></div>
+      <div class="field"><label>角度 (°)</label><input type="number" id="velAngle" step="any" value="0"></div>
+    </div>
+    <div style="font-size:11px;color:#888;text-align:center;font-family:monospace;margin-bottom:4px" id="velPreview">vx = 50.0, vy = 0.0</div>
+    <div class="panel-actions">
+      <button id="velCancel">取消</button>
+      <button id="velOk" class="primary">确认</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-size" class="modal">
+  <div class="panel value-panel">
+    <h2>性质空间 S</h2>
+    <div class="pad-wrap"><canvas id="sizePad" width="280" height="220"></canvas></div>
+    <div class="row2">
+      <div class="field"><label>长 Sw (m)</label><input type="number" id="sizeW" step="any" value="60" min="4"></div>
+      <div class="field"><label>宽 Sh (m)</label><input type="number" id="sizeH" step="any" value="40" min="4"></div>
+    </div>
+    <div class="panel-actions">
+      <button id="sizeCancel">取消</button>
+      <button id="sizeOk" class="primary">确认</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-value" class="modal">
+  <div class="panel value-panel">
+    <h2 id="valTitle">设定属性</h2>
+    <div class="head-row">
+      <div class="symbol-box" id="valSymbol">m</div>
+      <div class="symbol-meta" id="valMeta"></div>
+    </div>
+    <div class="field">
+      <label>数值</label>
+      <input type="number" id="valInput" step="any" value="1">
+    </div>
+    <div class="panel-actions">
+      <button id="valCancel">取消</button>
+      <button id="valOk" class="primary">确认</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-props" class="modal">
+  <div class="panel value-panel">
+    <h2>物体属性</h2>
+    <div class="row2">
+      <div class="field"><label>m 质量 (kg)</label><input type="number" id="pM" step="any" value="0"></div>
+      <div class="field"><label>q 电荷 (C)</label><input type="number" id="pQ" step="any" value="0"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>L 自旋 (J·s)</label><input type="number" id="pL" step="any" value="0"></div>
+      <div class="field"><label>θ 朝向 (rad)</label><input type="number" id="pTheta" step="any" value="0"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Sw 长 (0=点)</label><input type="number" id="pSw" step="any" value="0" min="0"></div>
+      <div class="field"><label>Sh 宽 (0=点)</label><input type="number" id="pSh" step="any" value="0" min="0"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>vx</label><input type="number" id="pVx" step="any" value="0"></div>
+      <div class="field"><label>vy</label><input type="number" id="pVy" step="any" value="0"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>ω 角速度</label><input type="number" id="pOmega" step="any" value="0"></div>
+    </div>
+    <div class="panel-actions">
+      <button id="propsCancel">取消</button>
+      <button id="propsOk" class="primary">确认</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-game" class="screen hidden">
+  <div id="toolbar">
+    <span class="brand">SINGULARITY</span>
+    <span class="sep"></span>
+    <button class="tb" id="tSelect"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M5 3 L5 18 L9 14 L12 20 L14.5 18.8 L11.5 13 L17 13 Z"/></svg><span>选择</span></button>
+    <button class="tb" id="tDelete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6 L20 6 M9 6 L9 4 L15 4 L15 6 M6 6 L7 20 L17 20 L18 6 M10 10 L10 17 M14 10 L14 17"/></svg><span>删除</span></button>
+    <button class="tb" id="tClear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6 L18 18 M18 6 L6 18"/></svg><span>清空</span></button>
+    <span class="sep"></span>
+    <button class="tb collide active" id="tCollide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="9" cy="12" r="5"/><circle cx="15" cy="12" r="5"/></svg><span>碰撞</span></button>
+    <span class="sep"></span>
+    <button class="tb" id="tPlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M7 5 L7 19 L18 12 Z"/></svg><span>开始</span></button>
+    <button class="tb" id="tPause"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 5 L8 19 M16 5 L16 19"/></svg><span>暂停</span></button>
+    <button class="tb" id="tFast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M4 5 L4 19 L11 12 Z M12 5 L12 19 L19 12 Z"/></svg><span>快进</span></button>
+    <span class="sep"></span>
+    <button class="tb measure" id="tMeasure"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 L17 3 M5 15 L7 17 M9 11 L11 13 M13 7 L15 9 M6 16 L14 8"/></svg><span>测距</span></button>
+    <button class="tb accent" id="tAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 L4 4 M4 20 L20 20 M7 16 L11 10 L14 13 L19 6"/></svg><span>分析</span></button>
+    <span class="sep"></span>
+    <button class="tb" id="tSave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M5 4 L17 4 L20 7 L20 20 L5 20 Z M9 4 L9 11 L15 11 L15 4 M7 15 L17 15"/></svg><span>保存</span></button>
+    <button class="tb" id="tExit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4 L5 4 L5 20 L10 20 M14 8 L18 12 L14 16 M18 12 L9 12"/></svg><span>退出</span></button>
+    <span class="status" id="tStatus">编辑模式</span>
+  </div>
+
+  <div id="canvas-wrap">
+    <canvas id="world"></canvas>
+
+    <div id="legend">
+      <div class="lt">分析图例</div>
+      <div class="lrow"><span class="swatch" style="border-color:#2563eb"></span><span class="lbl">引力</span></div>
+      <div class="lrow"><span class="swatch" style="border-color:#f97316"></span><span class="lbl">库仑力</span></div>
+      <div class="lrow"><span class="swatch" style="border-color:#9333ea"></span><span class="lbl">自旋力</span></div>
+      <div class="lrow"><span class="swatch" style="border-color:#16a34a"></span><span class="lbl">磁力</span></div>
+      <div class="lrow"><span class="swatch" style="border-color:#b45309"></span><span class="lbl">弹簧力</span></div>
+      <div class="lrow"><span class="swatch" style="border-color:#000;border-top-width:3px"></span><span class="lbl">合力</span></div>
+      <div class="lrow"><span style="color:#db2777;font-size:14px;line-height:0">↻</span><span class="lbl">力矩</span></div>
+      <div class="lrow"><span class="swatch dash" style="border-color:#2563eb"></span><span class="lbl">引力场</span></div>
+      <div class="lrow"><span class="swatch dash" style="border-color:#f97316"></span><span class="lbl">电场</span></div>
+      <div class="lrow"><span class="swatch dash" style="border-color:#9333ea"></span><span class="lbl">自旋场</span></div>
+      <div class="lrow"><span class="swatch" style="border-color:#06b6d4"></span><span class="lbl">速度</span></div>
+      <div class="lrow"><span class="swatch" style="border-color:#dc2626"></span><span class="lbl">碰撞冲量</span></div>
+      <div class="lrow"><span class="swatch" style="border-color:#eab308"></span><span class="lbl">测距</span></div>
+    </div>
+
+    <div id="info"><div class="it">选中物体</div><div id="infoBody"></div></div>
+
+    <div id="side-panel">
+      <div id="side-header">
+        <span id="side-title">元素</span>
+        <button id="side-toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6 L9 12 L15 18"/></svg></button>
+      </div>
+      <div id="side-body">
+        <div class="side-section">物质</div>
+        <div class="side-item" data-type="particle"><div class="glyph dot"></div><div class="meta"><div class="name">质点</div><div class="desc">物质载体</div></div></div>
+        <div class="side-item" data-type="spring"><div class="glyph spring">⌇</div><div class="meta"><div class="name">弹簧</div><div class="desc">点击两个物体连接</div></div></div>
+        <div class="side-section">固有性质</div>
+        <div class="side-item" data-type="m"><div class="glyph">m</div><div class="meta"><div class="name">质量</div><div class="desc">[M] kg</div></div></div>
+        <div class="side-item" data-type="q"><div class="glyph">q</div><div class="meta"><div class="name">电荷</div><div class="desc">[I T] C</div></div></div>
+        <div class="side-item" data-type="L"><div class="glyph">L</div><div class="meta"><div class="name">自旋角动量</div><div class="desc">[M L² T⁻¹] J·s</div></div></div>
+        <div class="side-item" data-type="S"><div class="glyph rect"></div><div class="meta"><div class="name">性质空间 S</div><div class="desc">长 × 宽 · 可视化</div></div></div>
+        <div class="side-section">初始状态（需要质量）</div>
+        <div class="side-item" data-type="v"><div class="glyph">v</div><div class="meta"><div class="name">初速度</div><div class="desc">[L T⁻¹] px/s · 可视化</div></div></div>
+      </div>
+    </div>
+
+    <div id="hint"></div>
+  </div>
+
+  <div id="statusbar">
+    <span id="sbTime">t = 0.00 s</span>
+    <span id="sbMsg">等待操作</span>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+window.addEventListener('error', e => {
+  console.error('[SINGULARITY]', e.error || e.message, 'at', e.filename, e.lineno);
+  const sb = document.getElementById('sbMsg');
+  if (sb) sb.textContent = 'JS 错误：' + (e.message || '未知');
+});
+
+/* ============================================================
+   常量
+   ============================================================ */
+const SAVE_KEY = 'singularity_save_v21';
+const LS_LANG = 'singularity_lang';
+const LS_VOL  = 'singularity_vol';
+const LS_BG   = 'singularity_bg';
+const LS_REST = 'singularity_restitution';
+
+const PHYS = { G: 2000, ke: 2000, kL: 1e8, kM: 200, soft: 25, dt: 1/120 };
+const SAMPLE_K = 3;
+
+const COLORS = {
+  grav:    '#2563eb',
+  elec:    '#f97316',
+  spin:    '#9333ea',
+  mag:     '#16a34a',
+  spring:  '#b45309',
+  net:     '#000000',
+  torque:  '#db2777',
+  velocity:'#06b6d4',
+  collide: '#dc2626',
+  measure: '#eab308',
+};
+
+const state = {
+  lang: localStorage.getItem(LS_LANG) || 'zh',
+  volume: parseInt(localStorage.getItem(LS_VOL) ?? '50', 10),
+  bgSound: localStorage.getItem(LS_BG) === '1',
+  restitution: parseFloat(localStorage.getItem(LS_REST) ?? '0.5'),
+  playing: false,
+  speed: 1,
+  analyze: false,
+  collisionsOn: true,
+  springMode: false,
+  springStart: null,
+  measure: { active: false, a: null, b: null },
+  tool: 'select',
+  selected: null,
+  t: 0,
+  bodies: [],
+  springs: [],
+  hintTimer: null,
+  collisions: [],
+  springsCount: 0,
+};
+
+function $(id){ return document.getElementById(id); }
+function setStatus(s){
+  const a = $('tStatus'), b = $('sbMsg');
+  if (a) a.textContent = s;
+  if (b) b.textContent = s;
+}
+function showHint(s){
+  const h = $('hint');
+  if (!h) return;
+  h.textContent = s;
+  h.classList.add('show');
+  clearTimeout(state.hintTimer);
+  state.hintTimer = setTimeout(() => h.classList.remove('show'), 1800);
+}
+function safe(fn){ try { fn(); } catch(e){ console.error('[SINGULARITY]', e); } }
+
+/* ============================================================
+   音频
+   ============================================================ */
+let audioCtx = null, droneNodes = null, melodyTimer = null, melodyIndex = 0, musicOn = false;
+
+function initAudio(){
+  if (!audioCtx){
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return null; }
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playStringNote(freq, dur, volScale){
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const vol = (state.volume / 100) * 0.032 * (volScale || 1);
+  if (vol <= 0) return;
+  [{ m:1,g:1.00,d:0 },{ m:2,g:0.42,d:3 },{ m:3,g:0.20,d:-4 },{ m:4,g:0.11,d:5 },{ m:5,g:0.06,d:-3 }].forEach(h => {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'sine'; o.frequency.value = freq * h.m; o.detune.value = h.d;
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(vol * h.g, now + 0.28);
+    g.gain.linearRampToValueAtTime(vol * h.g * 0.55, now + dur * 0.65);
+    g.gain.linearRampToValueAtTime(0.0001, now + dur);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(now); o.stop(now + dur + 0.15);
+  });
+}
+function startDrone(){
+  if (!audioCtx || droneNodes) return;
+  const now = audioCtx.currentTime;
+  const vol = (state.volume / 100) * 0.014;
+  if (vol <= 0) return;
+  droneNodes = [];
+  [73.42, 110.00, 146.83].forEach((freq, i) => {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'sine'; o.frequency.value = freq;
+    o.detune.value = (Math.random() - 0.5) * 5;
+    g.gain.value = 0.0001;
+    g.gain.linearRampToValueAtTime(vol * (i === 0 ? 1 : 0.7), now + 3.5);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(now);
+    droneNodes.push({ o, g });
+  });
+}
+function stopDrone(){
+  if (!droneNodes || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  droneNodes.forEach(({ o, g }) => {
+    try {
+      g.gain.cancelScheduledValues(now);
+      g.gain.setValueAtTime(g.gain.value, now);
+      g.gain.linearRampToValueAtTime(0.0001, now + 1.2);
+      o.stop(now + 1.5);
+    } catch(e){}
+  });
+  droneNodes = null;
+}
+const MELODY = [
+  { f: 293.66, d: 2.2, v: 1.0 }, { f: 0, d: 1.2, v: 0 },
+  { f: 349.23, d: 1.8, v: 0.85 }, { f: 0, d: 0.6, v: 0 },
+  { f: 440.00, d: 2.6, v: 0.9 }, { f: 392.00, d: 1.6, v: 0.7 },
+  { f: 0, d: 0.8, v: 0 }, { f: 349.23, d: 2.0, v: 0.8 },
+  { f: 0, d: 1.4, v: 0 }, { f: 293.66, d: 3.0, v: 1.0 },
+  { f: 0, d: 1.0, v: 0 }, { f: 261.63, d: 2.0, v: 0.7 },
+  { f: 0, d: 0.8, v: 0 }, { f: 220.00, d: 3.2, v: 0.75 },
+  { f: 0, d: 2.4, v: 0 }, { f: 233.08, d: 2.4, v: 0.6 },
+  { f: 0, d: 1.6, v: 0 }, { f: 293.66, d: 3.6, v: 0.9 },
+  { f: 0, d: 3.0, v: 0 },
+];
+function scheduleMelody(){
+  if (!musicOn) return;
+  const step = MELODY[melodyIndex % MELODY.length];
+  melodyIndex++;
+  if (step.f > 0){
+    playStringNote(step.f, step.d * 0.94, step.v);
+    if (Math.random() < 0.4){
+      setTimeout(() => { if (musicOn) playStringNote(step.f * 1.5, step.d * 0.7, step.v * 0.4); }, 180);
+    }
+  }
+  melodyTimer = setTimeout(scheduleMelody, step.d * 1000);
+}
+function startMusic(){
+  if (!initAudio()) return;
+  if (musicOn) return;
+  musicOn = true; melodyIndex = 0;
+  startDrone(); scheduleMelody();
+}
+function stopMusic(){
+  musicOn = false;
+  if (melodyTimer){ clearTimeout(melodyTimer); melodyTimer = null; }
+  stopDrone();
+}
+function updateMusic(){
+  const game = $('screen-game');
+  if (state.bgSound && game && !game.classList.contains('hidden')) startMusic();
+  else stopMusic();
+}
+function blip(freq, dur){
+  if (!initAudio()) return;
+  const now = audioCtx.currentTime;
+  const vol = (state.volume / 100) * 0.045;
+  if (vol <= 0) return;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = 'triangle'; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(vol, now + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + (dur || 0.08));
+  o.connect(g).connect(audioCtx.destination);
+  o.start(now); o.stop(now + (dur || 0.08) + 0.03);
+}
+
+/* ============================================================
+   存档
+   ============================================================ */
+function hasSave(){ return !!localStorage.getItem(SAVE_KEY); }
+function saveGame(){
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      bodies: state.bodies.map(p => ({
+        id: p.id, x: p.x, y: p.y,
+        vx: p.vx, vy: p.vy,
+        m: p.m, q: p.q, L: p.L,
+        Sw: p.Sw, Sh: p.Sh,
+        theta: p.theta, omega: p.omega,
+      })),
+      springs: state.springs.map(s => ({ ...s })),
+      t: state.t,
+    }));
+    return true;
+  } catch(e){ return false; }
+}
+function loadGame(){
+  const s = localStorage.getItem(SAVE_KEY);
+  if (!s) return null;
+  try { return JSON.parse(s); } catch(e){ return null; }
+}
+
+/* ============================================================
+   物体
+   ============================================================ */
+let nextId = 1;
+function createBody(x, y){
+  return {
+    id: nextId++, x, y,
+    vx: 0, vy: 0,
+    m: 0, q: 0, L: 0,
+    Sw: 0, Sh: 0,
+    theta: 0, omega: 0,
+    fx: 0, fy: 0, torque: 0,
+    forces: null,
+    springFx: 0, springFy: 0,
+  };
+}
+function isRect(p){ return p.Sw > 0 && p.Sh > 0; }
+function getInertia(p){
+  if (!isRect(p)) return 1;
+  const m = p.m > 0 ? p.m : 1;
+  return m * (p.Sw * p.Sw + p.Sh * p.Sh) / 12;
+}
+function boundaryRadius(p){
+  if (!isRect(p)) return 8;
+  return Math.hypot(p.Sw, p.Sh) / 2;
+}
+const SAMPLE_CACHE = {};
+function getSampleOffsets(K){
+  if (SAMPLE_CACHE[K]) return SAMPLE_CACHE[K];
+  const pts = [];
+  const total = K * K;
+  for (let i = 0; i < K; i++){
+    for (let j = 0; j < K; j++){
+      const u = (i - (K - 1) / 2) / K;
+      const v = (j - (K - 1) / 2) / K;
+      pts.push({ u, v, w: 1 / total });
+    }
+  }
+  SAMPLE_CACHE[K] = pts;
+  return pts;
+}
+function getSamples(p){
+  if (!isRect(p)){
+    return [{
+      x: p.x, y: p.y, rx: 0, ry: 0,
+      m: p.m, q: p.q, L: p.L,
+      vx: p.vx, vy: p.vy, w: 1,
+    }];
+  }
+  const c = Math.cos(p.theta), s = Math.sin(p.theta);
+  const offsets = getSampleOffsets(SAMPLE_K);
+  const list = [];
+  for (const o of offsets){
+    const lx = o.u * p.Sw;
+    const ly = o.v * p.Sh;
+    const rx = c * lx - s * ly;
+    const ry = s * lx + c * ly;
+    const vx = p.vx - p.omega * ry;
+    const vy = p.vy + p.omega * rx;
+    list.push({
+      x: p.x + rx, y: p.y + ry, rx, ry,
+      m: p.m * o.w, q: p.q * o.w, L: p.L * o.w,
+      vx, vy, w: o.w,
+    });
+  }
+  return list;
+}
+
+/* ============================================================
+   场的力
+   ============================================================ */
+function sampleForce(pa, pb){
+  const dx = pb.x - pa.x;
+  const dy = pb.y - pa.y;
+  const r2 = dx*dx + dy*dy + PHYS.soft * PHYS.soft;
+  const r = Math.sqrt(r2);
+  const ux = dx / r, uy = dy / r;
+  const Fgrav = PHYS.G * pa.m * pb.m / r2;
+  const Felec = -PHYS.ke * pa.q * pb.q / r2;
+  const Fspin = PHYS.kL * pa.L * pb.L / (r2 * r2);
+  let magX = 0, magY = 0;
+  if (pa.q !== 0 && pb.q !== 0){
+    const va_dot_u = pa.vx * ux + pa.vy * uy;
+    const vb_dot_u = pb.vx * ux + pb.vy * uy;
+    const va_dot_vb = pa.vx * pb.vx + pa.vy * pb.vy;
+    const k = PHYS.kM * pa.q * pb.q / r2;
+    magX = -k * (pa.vx * vb_dot_u - ux * va_dot_vb);
+    magY = -k * (pa.vy * vb_dot_u - uy * va_dot_vb);
+  }
+  return {
+    grav: { x: Fgrav * ux, y: Fgrav * uy },
+    elec: { x: Felec * ux, y: Felec * uy },
+    spin: { x: Fspin * ux, y: Fspin * uy },
+    mag:  { x: magX, y: magY },
+  };
+}
+function interact(A, B){
+  const sa = getSamples(A), sb = getSamples(B);
+  let aFx = 0, aFy = 0, aTq = 0;
+  let bFx = 0, bFy = 0, bTq = 0;
+  const aCat = { grav:{x:0,y:0}, elec:{x:0,y:0}, spin:{x:0,y:0}, mag:{x:0,y:0} };
+  const bCat = { grav:{x:0,y:0}, elec:{x:0,y:0}, spin:{x:0,y:0}, mag:{x:0,y:0} };
+  for (const pa of sa){
+    for (const pb of sb){
+      const f = sampleForce(pa, pb);
+      for (const k of ['grav','elec','spin','mag']){
+        aCat[k].x += f[k].x; aCat[k].y += f[k].y;
+        bCat[k].x -= f[k].x; bCat[k].y -= f[k].y;
+      }
+      const fx = f.grav.x + f.elec.x + f.spin.x + f.mag.x;
+      const fy = f.grav.y + f.elec.y + f.spin.y + f.mag.y;
+      aFx += fx; aFy += fy;
+      aTq += pa.rx * fy - pa.ry * fx;
+      bFx -= fx; bFy -= fy;
+      bTq += pb.rx * (-fy) - pb.ry * (-fx);
+    }
+  }
+  A.fx += aFx; A.fy += aFy; A.torque += aTq;
+  B.fx += bFx; B.fy += bFy; B.torque += bTq;
+  for (const k of ['grav','elec','spin','mag']){
+    A.forces[k].x += aCat[k].x; A.forces[k].y += aCat[k].y;
+    B.forces[k].x += bCat[k].x; B.forces[k].y += bCat[k].y;
+  }
+}
+
+/* ============================================================
+   弹簧
+   ============================================================ */
+function applySprings(){
+  for (const sp of state.springs){
+    const A = state.bodies.find(x => x.id === sp.a);
+    const B = state.bodies.find(x => x.id === sp.b);
+    if (!A || !B) continue;
+    const dx = B.x - A.x;
+    const dy = B.y - A.y;
+    const r = Math.hypot(dx, dy);
+    if (r < 1e-6) continue;
+    const ux = dx / r, uy = dy / r;
+    const stretch = r - sp.rest;
+    const Fk = sp.k * stretch;
+    const vrx = B.vx - A.vx;
+    const vry = B.vy - A.vy;
+    const vr = vrx * ux + vry * uy;
+    const Fc = sp.damp * vr;
+    const Fx = (Fk + Fc) * ux;
+    const Fy = (Fk + Fc) * uy;
+    A.fx += Fx; A.fy += Fy;
+    B.fx -= Fx; B.fy -= Fy;
+    A.springFx += Fx;
+    A.springFy += Fy;
+    B.springFx -= Fx;
+    B.springFy -= Fy;
+  }
+}
+
+/* ============================================================
+   碰撞
+   ============================================================ */
+function resolveCollisions(){
+  state.collisions = [];
+  if (!state.collisionsOn) return;
+  const bodies = state.bodies;
+  for (let i = 0; i < bodies.length; i++){
+    for (let j = i + 1; j < bodies.length; j++){
+      const A = bodies[i], B = bodies[j];
+      const rA = boundaryRadius(A);
+      const rB = boundaryRadius(B);
+      const dx = B.x - A.x;
+      const dy = B.y - A.y;
+      const d = Math.hypot(dx, dy);
+      const minD = rA + rB;
+      if (d >= minD || d < 1e-6) continue;
+
+      const invMA = A.m > 0 ? 1 / A.m : 0;
+      const invMB = B.m > 0 ? 1 / B.m : 0;
+      const invM = invMA + invMB;
+      if (invM < 1e-12) continue;
+
+      const nx = dx / d;
+      const ny = dy / d;
+      const overlap = minD - d;
+      const wA = invMA / invM;
+      const wB = invMB / invM;
+      A.x -= nx * overlap * wA;
+      A.y -= ny * overlap * wA;
+      B.x += nx * overlap * wB;
+      B.y += ny * overlap * wB;
+
+      const vRx = B.vx - A.vx;
+      const vRy = B.vy - A.vy;
+      const vn = vRx * nx + vRy * ny;
+      if (vn > 0) continue;
+
+      const e = state.restitution;
+      const jImp = -(1 + e) * vn / invM;
+
+      if (A.m > 0){
+        A.vx -= jImp * nx * invMA;
+        A.vy -= jImp * ny * invMA;
+      }
+      if (B.m > 0){
+        B.vx += jImp * nx * invMB;
+        B.vy += jImp * ny * invMB;
+      }
+
+      state.collisions.push({
+        x: A.x + nx * rA,
+        y: A.y + ny * rA,
+        t: performance.now(),
+        j: Math.abs(jImp),
+      });
+
+      if (Math.abs(jImp) > 5){
+        blip(180 + Math.min(200, Math.abs(jImp)), 0.06);
+      }
+    }
+  }
+}
+
+function computeAllForces(){
+  for (const p of state.bodies){
+    p.fx = 0; p.fy = 0; p.torque = 0;
+    p.springFx = 0; p.springFy = 0;
+    p.forces = { grav:{x:0,y:0}, elec:{x:0,y:0}, spin:{x:0,y:0}, mag:{x:0,y:0} };
+  }
+  for (let i = 0; i < state.bodies.length; i++){
+    for (let j = i + 1; j < state.bodies.length; j++){
+      interact(state.bodies[i], state.bodies[j]);
+    }
+  }
+  applySprings();
+}
+
+function applyBoundary(p){
+  const r = boundaryRadius(p);
+  if (p.x - r < 0){ p.x = r; p.vx = Math.abs(p.vx) * 0.9; }
+  if (p.x + r > canvasW){ p.x = canvasW - r; p.vx = -Math.abs(p.vx) * 0.9; }
+  if (p.y - r < 0){ p.y = r; p.vy = Math.abs(p.vy) * 0.9; }
+  if (p.y + r > canvasH){ p.y = canvasH - r; p.vy = -Math.abs(p.vy) * 0.9; }
+}
+
+function stepPhysics(dt){
+  computeAllForces();
+  for (const p of state.bodies){
+    if (p.m <= 0) continue;
+    p.vx += (p.fx / p.m) * dt;
+    p.vy += (p.fy / p.m) * dt;
+    if (isRect(p)){
+      const I = getInertia(p);
+      if (I > 0) p.omega += (p.torque / I) * dt;
+    }
+  }
+  for (const p of state.bodies){
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    if (isRect(p)) p.theta += p.omega * dt;
+    applyBoundary(p);
+  }
+  resolveCollisions();
+  state.t += dt;
+}
+
+/* ============================================================
+   渲染
+   ============================================================ */
+const canvas = $('world');
+const ctx = canvas.getContext('2d');
+let canvasW = 800, canvasH = 600;
+let mousePos = { x: 0, y: 0 }, mouseOnCanvas = false;
+
+function resizeCanvas(){
+  if (!canvas) return;
+  const parent = canvas.parentElement;
+  if (!parent) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const r = parent.getBoundingClientRect();
+  canvasW = Math.max(100, r.width);
+  canvasH = Math.max(100, r.height);
+  canvas.width  = Math.round(canvasW * dpr);
+  canvas.height = Math.round(canvasH * dpr);
+  canvas.style.width = canvasW + 'px';
+  canvas.style.height = canvasH + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+function canvasPos(clientX, clientY){
+  const r = canvas.getBoundingClientRect();
+  return { x: clientX - r.left, y: clientY - r.top };
+}
+function bodyAt(x, y){
+  for (let i = state.bodies.length - 1; i >= 0; i--){
+    const p = state.bodies[i];
+    if (isRect(p)){
+      const dx = x - p.x, dy = y - p.y;
+      const c = Math.cos(-p.theta), s = Math.sin(-p.theta);
+      const lx = c * dx - s * dy;
+      const ly = s * dx + c * dy;
+      if (Math.abs(lx) <= p.Sw / 2 + 4 && Math.abs(ly) <= p.Sh / 2 + 4) return p;
+    } else {
+      if (Math.hypot(x - p.x, y - p.y) < 18) return p;
+    }
+  }
+  return null;
+}
+function springAt(x, y){
+  for (const sp of state.springs){
+    const A = state.bodies.find(x => x.id === sp.a);
+    const B = state.bodies.find(x => x.id === sp.b);
+    if (!A || !B) continue;
+    const dx = B.x - A.x, dy = B.y - A.y;
+    const len2 = dx*dx + dy*dy;
+    if (len2 < 1) continue;
+    let t = ((x - A.x) * dx + (y - A.y) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    const px = A.x + t * dx, py = A.y + t * dy;
+    if (Math.hypot(x - px, y - py) < 8) return sp;
+  }
+  return null;
+}
+function fmt(v){
+  if (v === 0) return '0';
+  const a = Math.abs(v);
+  if (a >= 1e6 || a < 1e-3) return v.toExponential(2);
+  return parseFloat(v.toFixed(3)).toString();
+}
+function draw(){
+  ctx.clearRect(0, 0, canvasW, canvasH);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvasW, canvasH);
+  if (state.analyze){
+    for (const p of state.bodies) drawFieldsFor(p);
+  }
+  for (const sp of state.springs) drawSpring(sp);
+  for (const p of state.bodies) drawBody(p);
+  const now = performance.now();
+  for (const c of state.collisions){
+    const age = (now - c.t) / 300;
+    if (age > 1) continue;
+    const alpha = 1 - age;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, 4 + age * 20, 0, Math.PI * 2);
+    ctx.fillStyle = COLORS.collide;
+    ctx.fill();
+    ctx.restore();
+  }
+  if (state.analyze){
+    for (const p of state.bodies) drawForces(p);
+  }
+  if (state.measure.active) drawMeasure();
+  if (state.selected){
+    const p = state.bodies.find(x => x.id === state.selected);
+    if (p) drawSelection(p);
+  }
+  if (state.springMode && state.springStart){
+    const A = state.bodies.find(x => x.id === state.springStart);
+    if (A && mouseOnCanvas){
+      ctx.save();
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = COLORS.spring;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(A.x, A.y);
+      ctx.lineTo(mousePos.x, mousePos.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+}
+function drawSelection(p){
+  ctx.save();
+  ctx.setLineDash([5, 4]);
+  ctx.lineDashOffset = -performance.now() / 80;
+  ctx.strokeStyle = '#111';
+  ctx.lineWidth = 1;
+  if (isRect(p)){
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.theta);
+    ctx.strokeRect(-p.Sw/2 - 8, -p.Sh/2 - 8, p.Sw + 16, p.Sh + 16);
+  } else {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 18, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+function drawSpring(sp){
+  const A = state.bodies.find(x => x.id === sp.a);
+  const B = state.bodies.find(x => x.id === sp.b);
+  if (!A || !B) return;
+  const dx = B.x - A.x, dy = B.y - A.y;
+  const d = Math.hypot(dx, dy);
+  if (d < 1) return;
+  const ux = dx / d, uy = dy / d;
+  const px = -uy, py = ux;
+  const coils = 8;
+  const amp = 6;
+  const rest = sp.rest || 100;
+  const stretch = d - rest;
+  const hueRatio = Math.max(-1, Math.min(1, stretch / 50));
+  const alpha = 0.6 + Math.abs(hueRatio) * 0.4;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.moveTo(A.x, A.y);
+  const N = coils * 2;
+  for (let i = 1; i < N; i++){
+    const t = i / N;
+    const cxp = A.x + ux * d * t + px * Math.sin(t * Math.PI * 2 * coils) * amp;
+    const cyp = A.y + uy * d * t + py * Math.sin(t * Math.PI * 2 * coils) * amp;
+    ctx.lineTo(cxp, cyp);
+  }
+  ctx.lineTo(B.x, B.y);
+  ctx.strokeStyle = COLORS.spring;
+  ctx.lineWidth = 1.8;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+  ctx.restore();
+}
+function drawMeasure(){
+  if (!state.measure.a || !state.measure.b) return;
+  const A = state.bodies.find(x => x.id === state.measure.a);
+  const B = state.bodies.find(x => x.id === state.measure.b);
+  if (!A || !B) return;
+  const d = Math.hypot(B.x - A.x, B.y - A.y);
+  ctx.save();
+  ctx.setLineDash([6, 4]);
+  ctx.strokeStyle = COLORS.measure;
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(A.x, A.y);
+  ctx.lineTo(B.x, B.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  [A, B].forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = COLORS.measure;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+  const mx = (A.x + B.x) / 2;
+  const my = (A.y + B.y) / 2;
+  const text = d.toFixed(1) + ' px';
+  ctx.font = 'bold 12px ui-monospace, monospace';
+  const tw = ctx.measureText(text).width;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(mx - tw/2 - 8, my - 24, tw + 16, 20);
+  ctx.strokeStyle = COLORS.measure;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(mx - tw/2 - 8, my - 24, tw + 16, 20);
+  ctx.fillStyle = COLORS.measure;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, mx, my - 14);
+  ctx.restore();
+}
+function drawBody(p){
+  if (isRect(p)) drawRectBody(p);
+  else drawPointBody(p);
+}
+function drawPointBody(p){
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#111';
+  ctx.fill();
+  if (p.q !== 0){
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+    ctx.strokeStyle = p.q > 0 ? COLORS.elec : COLORS.grav;
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+  }
+  if (p.L !== 0){
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(performance.now() / 400 * Math.sign(p.L));
+    ctx.beginPath();
+    ctx.arc(0, 0, 13, 0, Math.PI * 0.6);
+    ctx.strokeStyle = COLORS.spin;
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    ctx.restore();
+  }
+  const vmag = Math.hypot(p.vx, p.vy);
+  if (vmag > 0.1 && p.m > 0){
+    const len = Math.min(60, 10 + Math.log10(1 + vmag) * 25);
+    const ux = p.vx / vmag, uy = p.vy / vmag;
+    drawArrow(p.x + ux * 14, p.y + uy * 14, p.x + ux * (14 + len), p.y + uy * (14 + len), COLORS.velocity, 1.6);
+  }
+  const labels = [];
+  if (p.m > 0) labels.push('m=' + fmt(p.m));
+  if (p.q !== 0) labels.push('q=' + fmt(p.q));
+  if (p.L !== 0) labels.push('L=' + fmt(p.L));
+  if (labels.length){
+    ctx.font = '10px ui-monospace, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#333';
+    labels.forEach((t, i) => {
+      ctx.fillText(t, p.x + 16, p.y - (labels.length - 1) * 6 + i * 12);
+    });
+  }
+}
+function drawRectBody(p){
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.theta);
+  ctx.beginPath();
+  ctx.rect(-p.Sw/2, -p.Sh/2, p.Sw, p.Sh);
+  ctx.fillStyle = 'rgba(17,17,17,0.08)';
+  ctx.fill();
+  ctx.strokeStyle = '#111';
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+  const offsets = getSampleOffsets(SAMPLE_K);
+  for (const o of offsets){
+    const lx = o.u * p.Sw;
+    const ly = o.v * p.Sh;
+    ctx.beginPath();
+    ctx.arc(lx, ly, 2, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(17,17,17,0.6)';
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.arc(0, 0, 2.8, 0, Math.PI * 2);
+  ctx.fillStyle = '#111';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(p.Sw/2 - 8, 0);
+  ctx.strokeStyle = '#111';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  if (p.q !== 0){
+    ctx.beginPath();
+    ctx.rect(-p.Sw/2 - 3, -p.Sh/2 - 3, p.Sw + 6, p.Sh + 6);
+    ctx.strokeStyle = p.q > 0 ? COLORS.elec : COLORS.grav;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  }
+  ctx.restore();
+  const vmag = Math.hypot(p.vx, p.vy);
+  if (vmag > 0.1 && p.m > 0){
+    const r = Math.hypot(p.Sw, p.Sh) / 2;
+    const len = Math.min(60, 10 + Math.log10(1 + vmag) * 25);
+    const ux = p.vx / vmag, uy = p.vy / vmag;
+    drawArrow(p.x + ux * (r + 4), p.y + uy * (r + 4), p.x + ux * (r + 4 + len), p.y + uy * (r + 4 + len), COLORS.velocity, 1.6);
+  }
+  const labels = [];
+  if (p.m > 0) labels.push('m=' + fmt(p.m));
+  if (p.q !== 0) labels.push('q=' + fmt(p.q));
+  if (p.L !== 0) labels.push('L=' + fmt(p.L));
+  if (labels.length){
+    const r = Math.hypot(p.Sw, p.Sh) / 2 + 10;
+    ctx.font = '10px ui-monospace, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#333';
+    labels.forEach((t, i) => {
+      ctx.fillText(t, p.x + r, p.y - (labels.length - 1) * 6 + i * 12);
+    });
+  }
+}
+function drawFieldsFor(p){
+  const r = isRect(p) ? Math.hypot(p.Sw, p.Sh) / 2 : 8;
+  if (p.m > 0) drawRadialField(p.x, p.y, r + 50, COLORS.grav, 'in', p.m, r + 6);
+  if (p.q !== 0) drawRadialField(p.x, p.y, r + 50, COLORS.elec, p.q > 0 ? 'out' : 'in', Math.abs(p.q), r + 6);
+  if (p.L !== 0) drawSpinField(p.x, p.y, COLORS.spin, p.L, r);
+}
+function drawRadialField(cx, cy, radius, color, dir, strength, r0){
+  const N = 8;
+  const alpha = Math.min(0.28, 0.10 + Math.log10(1 + Math.abs(strength)) * 0.06);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 4]);
+  for (let i = 0; i < N; i++){
+    const a = (i / N) * Math.PI * 2 + performance.now() / 3000;
+    const x1 = cx + Math.cos(a) * r0;
+    const y1 = cy + Math.sin(a) * r0;
+    const x2 = cx + Math.cos(a) * radius;
+    const y2 = cy + Math.sin(a) * radius;
+    ctx.beginPath();
+    if (dir === 'out'){ ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); }
+    else { ctx.moveTo(x2, y2); ctx.lineTo(x1, y1); }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  for (let i = 0; i < N; i++){
+    const a = (i / N) * Math.PI * 2 + performance.now() / 3000;
+    const ex = dir === 'out' ? cx + Math.cos(a) * radius : cx + Math.cos(a) * r0;
+    const ey = dir === 'out' ? cy + Math.sin(a) * radius : cy + Math.sin(a) * r0;
+    const ux = dir === 'out' ? Math.cos(a) : -Math.cos(a);
+    const uy = dir === 'out' ? Math.sin(a) : -Math.sin(a);
+    const head = 4;
+    const px = -uy, py = ux;
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - ux * head + px * head * 0.5, ey - uy * head + py * head * 0.5);
+    ctx.lineTo(ex - ux * head - px * head * 0.5, ey - uy * head - py * head * 0.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+function drawSpinField(cx, cy, color, strength, baseR){
+  ctx.save();
+  ctx.globalAlpha = 0.22;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  const R = baseR + 22 + Math.min(20, Math.sqrt(Math.abs(strength)) * 2);
+  for (let i = 0; i < 2; i++){
+    const rr = R + i * 13;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+    ctx.setLineDash([3, 6]);
+    ctx.lineDashOffset = (strength > 0 ? -1 : 1) * performance.now() / 120;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+}
+function forceToLength(mag){
+  if (mag <= 1e-9) return 0;
+  const l = 22 * Math.log10(1 + mag * 10);
+  return Math.max(8, Math.min(90, l));
+}
+function drawForces(p){
+  if (p.m <= 0) return;
+  const r0 = isRect(p) ? Math.hypot(p.Sw, p.Sh) / 2 + 6 : 12;
+  const cats = [
+    { key: 'grav', color: COLORS.grav, fx: p.forces.grav.x, fy: p.forces.grav.y },
+    { key: 'elec', color: COLORS.elec, fx: p.forces.elec.x, fy: p.forces.elec.y },
+    { key: 'spin', color: COLORS.spin, fx: p.forces.spin.x, fy: p.forces.spin.y },
+    { key: 'mag',  color: COLORS.mag,  fx: p.forces.mag.x,  fy: p.forces.mag.y },
+    { key: 'spring', color: COLORS.spring, fx: p.springFx || 0, fy: p.springFy || 0 },
+  ];
+  for (const c of cats){
+    const mag = Math.hypot(c.fx, c.fy);
+    if (mag > 1e-7){
+      const len = forceToLength(mag);
+      const ux = c.fx / mag, uy = c.fy / mag;
+      const sx = p.x + ux * r0, sy = p.y + uy * r0;
+      drawArrow(sx, sy, sx + ux * len, sy + uy * len, c.color, 1.6);
+    }
+  }
+  const net = Math.hypot(p.fx, p.fy);
+  if (net > 1e-7){
+    const len = forceToLength(net);
+    const ux = p.fx / net, uy = p.fy / net;
+    const sx = p.x + ux * r0, sy = p.y + uy * r0;
+    const ex = sx + ux * len, ey = sy + uy * len;
+    drawArrow(sx, sy, ex, ey, COLORS.net, 2.8);
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 10px ui-monospace, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('|F|=' + fmt(net), ex + 6, ey);
+  }
+  if (isRect(p) && Math.abs(p.torque) > 1e-6){
+    drawTorque(p.x, p.y, p.torque);
+  }
+}
+function drawTorque(cx, cy, tq){
+  const r = 30;
+  const sign = Math.sign(tq);
+  const mag = Math.min(1, Math.log10(1 + Math.abs(tq)) / 4);
+  const span = Math.PI * (0.5 + mag * 0.5);
+  const start = performance.now() / 400 * sign;
+  ctx.save();
+  ctx.strokeStyle = COLORS.torque;
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.7 + mag * 0.3;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, start, start + span * sign, sign < 0);
+  ctx.stroke();
+  const endAngle = start + span * sign;
+  const ex = cx + Math.cos(endAngle) * r;
+  const ey = cy + Math.sin(endAngle) * r;
+  const tx = -Math.sin(endAngle) * sign;
+  const ty = Math.cos(endAngle) * sign;
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - tx * 6 - ty * 3, ey - ty * 6 + tx * 3);
+  ctx.lineTo(ex - tx * 6 + ty * 3, ey - ty * 6 - tx * 3);
+  ctx.closePath();
+  ctx.fillStyle = COLORS.torque;
+  ctx.fill();
+  ctx.restore();
+}
+function drawArrow(x1, y1, x2, y2, color, width){
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.hypot(dx, dy);
+  if (len < 1) return;
+  const ux = dx / len, uy = dy / len;
+  const head = Math.min(9, len * 0.45);
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = width;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2 - ux * head, y2 - uy * head);
+  ctx.stroke();
+  const px = -uy, py = ux;
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - ux * head + px * head * 0.5, y2 - uy * head + py * head * 0.5);
+  ctx.lineTo(x2 - ux * head - px * head * 0.5, y2 - uy * head - py * head * 0.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+function updateInfo(){
+  const el = $('info'), body = $('infoBody');
+  if (!el || !body) return;
+  if (!state.analyze || !state.selected){ el.classList.remove('show'); return; }
+  const p = state.bodies.find(x => x.id === state.selected);
+  if (!p){ el.classList.remove('show'); return; }
+  el.classList.add('show');
+  const netF = Math.hypot(p.fx, p.fy);
+  const grav = Math.hypot(p.forces.grav.x, p.forces.grav.y);
+  const elec = Math.hypot(p.forces.elec.x, p.forces.elec.y);
+  const spin = Math.hypot(p.forces.spin.x, p.forces.spin.y);
+  const mag  = Math.hypot(p.forces.mag.x,  p.forces.mag.y);
+  const spr  = Math.hypot(p.springFx || 0, p.springFy || 0);
+  const dot = c => `<span class="c" style="background:${c}"></span>`;
+  const rows = [
+    ['m', fmt(p.m) + ' kg'],
+    ['q', fmt(p.q) + ' C'],
+    ['L', fmt(p.L) + ' J·s'],
+    ['S', isRect(p) ? fmt(p.Sw) + ' × ' + fmt(p.Sh) : '点'],
+    ['θ', fmt(p.theta) + ' rad'],
+    ['v', fmt(Math.hypot(p.vx, p.vy)) + ' px/s'],
+    ['ω', fmt(p.omega) + ' rad/s'],
+  ];
+  let forcesHtml;
+  if (p.m <= 0){
+    forcesHtml = '<div class="ir"><span class="ik">状态</span><span class="iv" style="color:#a22">无质量 · 不受力</span></div>';
+  } else {
+    forcesHtml =
+      `<div class="ir"><span class="ik">合力</span><span class="iv">${fmt(netF)}</span></div>` +
+      `<div class="ir"><span class="ik">${dot(COLORS.grav)}引力</span><span class="iv">${fmt(grav)}</span></div>` +
+      `<div class="ir"><span class="ik">${dot(COLORS.elec)}库仑</span><span class="iv">${fmt(elec)}</span></div>` +
+      `<div class="ir"><span class="ik">${dot(COLORS.spin)}自旋</span><span class="iv">${fmt(spin)}</span></div>` +
+      `<div class="ir"><span class="ik">${dot(COLORS.mag)}磁力</span><span class="iv">${fmt(mag)}</span></div>` +
+      `<div class="ir"><span class="ik">${dot(COLORS.spring)}弹簧</span><span class="iv">${fmt(spr)}</span></div>` +
+      `<div class="ir"><span class="ik">${dot(COLORS.torque)}力矩</span><span class="iv">${fmt(p.torque)}</span></div>`;
+  }
+  body.innerHTML =
+    rows.map(([k,v]) => `<div class="ir"><span class="ik">${k}</span><span class="iv">${v}</span></div>`).join('') +
+    '<div class="sep2"></div>' + forcesHtml;
+}
+
+/* ============================================================
+   主循环
+   ============================================================ */
+let rafId = null;
+let lastT = performance.now();
+let acc = 0;
+function loop(now){
+  now = now || performance.now();
+  const dt = Math.min(0.05, (now - lastT) / 1000);
+  lastT = now;
+  if (state.playing){
+    acc += dt * state.speed;
+    let steps = 0;
+    const maxSteps = 16;
+    while (acc >= PHYS.dt && steps < maxSteps){
+      stepPhysics(PHYS.dt);
+      acc -= PHYS.dt;
+      steps++;
+    }
+    if (steps >= maxSteps) acc = 0;
+  } else if (state.analyze && state.bodies.length > 0){
+    computeAllForces();
+  }
+  safe(draw);
+  safe(updateInfo);
+  // 刷新弹簧弹窗里的当前距离
+  const springModal = $('modal-spring');
+  if (springModal && springModal.classList.contains('show')){
+    let A, B;
+    if (springCreating){ A = springCreating.A; B = springCreating.B; }
+    else if (springTarget){
+      A = state.bodies.find(x => x.id === springTarget.a);
+      B = state.bodies.find(x => x.id === springTarget.b);
+    }
+    if (A && B){
+      const cur = $('springCurrent');
+      if (cur){
+        const d = Math.hypot(B.x - A.x, B.y - A.y);
+        cur.value = d.toFixed(1);
+      }
+    }
+  }
+  const sb = $('sbTime');
+  if (sb) sb.textContent = 't = ' + state.t.toFixed(2) + ' s' + (state.speed !== 1 ? '  ×' + state.speed : '');
+  const game = $('screen-game');
+  if (!game || game.classList.contains('hidden')){
+    rafId = null;
+    return;
+  }
+  rafId = requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   拖拽
+   ============================================================ */
+let ghostEl = null;
+function startDrag(e, item){
+  e.preventDefault();
+  const type = item.dataset.type;
+  ghostEl = document.createElement('div');
+  ghostEl.id = 'ghost';
+  if (type === 'particle'){
+    ghostEl.style.width = '20px';
+    ghostEl.style.height = '20px';
+    ghostEl.style.borderRadius = '50%';
+  } else {
+    ghostEl.textContent = type;
+  }
+  ghostEl.style.left = e.clientX + 'px';
+  ghostEl.style.top = e.clientY + 'px';
+  document.body.appendChild(ghostEl);
+  const onMove = ev => {
+    if (ghostEl){
+      ghostEl.style.left = ev.clientX + 'px';
+      ghostEl.style.top = ev.clientY + 'px';
+    }
+  };
+  const onUp = ev => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    if (ghostEl){ ghostEl.remove(); ghostEl = null; }
+    const r = canvas.getBoundingClientRect();
+    const inCanvas = ev.clientX >= r.left && ev.clientX <= r.right &&
+                     ev.clientY >= r.top && ev.clientY <= r.bottom;
+    if (!inCanvas) return;
+    const p = canvasPos(ev.clientX, ev.clientY);
+    if (type === 'particle'){
+      const body = createBody(p.x, p.y);
+      state.bodies.push(body);
+      state.selected = body.id;
+      setStatus('已放置质点');
+      blip(330, 0.1);
+    } else {
+      const hit = bodyAt(p.x, p.y);
+      if (!hit){
+        setStatus('请把 ' + type + ' 拖到质点上');
+        blip(180, 0.12);
+      } else if (type === 'v'){
+        if (hit.m <= 0){
+          showHint('无质量物体不能设定初速度');
+          setStatus('无质量物体不能设定初速度');
+          blip(180, 0.15);
+        } else {
+          openVelocityEditor(hit);
+        }
+      } else if (type === 'S'){
+        openSizeEditor(hit);
+      } else {
+        openValueDialog(hit, type);
+      }
+    }
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+/* ============================================================
+   简单数值输入
+   ============================================================ */
+let valueTarget = null, valueType = null;
+const META = {
+  m: { name: '质量', unit: 'kg', dim: '[M]', def: 1 },
+  q: { name: '电荷', unit: 'C', dim: '[I T]', def: 1 },
+  L: { name: '自旋角动量', unit: 'J·s', dim: '[M L² T⁻¹]', def: 1 },
+};
+function openValueDialog(body, type){
+  valueTarget = body; valueType = type;
+  const meta = META[type];
+  $('valTitle').textContent = '设定' + meta.name;
+  $('valSymbol').textContent = type;
+  $('valMeta').innerHTML = meta.name + '<br>' + meta.dim + ' · ' + meta.unit;
+  $('valInput').value = body[type] !== 0 ? body[type] : meta.def;
+  $('modal-value').classList.add('show');
+  setTimeout(() => $('valInput').focus(), 50);
+}
+function closeValueDialog(){
+  $('modal-value').classList.remove('show');
+  valueTarget = null; valueType = null;
+}
+function confirmValue(){
+  if (!valueTarget || !valueType) return;
+  const v = parseFloat($('valInput').value);
+  if (isNaN(v)){ blip(180, 0.1); return; }
+  if (valueType === 'm' && v < 0){ showHint('质量不能为负'); return; }
+  valueTarget[valueType] = v;
+  if (valueType === 'm' && v <= 0){
+    valueTarget.vx = 0;
+    valueTarget.vy = 0;
+    valueTarget.omega = 0;
+  }
+  setStatus('已设定 ' + valueType + ' = ' + fmt(v));
+  blip(660, 0.12);
+  closeValueDialog();
+}
+
+/* ============================================================
+   速度编辑器
+   ============================================================ */
+const velEdit = { target: null, size: 50, angle: 0, dragging: false };
+const velCanvas = $('velPad');
+const velCtx = velCanvas ? velCanvas.getContext('2d') : null;
+function openVelocityEditor(body){
+  if (body.m <= 0){ showHint('无质量物体不能设定初速度'); return; }
+  velEdit.target = body;
+  const speed = Math.hypot(body.vx, body.vy);
+  velEdit.size = speed > 0.01 ? speed : 50;
+  velEdit.angle = speed > 0.01 ? Math.atan2(body.vy, body.vx) : 0;
+  $('velSize').value = velEdit.size.toFixed(1);
+  $('velAngle').value = (velEdit.angle * 180 / Math.PI).toFixed(1);
+  updateVelPreview();
+  drawVelPad();
+  $('modal-velocity').classList.add('show');
+}
+function closeVelocityEditor(){
+  $('modal-velocity').classList.remove('show');
+  velEdit.target = null;
+}
+function updateVelPreview(){
+  const vx = velEdit.size * Math.cos(velEdit.angle);
+  const vy = velEdit.size * Math.sin(velEdit.angle);
+  $('velPreview').textContent = 'vx = ' + vx.toFixed(1) + ', vy = ' + vy.toFixed(1) + ' px/s';
+}
+function drawVelPad(){
+  if (!velCtx) return;
+  const W = velCanvas.width, H = velCanvas.height;
+  const cx = W / 2, cy = H / 2;
+  const R = 80;
+  velCtx.clearRect(0, 0, W, H);
+  velCtx.beginPath();
+  velCtx.arc(cx, cy, R, 0, Math.PI * 2);
+  velCtx.fillStyle = '#fafafa'; velCtx.fill();
+  velCtx.strokeStyle = '#ddd'; velCtx.lineWidth = 1; velCtx.stroke();
+  velCtx.beginPath();
+  velCtx.moveTo(cx - R, cy); velCtx.lineTo(cx + R, cy);
+  velCtx.moveTo(cx, cy - R); velCtx.lineTo(cx, cy + R);
+  velCtx.strokeStyle = '#eee'; velCtx.stroke();
+  for (let i = 0; i < 12; i++){
+    const a = i * Math.PI / 6;
+    velCtx.beginPath();
+    velCtx.moveTo(cx + Math.cos(a) * (R - 6), cy + Math.sin(a) * (R - 6));
+    velCtx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+    velCtx.strokeStyle = '#e0e0e0'; velCtx.stroke();
+  }
+  const len = R * Math.min(1, velEdit.size / 150);
+  const ex = cx + Math.cos(velEdit.angle) * len;
+  const ey = cy - Math.sin(velEdit.angle) * len;
+  velCtx.beginPath();
+  velCtx.moveTo(cx, cy); velCtx.lineTo(ex, ey);
+  velCtx.strokeStyle = COLORS.velocity; velCtx.lineWidth = 2.5; velCtx.stroke();
+  const dx = ex - cx, dy = ey - cy;
+  const L = Math.hypot(dx, dy);
+  if (L > 2){
+    const ux = dx / L, uy = dy / L;
+    const head = Math.min(10, L * 0.35);
+    const px = -uy, py = ux;
+    velCtx.beginPath();
+    velCtx.moveTo(ex, ey);
+    velCtx.lineTo(ex - ux * head + px * head * 0.5, ey - uy * head + py * head * 0.5);
+    velCtx.lineTo(ex - ux * head - px * head * 0.5, ey - uy * head - py * head * 0.5);
+    velCtx.closePath();
+    velCtx.fillStyle = COLORS.velocity; velCtx.fill();
+  }
+  velCtx.beginPath();
+  velCtx.arc(ex, ey, 9, 0, Math.PI * 2);
+  velCtx.fillStyle = COLORS.velocity; velCtx.fill();
+  velCtx.strokeStyle = '#fff'; velCtx.lineWidth = 2; velCtx.stroke();
+  velCtx.beginPath();
+  velCtx.arc(cx, cy, 4, 0, Math.PI * 2);
+  velCtx.fillStyle = '#111'; velCtx.fill();
+}
+function velPadUpdate(clientX, clientY){
+  if (!velCanvas) return;
+  const r = velCanvas.getBoundingClientRect();
+  const sx = velCanvas.width / r.width;
+  const sy = velCanvas.height / r.height;
+  const pos = { x: (clientX - r.left) * sx, y: (clientY - r.top) * sy };
+  const cx = velCanvas.width / 2;
+  const cy = velCanvas.height / 2;
+  const dx = pos.x - cx;
+  const dy = cy - pos.y;
+  const angle = Math.atan2(dy, dx);
+  velEdit.angle = angle;
+  $('velAngle').value = (angle * 180 / Math.PI).toFixed(1);
+  updateVelPreview();
+  drawVelPad();
+}
+if (velCanvas){
+  velCanvas.addEventListener('mousedown', e => {
+    e.preventDefault();
+    velEdit.dragging = true;
+    velPadUpdate(e.clientX, e.clientY);
+  });
+  window.addEventListener('mousemove', e => {
+    if (!velEdit.dragging) return;
+    velPadUpdate(e.clientX, e.clientY);
+  });
+  window.addEventListener('mouseup', () => { velEdit.dragging = false; });
+}
+if ($('velSize')){
+  $('velSize').addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    if (!isNaN(v) && v >= 0){ velEdit.size = v; updateVelPreview(); drawVelPad(); }
+  });
+  $('velAngle').addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    if (!isNaN(v)){ velEdit.angle = v * Math.PI / 180; updateVelPreview(); drawVelPad(); }
+  });
+  $('velCancel').addEventListener('click', closeVelocityEditor);
+  $('velOk').addEventListener('click', () => {
+    if (!velEdit.target) return;
+    if (velEdit.target.m <= 0){
+      showHint('无质量物体不能有速度');
+      closeVelocityEditor();
+      return;
+    }
+    velEdit.target.vx = velEdit.size * Math.cos(velEdit.angle);
+    velEdit.target.vy = velEdit.size * Math.sin(velEdit.angle);
+    setStatus('已设定 v = ' + velEdit.size.toFixed(1) + ' px/s @ ' + (velEdit.angle * 180 / Math.PI).toFixed(1) + '°');
+    blip(660, 0.12);
+    closeVelocityEditor();
+  });
+  $('modal-velocity').addEventListener('click', e => {
+    if (e.target === $('modal-velocity')) closeVelocityEditor();
+  });
+}
+
+/* ============================================================
+   尺寸编辑器
+   ============================================================ */
+const sizeEdit = { target: null, Sw: 60, Sh: 40, dragCorner: null };
+const sizeCanvas = $('sizePad');
+const sizeCtx = sizeCanvas ? sizeCanvas.getContext('2d') : null;
+function openSizeEditor(body){
+  sizeEdit.target = body;
+  sizeEdit.Sw = body.Sw > 0 ? body.Sw : 60;
+  sizeEdit.Sh = body.Sh > 0 ? body.Sh : 40;
+  $('sizeW').value = sizeEdit.Sw;
+  $('sizeH').value = sizeEdit.Sh;
+  drawSizePad();
+  $('modal-size').classList.add('show');
+}
+function closeSizeEditor(){
+  $('modal-size').classList.remove('show');
+  sizeEdit.target = null;
+  sizeEdit.dragCorner = null;
+}
+function drawSizePad(){
+  if (!sizeCtx) return;
+  const W = sizeCanvas.width, H = sizeCanvas.height;
+  const cx = W / 2, cy = H / 2;
+  const maxDim = Math.max(200, sizeEdit.Sw, sizeEdit.Sh);
+  const scale = (Math.min(W, H) * 0.8) / maxDim;
+  sizeCtx.clearRect(0, 0, W, H);
+  sizeCtx.fillStyle = '#fafafa'; sizeCtx.fillRect(0, 0, W, H);
+  sizeCtx.beginPath();
+  sizeCtx.moveTo(cx - W/2 + 10, cy); sizeCtx.lineTo(cx + W/2 - 10, cy);
+  sizeCtx.moveTo(cx, cy - H/2 + 10); sizeCtx.lineTo(cx, cy + H/2 - 10);
+  sizeCtx.strokeStyle = '#eee'; sizeCtx.lineWidth = 1; sizeCtx.stroke();
+  const w = sizeEdit.Sw * scale;
+  const h = sizeEdit.Sh * scale;
+  const x0 = cx - w / 2, y0 = cy - h / 2;
+  sizeCtx.beginPath();
+  sizeCtx.rect(x0, y0, w, h);
+  sizeCtx.fillStyle = 'rgba(17,17,17,0.08)'; sizeCtx.fill();
+  sizeCtx.strokeStyle = '#111'; sizeCtx.lineWidth = 1.8; sizeCtx.stroke();
+  for (let i = 0; i < 3; i++){
+    for (let j = 0; j < 3; j++){
+      sizeCtx.beginPath();
+      sizeCtx.arc(x0 + (i + 0.5) / 3 * w, y0 + (j + 0.5) / 3 * h, 2, 0, Math.PI * 2);
+      sizeCtx.fillStyle = 'rgba(17,17,17,0.5)'; sizeCtx.fill();
+    }
+  }
+  const corners = [
+    { x: x0, y: y0 }, { x: x0 + w, y: y0 },
+    { x: x0, y: y0 + h }, { x: x0 + w, y: y0 + h },
+  ];
+  for (const c of corners){
+    sizeCtx.beginPath();
+    sizeCtx.arc(c.x, c.y, 7, 0, Math.PI * 2);
+    sizeCtx.fillStyle = '#fff'; sizeCtx.fill();
+    sizeCtx.strokeStyle = '#111'; sizeCtx.lineWidth = 2; sizeCtx.stroke();
+  }
+  sizeCtx.font = '11px ui-monospace, monospace';
+  sizeCtx.fillStyle = '#666';
+  sizeCtx.textAlign = 'center';
+  sizeCtx.textBaseline = 'middle';
+  sizeCtx.fillText(sizeEdit.Sw.toFixed(0), cx, y0 - 14);
+  sizeCtx.save();
+  sizeCtx.translate(x0 - 18, cy); sizeCtx.rotate(-Math.PI / 2);
+  sizeCtx.fillText(sizeEdit.Sh.toFixed(0), 0, 0);
+  sizeCtx.restore();
+}
+function sizePadUpdate(clientX, clientY){
+  if (!sizeCanvas) return;
+  const r = sizeCanvas.getBoundingClientRect();
+  const sx = sizeCanvas.width / r.width;
+  const sy = sizeCanvas.height / r.height;
+  const pos = { x: (clientX - r.left) * sx, y: (clientY - r.top) * sy };
+  const cx = sizeCanvas.width / 2, cy = sizeCanvas.height / 2;
+  const maxDim = Math.max(200, sizeEdit.Sw, sizeEdit.Sh);
+  const scale = (Math.min(sizeCanvas.width, sizeCanvas.height) * 0.8) / maxDim;
+  const dxLocal = Math.abs(pos.x - cx);
+  const dyLocal = Math.abs(pos.y - cy);
+  let newW = Math.max(4, (dxLocal * 2) / scale);
+  let newH = Math.max(4, (dyLocal * 2) / scale);
+  newW = Math.min(300, newW);
+  newH = Math.min(300, newH);
+  sizeEdit.Sw = newW; sizeEdit.Sh = newH;
+  $('sizeW').value = newW.toFixed(1);
+  $('sizeH').value = newH.toFixed(1);
+  drawSizePad();
+}
+if (sizeCanvas){
+  sizeCanvas.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const r = sizeCanvas.getBoundingClientRect();
+    const sx = sizeCanvas.width / r.width;
+    const sy = sizeCanvas.height / r.height;
+    const pos = { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
+    const cx = sizeCanvas.width / 2, cy = sizeCanvas.height / 2;
+    const maxDim = Math.max(200, sizeEdit.Sw, sizeEdit.Sh);
+    const scale = (Math.min(sizeCanvas.width, sizeCanvas.height) * 0.8) / maxDim;
+    const w = sizeEdit.Sw * scale;
+    const h = sizeEdit.Sh * scale;
+    const x0 = cx - w / 2, y0 = cy - h / 2;
+    const corners = [
+      { x: x0, y: y0 }, { x: x0 + w, y: y0 },
+      { x: x0, y: y0 + h }, { x: x0 + w, y: y0 + h },
+    ];
+    let best = false, bestDist = 20;
+    for (const c of corners){
+      const d = Math.hypot(pos.x - c.x, pos.y - c.y);
+      if (d < bestDist){ bestDist = d; best = true; }
+    }
+    if (best) sizeEdit.dragCorner = true;
+  });
+  window.addEventListener('mousemove', e => {
+    if (!sizeEdit.dragCorner) return;
+    sizePadUpdate(e.clientX, e.clientY);
+  });
+  window.addEventListener('mouseup', () => { sizeEdit.dragCorner = null; });
+}
+if ($('sizeW')){
+  $('sizeW').addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    if (!isNaN(v) && v >= 4){ sizeEdit.Sw = v; drawSizePad(); }
+  });
+  $('sizeH').addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    if (!isNaN(v) && v >= 4){ sizeEdit.Sh = v; drawSizePad(); }
+  });
+  $('sizeCancel').addEventListener('click', closeSizeEditor);
+  $('sizeOk').addEventListener('click', () => {
+    if (!sizeEdit.target) return;
+    sizeEdit.target.Sw = Math.max(4, sizeEdit.Sw);
+    sizeEdit.target.Sh = Math.max(4, sizeEdit.Sh);
+    setStatus('已设定 S = ' + sizeEdit.Sw.toFixed(1) + ' × ' + sizeEdit.Sh.toFixed(1) + ' m');
+    blip(660, 0.12);
+    closeSizeEditor();
+  });
+  $('modal-size').addEventListener('click', e => {
+    if (e.target === $('modal-size')) closeSizeEditor();
+  });
+}
+
+/* ============================================================
+   完整属性
+   ============================================================ */
+let propsTarget = null;
+function openPropsDialog(p){
+  propsTarget = p;
+  $('pM').value = p.m; $('pQ').value = p.q; $('pL').value = p.L;
+  $('pSw').value = p.Sw; $('pSh').value = p.Sh;
+  $('pTheta').value = p.theta;
+  $('pVx').value = p.vx; $('pVy').value = p.vy; $('pOmega').value = p.omega;
+  $('modal-props').classList.add('show');
+}
+function closePropsDialog(){
+  $('modal-props').classList.remove('show');
+  propsTarget = null;
+}
+function confirmProps(){
+  if (!propsTarget) return;
+  const p = propsTarget;
+  const r = id => parseFloat($(id).value) || 0;
+  p.m = Math.max(0, r('pM'));
+  p.q = r('pQ'); p.L = r('pL');
+  p.Sw = Math.max(0, r('pSw')); p.Sh = Math.max(0, r('pSh'));
+  p.theta = r('pTheta');
+  p.vx = r('pVx'); p.vy = r('pVy'); p.omega = r('pOmega');
+  if (p.m <= 0){ p.vx = 0; p.vy = 0; p.omega = 0; }
+  setStatus('已更新属性');
+  blip(660, 0.12);
+  closePropsDialog();
+}
+
+/* ============================================================
+   弹簧编辑器（创建 + 编辑两种模式）
+   ============================================================ */
+let springTarget = null;      // 编辑模式
+let springCreating = null;    // 创建模式：{ A, B }
+
+function openSpringCreateDialog(A, B){
+  springTarget = null;
+  springCreating = { A, B };
+  const d = Math.hypot(B.x - A.x, B.y - A.y);
+  $('springTitle').textContent = '建立弹簧';
+  $('springK').value = 500;
+  $('springRest').value = d.toFixed(1);
+  $('springDamp').value = 5;
+  $('springCurrent').value = d.toFixed(1);
+  $('modal-spring').classList.add('show');
+  blip(600, 0.1);
+}
+
+function openSpringEditor(sp){
+  springCreating = null;
+  springTarget = sp;
+  const A = state.bodies.find(x => x.id === sp.a);
+  const B = state.bodies.find(x => x.id === sp.b);
+  const d = (A && B) ? Math.hypot(B.x - A.x, B.y - A.y) : 0;
+  $('springTitle').textContent = '编辑弹簧';
+  $('springK').value = sp.k;
+  $('springRest').value = sp.rest;
+  $('springDamp').value = sp.damp;
+  $('springCurrent').value = d.toFixed(1);
+  $('modal-spring').classList.add('show');
+}
+
+function closeSpringEditor(){
+  $('modal-spring').classList.remove('show');
+  springTarget = null;
+  springCreating = null;
+}
+
+if ($('springOk')){
+  $('springOk').addEventListener('click', () => {
+    const k = Math.max(0, parseFloat($('springK').value) || 0);
+    const rest = Math.max(0, parseFloat($('springRest').value) || 0);
+    const damp = Math.max(0, parseFloat($('springDamp').value) || 0);
+
+    if (springCreating){
+      const { A, B } = springCreating;
+      state.springs.push({
+        id: 'sp' + (++state.springsCount),
+        a: A.id, b: B.id,
+        k, rest, damp,
+      });
+      setStatus('已建立弹簧 (k=' + k + ', rest=' + rest.toFixed(1) + ', c=' + damp + ')');
+      blip(720, 0.12);
+      state.springMode = false;
+      state.springStart = null;
+      updateSpringButton();
+    } else if (springTarget){
+      springTarget.k = k;
+      springTarget.rest = rest;
+      springTarget.damp = damp;
+      setStatus('已更新弹簧参数');
+      blip(660, 0.12);
+    }
+    closeSpringEditor();
+  });
+  $('springCancel').addEventListener('click', closeSpringEditor);
+  $('modal-spring').addEventListener('click', e => {
+    if (e.target === $('modal-spring')) closeSpringEditor();
+  });
+}
+
+/* ============================================================
+   工具栏
+   ============================================================ */
+function updateToolButtons(){
+  const s = $('tSelect'), d = $('tDelete');
+  if (s) s.classList.toggle('active', state.tool === 'select');
+  if (d) d.classList.toggle('active', state.tool === 'delete');
+}
+function updatePlayButtons(){
+  const pl = $('tPlay'), pa = $('tPause');
+  if (pl) pl.classList.toggle('active', state.playing);
+  if (pa) pa.classList.toggle('active', !state.playing);
+}
+function updateFastButton(){
+  const f = $('tFast');
+  if (!f) return;
+  f.classList.toggle('active', state.speed !== 1);
+  const span = f.querySelector('span');
+  if (span) span.textContent = state.speed === 1 ? '快进' : '×' + state.speed;
+}
+function updateMeasureButton(){
+  const m = $('tMeasure');
+  if (m) m.classList.toggle('active', state.measure.active);
+}
+function updateSpringButton(){
+  const s = document.querySelector('.side-item[data-type="spring"]');
+  if (s) s.classList.toggle('active', state.springMode);
+}
+function updateCollideButton(){
+  const c = $('tCollide');
+  if (c) c.classList.toggle('active', state.collisionsOn);
+}
+
+function bindToolbar(){
+  const bind = (id, fn) => {
+    const el = $(id);
+    if (el) el.addEventListener('click', fn);
+  };
+  bind('tSelect', () => {
+    state.tool = 'select'; state.springMode = false; state.springStart = null;
+    updateToolButtons(); updateSpringButton();
+    setStatus('选择模式');
+  });
+  bind('tDelete', () => {
+    state.tool = 'delete'; state.springMode = false; state.springStart = null;
+    updateToolButtons(); updateSpringButton();
+    setStatus('点击物体或弹簧删除');
+  });
+  bind('tClear', () => {
+    if (state.bodies.length === 0 && state.springs.length === 0) return;
+    if (confirm('清空？')){
+      state.bodies = []; state.springs = []; state.selected = null; state.t = 0;
+      state.measure.a = null; state.measure.b = null;
+      state.collisions = [];
+      setStatus('已清空'); blip(180, 0.15);
+    }
+  });
+  bind('tCollide', () => {
+    state.collisionsOn = !state.collisionsOn;
+    updateCollideButton();
+    setStatus(state.collisionsOn ? '碰撞开启' : '碰撞关闭');
+    blip(state.collisionsOn ? 700 : 500, 0.08);
+  });
+  bind('tPlay', () => { state.playing = true; updatePlayButtons(); setStatus('运行中'); blip(440, 0.1); });
+  bind('tPause', () => { state.playing = false; updatePlayButtons(); setStatus('已暂停'); blip(280, 0.1); });
+  bind('tFast', () => {
+    const speeds = [1, 2, 4, 8];
+    state.speed = speeds[(speeds.indexOf(state.speed) + 1) % speeds.length];
+    updateFastButton();
+    setStatus('速度 ×' + state.speed);
+    blip(500, 0.07);
+  });
+  bind('tMeasure', () => {
+    state.measure.active = !state.measure.active;
+    if (!state.measure.active){
+      state.measure.a = null; state.measure.b = null;
+      setStatus('测距关闭');
+    } else {
+      state.measure.a = null; state.measure.b = null;
+      setStatus('测距：依次点击两个物体');
+    }
+    updateMeasureButton();
+    blip(state.measure.active ? 700 : 500, 0.1);
+  });
+  bind('tAnalyze', () => {
+    state.analyze = !state.analyze;
+    const a = $('tAnalyze'); if (a) a.classList.toggle('active', state.analyze);
+    const l = $('legend'); if (l) l.classList.toggle('show', state.analyze);
+    setStatus(state.analyze ? '分析叠加开启' : '分析叠加关闭');
+    blip(state.analyze ? 700 : 500, 0.1);
+  });
+  bind('tSave', () => {
+    if (saveGame()){ setStatus('已保存'); blip(660, 0.15); }
+  });
+  bind('tExit', () => {
+    if ((state.bodies.length > 0 || state.springs.length > 0) && confirm('是否保存？')) saveGame();
+    exitGame();
+  });
+}
+
+/* ============================================================
+   画布交互
+   ============================================================ */
+let dragging = null;
+
+function bindCanvas(){
+  if (!canvas) return;
+  canvas.addEventListener('mousemove', e => {
+    const p = canvasPos(e.clientX, e.clientY);
+    mousePos = p; mouseOnCanvas = true;
+  });
+  canvas.addEventListener('mouseleave', () => { mouseOnCanvas = false; });
+
+  canvas.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const p = canvasPos(e.clientX, e.clientY);
+    const hit = bodyAt(p.x, p.y);
+
+    if (state.springMode){
+      if (hit){
+        if (!state.springStart){
+          state.springStart = hit.id;
+          setStatus('已选第一个：点击第二个物体');
+          blip(500, 0.08);
+        } else if (state.springStart !== hit.id){
+          const exists = state.springs.some(s =>
+            (s.a === state.springStart && s.b === hit.id) ||
+            (s.a === hit.id && s.b === state.springStart));
+          if (exists){
+            setStatus('这两个物体已经有弹簧');
+            blip(200, 0.1);
+          } else {
+            const A = state.bodies.find(x => x.id === state.springStart);
+            openSpringCreateDialog(A, hit);
+          }
+          state.springStart = null;
+        }
+      }
+      return;
+    }
+
+    if (state.measure.active){
+      if (hit){
+        if (!state.measure.a){
+          state.measure.a = hit.id;
+          state.measure.b = null;
+          setStatus('已选第一个：点击第二个物体');
+        } else if (!state.measure.b && hit.id !== state.measure.a){
+          state.measure.b = hit.id;
+          const A = state.bodies.find(x => x.id === state.measure.a);
+          const d = Math.hypot(hit.x - A.x, hit.y - A.y);
+          setStatus('距离 = ' + d.toFixed(1) + ' px');
+          blip(720, 0.12);
+        } else {
+          state.measure.a = hit.id;
+          state.measure.b = null;
+          setStatus('已选第一个：点击第二个物体');
+        }
+      }
+      return;
+    }
+
+    if (state.tool === 'delete'){
+      if (hit){
+        state.springs = state.springs.filter(s => s.a !== hit.id && s.b !== hit.id);
+        state.bodies = state.bodies.filter(x => x !== hit);
+        if (state.selected === hit.id) state.selected = null;
+        if (state.measure.a === hit.id) state.measure.a = null;
+        if (state.measure.b === hit.id) state.measure.b = null;
+        setStatus('已删除'); blip(200, 0.1);
+      } else {
+        const sp = springAt(p.x, p.y);
+        if (sp){
+          state.springs = state.springs.filter(s => s !== sp);
+          setStatus('已删除弹簧');
+          blip(200, 0.1);
+        }
+      }
+      return;
+    }
+
+    if (hit){
+      state.selected = hit.id;
+      dragging = { body: hit, ox: p.x - hit.x, oy: p.y - hit.y };
+      canvas.style.cursor = 'grabbing';
+    } else {
+      const sp = springAt(p.x, p.y);
+      if (sp){
+        openSpringEditor(sp);
+        return;
+      }
+      state.selected = null;
+    }
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const p = canvasPos(e.clientX, e.clientY);
+    const r = boundaryRadius(dragging.body);
+    dragging.body.x = Math.max(r, Math.min(canvasW - r, p.x - dragging.ox));
+    dragging.body.y = Math.max(r, Math.min(canvasH - r, p.y - dragging.oy));
+    dragging.body.vx = 0; dragging.body.vy = 0; dragging.body.omega = 0;
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (dragging) canvas.style.cursor = 'default';
+    dragging = null;
+  });
+
+  canvas.addEventListener('dblclick', e => {
+    const p = canvasPos(e.clientX, e.clientY);
+    const hit = bodyAt(p.x, p.y);
+    if (hit) openPropsDialog(hit);
+    else {
+      const sp = springAt(p.x, p.y);
+      if (sp) openSpringEditor(sp);
+    }
+  });
+}
+
+/* ============================================================
+   侧面板
+   ============================================================ */
+function bindSidePanel(){
+  const toggle = $('side-toggle');
+  if (toggle){
+    toggle.addEventListener('click', () => {
+      const panel = $('side-panel');
+      if (panel) panel.classList.toggle('collapsed');
+    });
+  }
+  document.querySelectorAll('.side-item').forEach(item => {
+    const type = item.dataset.type;
+    if (type === 'spring'){
+      item.addEventListener('click', e => {
+        e.preventDefault();
+        state.springMode = !state.springMode;
+        state.springStart = null;
+        updateSpringButton();
+        if (state.springMode){
+          setStatus('弹簧模式：依次点击两个物体');
+          blip(600, 0.1);
+        } else {
+          setStatus('弹簧模式关闭');
+          blip(400, 0.1);
+        }
+      });
+    } else {
+      item.addEventListener('mousedown', e => {
+        if (e.button !== 0) return;
+        startDrag(e, item);
+      });
+    }
+  });
+}
+
+/* ============================================================
+   设置
+   ============================================================ */
+function bindSettings(){
+  const v = $('volume');
+  if (v){
+    v.addEventListener('input', e => {
+      state.volume = parseInt(e.target.value, 10);
+      $('volumeVal').textContent = state.volume;
+      localStorage.setItem(LS_VOL, state.volume);
+    });
+  }
+  const l = $('lang');
+  if (l){
+    l.addEventListener('change', e => {
+      state.lang = e.target.value;
+      localStorage.setItem(LS_LANG, state.lang);
+    });
+  }
+  const bg = $('bgSound');
+  if (bg){
+    bg.addEventListener('change', e => {
+      state.bgSound = e.target.checked;
+      localStorage.setItem(LS_BG, state.bgSound ? '1' : '0');
+      updateMusic();
+    });
+  }
+  const rest = $('restitution');
+  if (rest){
+    rest.value = Math.round(state.restitution * 100);
+    $('restitutionVal').textContent = state.restitution.toFixed(2);
+    rest.addEventListener('input', e => {
+      state.restitution = parseInt(e.target.value, 10) / 100;
+      $('restitutionVal').textContent = state.restitution.toFixed(2);
+      localStorage.setItem(LS_REST, state.restitution.toString());
+    });
+  }
+  const sc = $('setClose');
+  if (sc) sc.addEventListener('click', () => $('modal-settings').classList.remove('show'));
+  const ms = $('modal-settings');
+  if (ms){
+    ms.addEventListener('click', e => {
+      if (e.target === ms) ms.classList.remove('show');
+    });
+  }
+  const vo = $('valOk');
+  if (vo) vo.addEventListener('click', confirmValue);
+  const vc = $('valCancel');
+  if (vc) vc.addEventListener('click', closeValueDialog);
+  const vi = $('valInput');
+  if (vi){
+    vi.addEventListener('keydown', e => {
+      if (e.key === 'Enter') confirmValue();
+      if (e.key === 'Escape') closeValueDialog();
+    });
+  }
+  const mv = $('modal-value');
+  if (mv){
+    mv.addEventListener('click', e => {
+      if (e.target === mv) closeValueDialog();
+    });
+  }
+  const po = $('propsOk');
+  if (po) po.addEventListener('click', confirmProps);
+  const pc = $('propsCancel');
+  if (pc) pc.addEventListener('click', closePropsDialog);
+  const mp = $('modal-props');
+  if (mp){
+    mp.addEventListener('click', e => {
+      if (e.target === mp) closePropsDialog();
+    });
+  }
+}
+
+/* ============================================================
+   进入 / 退出
+   ============================================================ */
+function enterGame(fresh){
+  initAudio();
+  if (fresh){
+    state.bodies = []; state.springs = []; state.t = 0;
+    state.springsCount = 0;
+    const p = createBody(0, 0);
+    state.bodies.push(p);
+    state.selected = p.id;
+  } else {
+    const d = loadGame();
+    if (d && d.bodies){
+      state.bodies = d.bodies.map(b => ({
+        id: b.id, x: b.x, y: b.y,
+        vx: b.vx || 0, vy: b.vy || 0,
+        m: b.m || 0, q: b.q || 0, L: b.L || 0,
+        Sw: b.Sw || 0, Sh: b.Sh || 0,
+        theta: b.theta || 0, omega: b.omega || 0,
+        fx: 0, fy: 0, torque: 0, forces: null,
+        springFx: 0, springFy: 0,
+      }));
+      state.bodies.forEach(b => {
+        if (b.m <= 0){ b.vx = 0; b.vy = 0; b.omega = 0; }
+      });
+      state.springs = (d.springs || []).map(s => ({ ...s }));
+      state.springsCount = state.springs.length;
+      nextId = Math.max(1, ...state.bodies.map(b => b.id + 1));
+      state.t = d.t || 0;
+    } else {
+      state.bodies = []; state.springs = []; state.t = 0;
+    }
+    state.selected = null;
+  }
+  state.playing = false;
+  state.speed = 1;
+  state.analyze = false;
+  state.tool = 'select';
+  state.measure = { active: false, a: null, b: null };
+  state.springMode = false;
+  state.springStart = null;
+  state.collisions = [];
+
+  updatePlayButtons();
+  updateToolButtons();
+  updateFastButton();
+  updateMeasureButton();
+  updateSpringButton();
+  updateCollideButton();
+  const ta = $('tAnalyze'); if (ta) ta.classList.remove('active');
+  const lg = $('legend'); if (lg) lg.classList.remove('show');
+  const inf = $('info'); if (inf) inf.classList.remove('show');
+
+  const start = $('screen-start');
+  const game = $('screen-game');
+  if (start) start.classList.add('hidden');
+  if (game) game.classList.remove('hidden');
+
+  requestAnimationFrame(() => {
+    resizeCanvas();
+    if (fresh && state.bodies.length === 1){
+      state.bodies[0].x = canvasW / 2;
+      state.bodies[0].y = canvasH / 2;
+      setStatus('已放置一个质点');
+    } else {
+      setStatus('已加载存档');
+    }
+    updateMusic();
+    if (rafId !== null) cancelAnimationFrame(rafId);
+    lastT = performance.now();
+    acc = 0;
+    rafId = requestAnimationFrame(loop);
+  });
+}
+
+function exitGame(){
+  state.playing = false;
+  stopMusic();
+  if (rafId !== null){ cancelAnimationFrame(rafId); rafId = null; }
+  const game = $('screen-game');
+  const start = $('screen-start');
+  if (game) game.classList.add('hidden');
+  if (start) start.classList.remove('hidden');
+  const cbtn = $('contBtn');
+  if (cbtn) cbtn.disabled = !hasSave();
+  blip(330, 0.12);
+}
+
+/* ============================================================
+   初始化
+   ============================================================ */
+function init(){
+  safe(() => {
+    const v = $('volume'); if (v) v.value = state.volume;
+    const vv = $('volumeVal'); if (vv) vv.textContent = state.volume;
+    const l = $('lang'); if (l) l.value = state.lang;
+    const bg = $('bgSound'); if (bg) bg.checked = state.bgSound;
+  });
+
+  const sb = $('startBtn');
+  if (sb) sb.addEventListener('click', () => { blip(440, 0.1); enterGame(true); });
+  const cb = $('contBtn');
+  if (cb){
+    cb.addEventListener('click', () => { if (!hasSave()) return; blip(520, 0.1); enterGame(false); });
+    cb.disabled = !hasSave();
+  }
+  const stb = $('setBtn');
+  if (stb) stb.addEventListener('click', () => {
+    const ms = $('modal-settings');
+    if (ms) ms.classList.add('show');
+    blip(660, 0.08);
+  });
+
+  safe(bindSettings);
+  safe(bindToolbar);
+  safe(bindSidePanel);
+  safe(bindCanvas);
+
+  window.addEventListener('resize', () => {
+    const game = $('screen-game');
+    if (game && !game.classList.contains('hidden')) resizeCanvas();
+  });
+
+  window.addEventListener('keydown', e => {
+    const game = $('screen-game');
+    if (!game || game.classList.contains('hidden')) return;
+    if (e.code === 'Space'){
+      e.preventDefault();
+      state.playing = !state.playing;
+      updatePlayButtons();
+      setStatus(state.playing ? '运行中' : '已暂停');
+    }
+    if (e.key === 'Escape'){
+      const ms = $('modal-settings'); if (ms) ms.classList.remove('show');
+      closeValueDialog();
+      closePropsDialog();
+      closeVelocityEditor();
+      closeSizeEditor();
+      closeSpringEditor();
+      state.springMode = false;
+      state.springStart = null;
+      updateSpringButton();
+    }
+    if (e.key === 'Delete' && state.selected){
+      state.springs = state.springs.filter(s => s.a !== state.selected && s.b !== state.selected);
+      state.bodies = state.bodies.filter(p => p.id !== state.selected);
+      state.selected = null;
+      setStatus('已删除');
+    }
+  });
+}
+
+init();
+})();
+</script>
+</body>
+</html>

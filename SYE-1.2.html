@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Save Your Eyes!</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:#050508}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,
+      "Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    color:#f0f0f4;-webkit-user-select:none;user-select:none;
+  }
+  #app{position:fixed;inset:0}
+
+  .screen{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    opacity:0;pointer-events:none;transition:opacity .45s ease;
+  }
+  .screen.active{opacity:1;pointer-events:auto}
+
+  /* ---------- 开始 ---------- */
+  #start{
+    align-items:center;justify-content:center;
+    background:radial-gradient(120% 90% at 50% 0%,#121218 0%,#050508 65%);
+  }
+  .start-inner{text-align:center;padding:0 32px}
+  .dot{font-size:40px;color:#0a84ff;margin-bottom:24px;animation:pulse 3.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+  h1{font-size:clamp(38px,11vw,56px);font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:14px}
+  .tagline{font-size:12px;color:#63636f;letter-spacing:.16em;margin-bottom:52px}
+  .btn{
+    background:#f0f0f4;color:#050508;border:none;border-radius:100px;
+    padding:16px 52px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;
+    transition:transform .16s cubic-bezier(.2,.8,.3,1),opacity .16s;
+  }
+  .btn:active{transform:scale(.94);opacity:.85}
+
+  /* ---------- 游戏 ---------- */
+  #game{background:#050508}
+  .hud{
+    flex:0 0 auto;display:flex;align-items:baseline;justify-content:space-between;
+    padding:16px 22px 6px;font-size:10px;letter-spacing:.16em;font-weight:600;color:#55555f;
+  }
+  .hud b{color:#f0f0f4;font-size:13px;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+  .hud .mid{color:#0a84ff;font-size:11px;letter-spacing:.22em}
+  .hud .right b{color:#8a8a96}
+
+  .scene{
+    flex:1 1 auto;min-height:0;display:flex;align-items:stretch;justify-content:center;
+    padding:4px 12px;
+  }
+  .card{
+    flex:1 1 auto;max-width:440px;min-width:0;
+    background:#0a0a12;
+    border:1px solid #1a1a24;
+    border-radius:16px;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px 16px;overflow:hidden;
+    transform-origin:50% 50%;
+    will-change:transform;
+    transition:transform .7s cubic-bezier(.25,.9,.3,1);
+  }
+  .chart{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    will-change:filter;
+    transition:filter .7s cubic-bezier(.25,.9,.3,1);
+  }
+  .row{display:flex;align-items:center;justify-content:center}
+  .e{display:block;color:#e8e8f0;transition:color .3s ease}
+  .e.lit{color:#0a84ff}
+
+  .tbar{
+    flex:0 0 auto;height:2px;margin:6px 22px 0;background:#14141a;
+    border-radius:2px;overflow:hidden;opacity:0;transition:opacity .35s ease;
+  }
+  .tbar.show{opacity:1}
+  .tfill{
+    height:100%;width:100%;border-radius:2px;
+    background:linear-gradient(90deg,#0a84ff,#57adff);
+  }
+
+  .pad{
+    flex:0 0 auto;display:grid;
+    grid-template-columns:repeat(3,54px);
+    grid-template-rows:repeat(2,54px);
+    gap:10px;justify-content:center;
+    padding:12px 0 26px;
+    opacity:0;pointer-events:none;transition:opacity .4s ease;
+  }
+  .pad.show{opacity:1;pointer-events:auto}
+  .pad button{
+    border:1px solid #202029;background:#0e0e14;color:#b8b8c4;
+    border-radius:15px;font-size:18px;font-family:inherit;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .1s ease,background .1s ease,border-color .1s ease,color .1s ease;
+  }
+  .pad button:active{transform:scale(.9);background:#1a1a24;border-color:#35354a;color:#fff}
+  .pad button[data-d="up"]{grid-area:1/2}
+  .pad button[data-d="left"]{grid-area:2/1}
+  .pad button[data-d="down"]{grid-area:2/2}
+  .pad button[data-d="right"]{grid-area:2/3}
+
+  /* ---------- 单关结果 ---------- */
+  .verdict{
+    position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;background:rgba(5,5,8,.92);
+    -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+    opacity:0;pointer-events:none;transition:opacity .28s ease;
+  }
+  .verdict.show{opacity:1}
+  .v-label{font-size:10px;letter-spacing:.3em;color:#55555f;font-weight:600;margin-bottom:20px}
+  .v-big{font-size:84px;font-weight:800;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums}
+  .v-dec{font-size:16px;color:#0a84ff;font-weight:700;margin-top:12px;letter-spacing:.05em}
+  .v-dpt{font-size:13px;color:#8a8a96;margin-top:10px;letter-spacing:.06em}
+  .v-tag{margin-top:28px;font-size:11px;letter-spacing:.22em;font-weight:700;color:#32d583}
+  .v-tag.bad{color:#ff5a5a}
+
+  /* ---------- 结束 ---------- */
+  #end{
+    align-items:center;justify-content:center;
+    background:radial-gradient(120% 90% at 50% 100%,#121218 0%,#050508 65%);
+  }
+  .end-inner{text-align:center;padding:0 30px;width:100%;max-width:420px}
+  .end-label{font-size:10px;letter-spacing:.3em;color:#55555f;font-weight:600;margin-bottom:26px}
+  .end-v{font-size:clamp(68px,21vw,96px);font-weight:800;letter-spacing:-.05em;line-height:1;font-variant-numeric:tabular-nums}
+  .end-dec{font-size:17px;color:#0a84ff;font-weight:700;margin-top:14px;letter-spacing:.05em}
+  .end-dpt{font-size:13px;color:#8a8a96;margin-top:10px;letter-spacing:.06em}
+  .end-msg{font-size:13px;color:#8a8a96;line-height:1.9;margin:32px 0 24px;letter-spacing:.02em}
+  .end-list{font-size:11px;color:#44444f;letter-spacing:.12em;margin-bottom:32px;font-variant-numeric:tabular-nums;line-height:1.8}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 开始 -->
+  <section id="start" class="screen active">
+    <div class="start-inner">
+      <div class="dot">◉</div>
+      <h1>SAVE YOUR<br>EYES!</h1>
+      <p class="tagline">一场关于视力的极简实验</p>
+      <button class="btn" id="start-btn">进入游戏</button>
+    </div>
+  </section>
+
+  <!-- 游戏 -->
+  <section id="game" class="screen">
+    <div class="hud">
+      <span>LEVEL <b id="hud-lv">01</b></span>
+      <span class="mid" id="hud-ph">观察视力表</span>
+      <span class="right">VISION <b id="hud-vs">—</b></span>
+    </div>
+
+    <div class="scene">
+      <div class="card" id="card">
+        <div class="chart" id="chart"></div>
+      </div>
+    </div>
+
+    <div class="tbar" id="tbar"><div class="tfill" id="tfill"></div></div>
+
+    <div class="pad" id="pad">
+      <button data-d="up">↑</button>
+      <button data-d="left">←</button>
+      <button data-d="down">↓</button>
+      <button data-d="right">→</button>
+    </div>
+
+    <div class="verdict" id="verdict">
+      <div class="v-label">本 关 结 果</div>
+      <div class="v-big" id="v-big">4.6</div>
+      <div class="v-dec" id="v-dec">0.40</div>
+      <div class="v-dpt" id="v-dpt">约 -2.25D</div>
+      <div class="v-tag" id="v-tag">本轮结束</div>
+    </div>
+  </section>
+
+  <!-- 结束 -->
+  <section id="end" class="screen">
+    <div class="end-inner">
+      <div class="end-label">测 试 结 束</div>
+      <div class="end-v" id="end-v">5.0</div>
+      <div class="end-dec" id="end-dec">1.00</div>
+      <div class="end-dpt" id="end-dpt">正视</div>
+      <div class="end-msg" id="end-msg"></div>
+      <div class="end-list" id="end-list"></div>
+      <button class="btn" id="restart-btn">再测一次</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ========== 音效 ========== */
+  var actx = null;
+  function initAudio() {
+    if (!actx) {
+      try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+    }
+    if (actx && actx.state === 'suspended') actx.resume();
+  }
+  function tone(freq, dur, type, vol) {
+    if (!actx) return;
+    var t = actx.currentTime;
+    var o = actx.createOscillator();
+    var g = actx.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol || 0.08, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t + dur + 0.03);
+  }
+  var SFX = {
+    tap: function () { tone(620, 0.05, 'triangle', 0.06); },
+    ok:  function () { tone(880, 0.07, 'sine', 0.09);
+                       setTimeout(function () { tone(1320, 0.11, 'sine', 0.07); }, 60); },
+    no:  function () { tone(210, 0.13, 'sawtooth', 0.06);
+                       setTimeout(function () { tone(150, 0.17, 'sawtooth', 0.05); }, 80); }
+  };
+
+  /* ========== 标准对数视力表行数据 ========== */
+  var ROWS = [
+    { v: 4.0, n: 1 },
+    { v: 4.1, n: 2 },
+    { v: 4.2, n: 2 },
+    { v: 4.3, n: 3 },
+    { v: 4.4, n: 3 },
+    { v: 4.5, n: 4 },
+    { v: 4.6, n: 4 },
+    { v: 4.7, n: 5 },
+    { v: 4.8, n: 5 },
+    { v: 4.9, n: 6 },
+    { v: 5.0, n: 6 },
+    { v: 5.1, n: 7 },
+    { v: 5.2, n: 7 }
+  ];
+
+  /* ========== 关卡：记忆时间(ms) + 测试阶段模糊(px) ==========
+     共 12 关，难度平滑递增。
+     第 8 关起模糊 ≥ 9px，视力表大部分 E 已无法肉眼辨认，
+     只能靠记忆或猜测，模拟近视 1000 度的世界。
+  ============================================================ */
+  var LEVELS = [
+    { mem: 5000, blur: 0.5  },   /* 1  —— 轻松看清 */
+    { mem: 4000, blur: 1.5  },   /* 2  */
+    { mem: 3200, blur: 2.5  },   /* 3  */
+    { mem: 2600, blur: 3.5  },   /* 4  */
+    { mem: 2000, blur: 4.5  },   /* 5  —— 需要记住方向 */
+    { mem: 1600, blur: 5.8  },   /* 6  —— 记忆开始吃力 */
+    { mem: 1300, blur: 7.2  },   /* 7  —— 模糊明显 */
+    { mem: 1100, blur: 9.0  },   /* 8  —— 大部分方向已看不清 */
+    { mem: 950,  blur: 11.0 },   /* 9  —— 仅最大几行勉强可辨 */
+    { mem: 800,  blur: 13.5 },   /* 10 —— 几乎全靠记忆 */
+    { mem: 700,  blur: 16.5 },   /* 11 —— 高糊状态 */
+    { mem: 600,  blur: 20.0 }    /* 12 —— 近视 1000 度的世界 */
+  ];
+
+  var DIRS = ['up', 'right', 'down', 'left'];
+  var ROT  = { right: 0, down: 90, left: 180, up: 270 };
+  var SCALE_TEST = 0.68;   /* 测试阶段拉远比例 */
+
+  /* ========== 视力 → 近视度数 ========== */
+  var DPT = [
+    [5.0, 0],    [4.9, 0.75], [4.8, 1.25], [4.7, 1.75], [4.6, 2.25],
+    [4.5, 2.75], [4.4, 3.25], [4.3, 4.00], [4.2, 4.75], [4.1, 5.50],
+    [4.0, 6.25], [3.9, 7.00], [3.8, 7.75], [3.7, 8.50], [3.6, 9.25],
+    [3.5, 10.0]
+  ];
+  function dptOf(v) {
+    if (v >= 5.0) return 0;
+    for (var i = 0; i < DPT.length - 1; i++) {
+      if (v <= DPT[i][0] && v >= DPT[i + 1][0]) {
+        var f = (DPT[i][0] - v) / (DPT[i][0] - DPT[i + 1][0]);
+        return DPT[i][1] + f * (DPT[i + 1][1] - DPT[i][1]);
+      }
+    }
+    return 10;
+  }
+  function decOf(v) { return Math.pow(10, v - 5); }
+
+  /* ========== DOM ========== */
+  function $(id) { return document.getElementById(id); }
+  var scrStart = $('start'), scrGame = $('game'), scrEnd = $('end');
+  var cardEl  = $('card'), chartEl = $('chart');
+  var tbarEl  = $('tbar'), tfillEl = $('tfill');
+  var padEl   = $('pad');
+  var hudLv   = $('hud-lv'), hudPh = $('hud-ph'), hudVs = $('hud-vs');
+  var verdictEl = $('verdict');
+  var vBig = $('v-big'), vDec = $('v-dec'), vDpt = $('v-dpt'), vTag = $('v-tag');
+  var endV = $('end-v'), endDec = $('end-dec'), endDpt = $('end-dpt');
+  var endMsg = $('end-msg'), endList = $('end-list');
+
+  /* ========== 状态 ========== */
+  var S = {
+    levelIdx: 0,
+    rowIdx: 0,
+    rowCorrect: 0,
+    rowNeed: 2,
+    lastPassed: null,
+    target: null,
+    targetDir: null,
+    busy: true,
+    results: [],
+    token: 0
+  };
+
+  /* ========== E 字生成 ========== */
+  var NS = 'http://www.w3.org/2000/svg';
+  function makeE(size, dir) {
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 5 5');
+    svg.setAttribute('width', size);
+    svg.setAttribute('height', size);
+    svg.setAttribute('class', 'e');
+    svg.dataset.dir = dir;
+    svg.style.transform = 'rotate(' + ROT[dir] + 'deg)';
+    var p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', 'M0 0 H5 V1 H1 V2 H5 V3 H1 V4 H5 V5 H0 Z');
+    p.setAttribute('fill', 'currentColor');
+    svg.appendChild(p);
+    return svg;
+  }
+
+  /* ========== 构建视力表（严格按对数比例） ========== */
+  function buildChart() {
+    chartEl.innerHTML = '';
+
+    var HR = 0.50;
+    var VF = 1.15;
+
+    var units = [], maxW = 0, totalH = 0;
+    ROWS.forEach(function (r) {
+      var u = Math.pow(10, 5 - r.v);
+      units.push(u);
+      var w = u * r.n + u * HR * (r.n - 1);
+      if (w > maxW) maxW = w;
+      totalH += u * VF;
+    });
+
+    var cs = getComputedStyle(cardEl);
+    var availW = cardEl.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+                  - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth);
+    var availH = cardEl.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+                  - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth);
+    if (availW < 24 || availH < 24) return;
+
+    var s = Math.min(availW / maxW, availH / totalH);
+
+    ROWS.forEach(function (r, i) {
+      var size = units[i] * s;
+      var rowEl = document.createElement('div');
+      rowEl.className = 'row';
+      rowEl.style.height = (size * VF) + 'px';
+      rowEl.style.gap = (size * HR) + 'px';
+
+      for (var j = 0; j < r.n; j++) {
+        rowEl.appendChild(makeE(size, DIRS[Math.floor(Math.random() * 4)]));
+      }
+      chartEl.appendChild(rowEl);
+    });
+  }
+
+  /* ========== 视图复位 ========== */
+  function resetView(instant) {
+    if (instant) {
+      cardEl.style.transition = 'none';
+      chartEl.style.transition = 'none';
+    }
+    cardEl.style.transform = 'scale(1)';
+    chartEl.style.filter = 'blur(0px)';
+    if (instant) {
+      void cardEl.offsetWidth;
+      cardEl.style.transition = '';
+      chartEl.style.transition = '';
+    }
+  }
+
+  /* ========== 清除目标高亮（只恢复颜色，不改方向） ========== */
+  function clearTarget() {
+    if (S.target) {
+      S.target.classList.remove('lit');
+      S.target.style.color = '';
+    }
+    S.target = null;
+    S.targetDir = null;
+  }
+
+  /* ========== 点亮目标（只高亮，方向保持视力表原有方向不变） ========== */
+  function pickTarget(rowIdx) {
+    clearTarget();
+    if (rowIdx >= chartEl.children.length) return false;
+    var rowEl = chartEl.children[rowIdx];
+    var es = rowEl.querySelectorAll('.e');
+    if (!es.length) return false;
+
+    var el = es[Math.floor(Math.random() * es.length)];
+
+    /* 从 dataset 读取该元素生成时确定的方向，不做任何修改 */
+    S.target = el;
+    S.targetDir = el.dataset.dir;
+    el.classList.add('lit');
+    return true;
+  }
+
+  /* ========== 界面切换 ========== */
+  function showScreen(el) {
+    var all = document.querySelectorAll('.screen');
+    for (var i = 0; i < all.length; i++) all[i].classList.remove('active');
+    el.classList.add('active');
+  }
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+  /* ========== 开始游戏 ========== */
+  function startGame() {
+    initAudio();
+    S.levelIdx = 0;
+    S.results = [];
+    showScreen(scrGame);
+    setTimeout(startLevel, 340);
+  }
+
+  /* ========== 开始一关 ========== */
+  function startLevel() {
+    S.token++;
+    S.rowIdx = 0;
+    S.rowCorrect = 0;
+    S.rowNeed = 2 + Math.floor(Math.random() * 2);   /* 2 或 3 个 */
+    S.lastPassed = null;
+    S.busy = true;
+
+    hudLv.textContent = pad2(S.levelIdx + 1);
+    hudPh.textContent = '观察视力表';
+    hudVs.textContent = '—';
+
+    padEl.classList.remove('show');
+    verdictEl.classList.remove('show');
+    tbarEl.classList.remove('show');
+
+    clearTarget();
+    resetView(true);
+
+    requestAnimationFrame(function () {
+      buildChart();          /* 每关仅构建一次视力表，之后不再变动 */
+      setTimeout(memoryPhase, 200);
+    });
+  }
+
+  /* ========== 记忆阶段（一关只跑一次） ========== */
+  function memoryPhase() {
+    var t = S.token;
+    if (t !== S.token) return;
+
+    /* 点亮第一个目标（本关后续所有目标也都在同一张视力表上） */
+    pickTarget(0);
+
+    hudPh.textContent = '观察视力表';
+
+    var mem = LEVELS[S.levelIdx].mem;
+    tbarEl.classList.add('show');
+    tfillEl.style.transition = 'none';
+    tfillEl.style.width = '100%';
+    void tfillEl.offsetWidth;
+    tfillEl.style.transition = 'width ' + mem + 'ms linear';
+    tfillEl.style.width = '0%';
+
+    setTimeout(function () {
+      if (t !== S.token) return;
+      testPhase(t);
+    }, mem);
+  }
+
+  /* ========== 测试阶段：拉远 + 模糊 ========== */
+  function testPhase(t) {
+    if (t !== S.token) return;
+
+    hudPh.textContent = '辨认开口方向';
+    tbarEl.classList.remove('show');
+
+    var blur = LEVELS[S.levelIdx].blur;
+    cardEl.style.transform = 'scale(' + SCALE_TEST + ')';
+    chartEl.style.filter = 'blur(' + blur + 'px)';
+
+    setTimeout(function () {
+      if (t !== S.token) return;
+      S.busy = false;
+      padEl.classList.add('show');
+    }, 720);
+  }
+
+  /* ========== 作答 ========== */
+  function answer(dir) {
+    if (S.busy) return;
+    S.busy = true;
+    padEl.classList.remove('show');
+
+    var t = S.token;
+    var ok = (dir === S.targetDir);
+    if (ok) SFX.ok(); else SFX.no();
+
+    /* 反馈颜色 */
+    if (S.target) {
+      S.target.style.color = ok ? '#32d583' : '#ff5a5a';
+    }
+
+    if (ok) {
+      S.rowCorrect++;
+      S.lastPassed = ROWS[S.rowIdx].v;
+
+      /* 本行够数 → 进入下一行 */
+      if (S.rowCorrect >= S.rowNeed) {
+        S.rowIdx++;
+        S.rowCorrect = 0;
+        S.rowNeed = 2 + Math.floor(Math.random() * 2);
+
+        /* 全部通过 */
+        if (S.rowIdx >= ROWS.length) {
+          setTimeout(function () {
+            if (t !== S.token) return;
+            finishLevel(5.2);
+          }, 700);
+          return;
+        }
+      }
+
+      /* 继续点亮下一目标（视力表本身不变） */
+      setTimeout(function () {
+        if (t !== S.token) return;
+        pickTarget(S.rowIdx);
+        S.busy = false;
+        padEl.classList.add('show');
+      }, 700);
+
+    } else {
+      /* 答错 → 结束本关 */
+      var resultV = (S.lastPassed !== null) ? S.lastPassed : 3.9;
+      setTimeout(function () {
+        if (t !== S.token) return;
+        finishLevel(resultV);
+      }, 900);
+    }
+  }
+
+  /* ========== 单关结算 ========== */
+  function finishLevel(v) {
+    var t = S.token;
+    S.results.push(v);
+
+    var dec = decOf(v);
+    var dpt = dptOf(v);
+
+    vBig.textContent = v.toFixed(1);
+    vDec.textContent = dec.toFixed(2);
+    vDpt.textContent = dpt < 0.25 ? '正视' : '约 -' + dpt.toFixed(2) + 'D';
+    vTag.textContent = (v >= 5.2) ? '全部通过' : '本轮结束';
+    vTag.className = 'v-tag' + (v >= 5.2 ? '' : ' bad');
+
+    verdictEl.classList.add('show');
+
+    setTimeout(function () {
+      if (t !== S.token) return;
+      verdictEl.classList.remove('show');
+      S.levelIdx++;
+
+      if (S.levelIdx >= LEVELS.length) {
+        showEnd();
+      } else {
+        setTimeout(startLevel, 200);
+      }
+    }, 2200);
+  }
+
+  /* ========== 总结算 ========== */
+  function showEnd() {
+    var last = S.results.length ? S.results[S.results.length - 1] : 4.0;
+    var dec = decOf(last);
+    var dpt = dptOf(last);
+
+    endV.textContent   = last.toFixed(1);
+    endDec.textContent = dec.toFixed(2);
+    endDpt.textContent = dpt < 0.25 ? '正视' : '约 -' + dpt.toFixed(2) + 'D';
+
+    var msg;
+    if (last >= 5.0)      msg = '视力正常。请继续保持良好的用眼习惯。';
+    else if (last >= 4.8) msg = '轻度视力下降。注意休息，避免长时间近距离用眼。';
+    else if (last >= 4.5) msg = '已出现近视倾向。建议减少屏幕时间，多远眺放松。';
+    else if (last >= 4.0) msg = '中度近视。建议进行专业验光检查。';
+    else                  msg = '高度近视。视网膜病变风险升高，请定期检查眼底。';
+    endMsg.textContent = msg;
+
+    endList.textContent = '各关成绩：' + S.results.map(function (r) {
+      return r.toFixed(1);
+    }).join(' · ');
+
+    showScreen(scrEnd);
+  }
+
+  /* ========== 事件 ========== */
+  $('start-btn').addEventListener('click', function () {
+    initAudio(); SFX.tap(); startGame();
+  });
+  $('restart-btn').addEventListener('click', function () {
+    initAudio(); SFX.tap(); startGame();
+  });
+
+  padEl.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    answer(b.dataset.d);
+  });
+
+  document.addEventListener('keydown', function (e) {
+    var m = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right' };
+    if (m[e.key]) { e.preventDefault(); answer(m[e.key]); }
+  });
+
+  /* 窗口尺寸变化 —— 不重建视力表，避免方向被重新随机化 */
+  var rzT = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(rzT);
+    rzT = setTimeout(function () {
+      if (!scrGame.classList.contains('active')) return;
+      /* 浏览器会自动适配 SVG 尺寸，无需重建 DOM */
+    }, 300);
+  });
+
+})();
+</script>
+</body>
+</html>

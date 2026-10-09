@@ -1,0 +1,2464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chess War Strategy v13</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#050505;color:white;font-family:serif;overflow:hidden}
+.screen{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;position:fixed;top:0;left:0;padding:20px;overflow:auto}
+#menu,#game,#chessScreen,#minesScreen,#tetrisScreen,#shooterScreen,#pokerScreen,#skillScreen,#snakeScreen,#checkersScreen,#whackScreen,#endScreen{display:none}
+.title{font-size:80px;letter-spacing:12px;margin-bottom:60px;color:#eee}
+button{font-size:20px;padding:10px 36px;cursor:pointer;background:#111;color:#ccc;border:1px solid #555;border-radius:3px;font-family:serif;letter-spacing:2px}
+button:hover{background:#222;border-color:#aaa;color:#fff}
+button:disabled{opacity:.35;cursor:not-allowed}
+svg{width:95vw;height:88vh}
+.road{stroke:white;stroke-width:1.6;stroke-dasharray:7 6;opacity:.3}
+.front{stroke:#fff;stroke-width:3;fill:none;opacity:.5}
+.label{fill:#8a8a8a;text-anchor:middle;font-size:11px;pointer-events:none;letter-spacing:.5px}
+.red{fill:#a22;stroke:#f66;stroke-width:1}
+.blue{fill:#2860c0;stroke:#69f;stroke-width:1}
+.target{animation:pulse 1.1s infinite}
+@keyframes pulse{
+  0%,100%{filter:drop-shadow(0 0 2px #fff)}
+  50%{filter:drop-shadow(0 0 10px #fff) drop-shadow(0 0 18px #fff)}
+}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+#hud{position:absolute;top:0;left:0;display:flex;gap:28px;padding:14px 24px;font-size:17px;letter-spacing:2px;pointer-events:none}
+#roundInfo{color:#8a8a8a}
+#turnInfo{color:#fff;font-weight:bold;animation:turnGlow 1.6s infinite}
+@keyframes turnGlow{0%,100%{text-shadow:0 0 4px #fff}50%{text-shadow:0 0 12px #fff,0 0 24px #fff}}
+
+#toast{position:absolute;bottom:104px;left:50%;transform:translateX(-50%);font-size:16px;letter-spacing:2px;background:rgba(0,0,0,.9);padding:10px 26px;border:1px solid #666;border-radius:3px;opacity:0;transition:opacity .3s;pointer-events:none;color:#fff;max-width:70vw;text-align:center;z-index:60}
+#toast.show{opacity:1;animation:toastGlow 1.3s infinite}
+@keyframes toastGlow{
+  0%,100%{text-shadow:0 0 4px #fff;border-color:#666}
+  50%{text-shadow:0 0 14px #fff,0 0 24px #aaa;border-color:#fff}
+}
+#legend{position:absolute;bottom:14px;right:20px;display:flex;gap:14px;font-size:12px;color:#8a8a8a;align-items:center;letter-spacing:1px;z-index:20}
+#legend .shape{display:inline-block;width:12px;height:12px;margin-right:5px;vertical-align:middle;border:1px solid #888}
+#legend .cap{transform:rotate(45deg);background:#333}
+#legend .city{border-radius:50%;background:#333}
+#legend .mine{border-radius:2px;background:#333}
+
+#actionBar{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:30;flex-wrap:wrap;justify-content:center;max-width:96vw}
+.actBtn{font-size:13px;padding:9px 16px;letter-spacing:1px;background:#0a0a0a;color:#aaa;border:1px solid #444;border-radius:3px;cursor:pointer;font-family:serif;white-space:nowrap}
+.actBtn:hover{border-color:#888;color:#eee}
+.actBtn.active{background:#222;color:#fff;border-color:#fff;box-shadow:0 0 12px #ffffff66}
+.actBtn.disabled{opacity:.3;cursor:not-allowed}
+.actBtn.hidden{display:none}
+
+#exitBtn{position:absolute;top:14px;right:20px;font-size:12px;padding:6px 16px;letter-spacing:2px;z-index:30}
+
+.surrenderBtn{
+  position:absolute;top:14px;right:20px;
+  font-size:12px;padding:7px 18px;letter-spacing:2px;
+  background:#1a0808;color:#c88;border:1px solid #633;border-radius:3px;
+  cursor:pointer;font-family:serif;z-index:30;
+}
+.surrenderBtn:hover{background:#2a0a0a;color:#f88;border-color:#a55}
+
+#chessScreen{background:#000}
+#chessTitle,#minesTitle,#tetrisTitle,#shooterTitle,#pokerTitle,#snakeTitle,#checkersTitle,#whackTitle{font-size:26px;letter-spacing:8px;margin:0 0 6px;color:#e8e8e8}
+#chessInfo,#minesInfo,#tetrisInfo,#shooterInfo,#pokerInfo,#snakeInfo,#checkersInfo,#whackInfo{font-size:15px;color:#8a8a8a;margin-bottom:16px;letter-spacing:1.5px;text-align:center;max-width:80vw}
+#chessBoardWrap{display:flex;justify-content:center;align-items:center}
+#chessBoard{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:min(78vmin,560px);height:min(78vmin,560px);border:2px solid #555}
+.sq{display:flex;align-items:center;justify-content:center;font-size:min(8.5vmin,58px);line-height:1;cursor:pointer;user-select:none;position:relative}
+.sq.light{background:#ececec}
+.sq.dark{background:#151515}
+.sq.sel{box-shadow:inset 0 0 0 4px #fff}
+.sq.mov::after{content:'';position:absolute;width:30%;height:30%;border-radius:50%;background:#1a1a1a;border:2px solid #fff;box-sizing:border-box}
+.sq.cap::after{content:'';position:absolute;width:84%;height:84%;border-radius:50%;background:transparent;border:4px solid #1a1a1a;box-shadow:0 0 0 2px #fff,0 0 10px #fff;box-sizing:border-box}
+.sq .pw{color:#ffffff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 0 6px rgba(255,255,255,.9)}
+.sq .pb{color:#000000;text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff}
+#chessStatus,#minesStatus,#tetrisStatus,#shooterStatus,#pokerStatus,#snakeStatus,#checkersStatus,#whackStatus{margin-top:14px;font-size:17px;letter-spacing:2px;color:#fff;min-height:24px;text-align:center;animation:statGlow 1.6s infinite}
+@keyframes statGlow{0%,100%{text-shadow:0 0 4px #fff}50%{text-shadow:0 0 12px #fff,0 0 22px #aaa}}
+
+#minesBoard{display:grid;gap:3px;padding:8px;background:#000;border:2px solid #555}
+.mcell{width:min(7.5vmin,50px);height:min(7.5vmin,50px);background:#2a2a2a;border:1px solid #555;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:min(4.2vmin,26px);font-weight:bold;cursor:pointer;user-select:none;color:#fff}
+.mcell:hover{background:#3a3a3a;border-color:#888}
+.mcell.revealed{background:#0a0a0a;cursor:default;border-color:#333}
+.mcell.revealed:hover{background:#0a0a0a}
+.mcell.boom{background:#000;border-color:#fff;font-size:min(5vmin,30px)}
+.mcell.n1{color:#ffffff}.mcell.n2{color:#dcdcdc}.mcell.n3{color:#b8b8b8}.mcell.n4{color:#969696}
+.mcell.n5{color:#787878}.mcell.n6{color:#606060}.mcell.n7{color:#4a4a4a}.mcell.n8{color:#383838}
+
+#tetrisCanvas,#snakeCanvas,#checkersCanvas,#whackCanvas{border:2px solid #555;background:#000;display:block}
+#tetrisScore,#snakeScore,#whackScore{margin-top:10px;font-size:18px;letter-spacing:3px;color:#fff}
+
+#shooterCanvas{border:2px solid #555;background:#000;display:block;cursor:crosshair;touch-action:none}
+
+.mobRow{display:flex;gap:14px;margin-top:14px;justify-content:center;flex-wrap:wrap}
+.mobBtn{
+  width:56px;height:56px;font-size:24px;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  background:#141414;color:#ccc;border:1px solid #555;
+  border-radius:50%;cursor:pointer;user-select:none;
+  -webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+  font-family:sans-serif;transition:background .1s;
+}
+.mobBtn:hover{background:#222;border-color:#888;color:#fff}
+.mobBtn:active{background:#3a3a3a;color:#fff;border-color:#fff}
+
+#pokerTable{display:flex;gap:clamp(20px,5vw,60px);margin:28px 0;flex-wrap:wrap;justify-content:center}
+.pHand{display:flex;gap:clamp(6px,1.4vw,10px);position:relative}
+.pHand::before{content:attr(data-label);position:absolute;top:-26px;left:0;width:100%;text-align:center;font-size:12px;letter-spacing:3px;color:#8a8a8a}
+.pcard{
+  width:clamp(46px,8.6vw,74px);
+  height:clamp(66px,12.4vw,106px);
+  border:2px solid #666;border-radius:5px;background:#111;
+  display:flex;align-items:center;justify-content:center;
+  font-family:serif;cursor:pointer;transition:all .2s;
+  position:relative;flex-direction:column;
+  -webkit-tap-highlight-color:transparent;
+}
+.pcard .rank{font-size:clamp(18px,3.6vw,34px);line-height:1;font-weight:bold}
+.pcard .suit{font-size:clamp(14px,2.8vw,24px);line-height:1;margin-top:2px}
+.pcard.revealed{background:#e8e8e8;color:#000;border-color:#888}
+.pcard.back{background:#151515;color:#555;font-size:clamp(24px,5vw,40px);justify-content:center}
+.pcard.picked{background:#fff;color:#000;border-color:#fff;box-shadow:0 0 18px #ffffffaa,0 0 4px #fff;transform:translateY(-8px)}
+.pcard.ai-picked{border-color:#fff;box-shadow:0 0 18px #ffffffaa,0 0 4px #fff}
+.pcard.dim{opacity:.28}
+.pcard.hidden{cursor:default}
+.pcard:not(.hidden):not(.back):not(.picked):hover{transform:translateY(-4px);border-color:#aaa}
+
+#skillTitle{font-size:40px;letter-spacing:10px;color:#fff;margin-bottom:10px;animation:turnGlow 1.8s infinite}
+#skillInfo{font-size:15px;color:#8a8a8a;letter-spacing:2px;margin-bottom:36px}
+#skillBtns{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;max-width:96vw}
+.skillBtn{width:190px;height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0a0a;border:2px solid #555;border-radius:6px;cursor:pointer;transition:all .25s;padding:16px;text-align:center}
+.skillBtn:hover{border-color:#fff;box-shadow:0 0 24px #ffffff44;background:#111}
+.skillBtn .ico{font-size:48px;margin-bottom:12px;color:#fff;font-variant-emoji:text}
+.skillBtn .nm{font-size:16px;letter-spacing:3px;color:#fff;margin-bottom:8px}
+.skillBtn .ds{font-size:11px;color:#8a8a8a;line-height:1.5;letter-spacing:.5px}
+
+#endTitle{font-size:78px;letter-spacing:14px;margin:0 0 12px;font-weight:normal;animation:pop .7s ease-out both}
+#endLine{width:220px;height:1px;background:currentColor;opacity:.35;margin-bottom:40px;animation:fade 1s .1s both}
+#endSub{font-size:17px;letter-spacing:3px;opacity:.75;margin-bottom:50px;animation:fade 1.2s .25s both}
+#endScreen button{animation:fade 1.2s .5s both}
+.win{color:#e8e8e8;text-shadow:0 0 30px #fff,0 0 70px #ffffff55}
+.lose{color:#888;text-shadow:0 0 30px #fff3,0 0 70px #ffffff22}
+@keyframes pop{0%{opacity:0;transform:scale(.7)}60%{opacity:1;transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
+</style>
+</head>
+<body>
+
+<div id="intro" class="screen"><div id="introText"></div></div>
+
+<div id="menu" class="screen">
+  <div class="title">Chess War</div>
+  <button onclick="start()">Start Game</button>
+</div>
+
+<div id="game" class="screen">
+  <div id="hud">
+    <div id="roundInfo">Round 1</div>
+    <div id="turnInfo">Your Turn</div>
+  </div>
+  <button id="exitBtn" onclick="backToMenu()">EXIT</button>
+  <svg id="map" viewBox="0 0 1000 700"></svg>
+  <div id="toast"></div>
+  <div id="legend">
+    <span><i class="shape cap"></i>Capital</span>
+    <span><i class="shape city"></i>City</span>
+    <span><i class="shape mine"></i>Minefield</span>
+  </div>
+  <div id="actionBar">
+    <button class="actBtn active" id="btnAttack" onclick="setMode('attack')">ATTACK</button>
+    <button class="actBtn" id="btnAir" onclick="setMode('air')">AIR STRIKE ×<span id="airCount">0</span></button>
+    <button class="actBtn" id="btnNeg" onclick="setMode('negotiate')">NEGOTIATE ×<span id="negCount">0</span></button>
+    <button class="actBtn hidden" id="btnGuerrilla" onclick="setMode('guerrilla')">GUERRILLA ×<span id="guerCount">0</span></button>
+    <button class="actBtn hidden" id="btnSecret" onclick="setMode('secret')">SECRET WEAPON ×<span id="secretCount">0</span></button>
+    <button class="actBtn hidden" id="btnBlitz" onclick="setMode('blitz')">BLITZ ×<span id="blitzCount">0</span></button>
+  </div>
+</div>
+
+<div id="chessScreen" class="screen">
+  <button class="surrenderBtn" onclick="surrenderGame()">SURRENDER</button>
+  <div id="chessTitle">CHESS</div>
+  <div id="chessInfo"></div>
+  <div id="chessBoardWrap"><div id="chessBoard"></div></div>
+  <div id="chessStatus"></div>
+</div>
+
+<div id="minesScreen" class="screen">
+  <button class="surrenderBtn" onclick="surrenderGame()">SURRENDER</button>
+  <div id="minesTitle">MINESWEEPER</div>
+  <div id="minesInfo"></div>
+  <div id="minesBoard"></div>
+  <div id="minesStatus">Left click: reveal · Right click: flag</div>
+</div>
+
+<div id="tetrisScreen" class="screen">
+  <button class="surrenderBtn" onclick="surrenderGame()">SURRENDER</button>
+  <div id="tetrisTitle">AIR STRIKE</div>
+  <div id="tetrisInfo">Clear 3 rows to bomb the city</div>
+  <canvas id="tetrisCanvas" width="240" height="384"></canvas>
+  <div id="tetrisScore">Score: 0 / 100</div>
+  <div id="tetrisStatus">W rotate · A left · S down · D right</div>
+  <div class="mobRow" id="tetrisMobile">
+    <button class="mobBtn" data-key="a">◀</button>
+    <button class="mobBtn" data-key="s">▼</button>
+    <button class="mobBtn" data-key="d">▶</button>
+    <button class="mobBtn" data-key="w">⟳</button>
+  </div>
+</div>
+
+<div id="shooterScreen" class="screen">
+  <button class="surrenderBtn" onclick="surrenderGame()">SURRENDER</button>
+  <div id="shooterTitle">INTERCEPT</div>
+  <div id="shooterInfo">Shoot down 10 raiders — do not let 3 through</div>
+  <canvas id="shooterCanvas" width="500" height="450"></canvas>
+  <div id="shooterStatus">Move mouse or use ← → · Auto-fire</div>
+  <div class="mobRow" id="shooterMobile">
+    <button class="mobBtn" data-key="left">◀</button>
+    <button class="mobBtn" data-key="right">▶</button>
+  </div>
+</div>
+
+<div id="pokerScreen" class="screen">
+  <button class="surrenderBtn" onclick="surrenderGame()">SURRENDER</button>
+  <div id="pokerTitle">NEGOTIATE</div>
+  <div id="pokerInfo"></div>
+  <div id="pokerTable">
+    <div class="pHand" data-label="YOU" id="pHand"></div>
+    <div class="pHand" data-label="AI" id="aiHand"></div>
+  </div>
+  <button id="pokerBtn" onclick="pokerPlay()" disabled>PLAY</button>
+  <div id="pokerStatus"></div>
+</div>
+
+<div id="snakeScreen" class="screen">
+  <button class="surrenderBtn" onclick="surrenderGame()">SURRENDER</button>
+  <div id="snakeTitle">GUERRILLA</div>
+  <div id="snakeInfo">Reach 8 food to sabotage the city</div>
+  <canvas id="snakeCanvas" width="400" height="400"></canvas>
+  <div id="snakeScore">Food: 0 / 8</div>
+  <div id="snakeStatus">W A S D to move</div>
+  <div class="mobRow" id="snakeMobile">
+    <button class="mobBtn" data-key="w">▲</button>
+    <button class="mobBtn" data-key="a">◀</button>
+    <button class="mobBtn" data-key="s">▼</button>
+    <button class="mobBtn" data-key="d">▶</button>
+  </div>
+</div>
+
+<div id="checkersScreen" class="screen">
+  <button class="surrenderBtn" onclick="surrenderGame()">SURRENDER</button>
+  <div id="checkersTitle">BLITZ</div>
+  <div id="checkersInfo">Checkers — capture all to win</div>
+  <canvas id="checkersCanvas" width="360" height="360"></canvas>
+  <div id="checkersStatus"></div>
+</div>
+
+<div id="whackScreen" class="screen">
+  <button class="surrenderBtn" onclick="surrenderGame()">SURRENDER</button>
+  <div id="whackTitle">GUERRILLA DEFENSE</div>
+  <div id="whackInfo">Click the dots — reach +4 to repel the attack</div>
+  <canvas id="whackCanvas" width="420" height="420"></canvas>
+  <div id="whackScore">Score: 0 / 4</div>
+  <div id="whackStatus">Click the dots as they appear</div>
+</div>
+
+<div id="skillScreen" class="screen">
+  <div id="skillTitle">SKILL</div>
+  <div id="skillInfo">Choose one to keep</div>
+  <div id="skillBtns"></div>
+</div>
+
+<div id="endScreen" class="screen">
+  <h1 id="endTitle"></h1>
+  <div id="endLine"></div>
+  <div id="endSub"></div>
+  <button onclick="backToMenu()">Back to Menu</button>
+</div>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+
+/* ============================================================
+   MAP
+   ============================================================ */
+const COL_X = [200, 350, 500, 650, 800];
+const ROW_Y = [55, 120, 185, 250, 315, 380, 445, 510, 575, 640];
+
+const MAP_ROWS = [
+  { r:0, cells:[{c:2, type:'capital'}] },
+  { r:1, cells:[{c:1, type:'city'}, {c:3, type:'city'}] },
+  { r:2, cells:[{c:0, type:'city'}, {c:2, type:'city'}, {c:4, type:'mine'}] },
+  { r:3, cells:[{c:1, type:'city'}, {c:3, type:'mine'}] },
+  { r:4, cells:[{c:0, type:'mine'}, {c:2, type:'city'}, {c:4, type:'mine'}] },
+  { r:5, cells:[{c:1, type:'city'}, {c:3, type:'mine'}] },
+  { r:6, cells:[{c:1, type:'mine'}, {c:3, type:'city'}] },
+  { r:7, cells:[{c:0, type:'city'}, {c:2, type:'mine'}, {c:4, type:'city'}] },
+  { r:8, cells:[{c:1, type:'city'}, {c:3, type:'city'}] },
+  { r:9, cells:[{c:2, type:'capital'}] }
+];
+
+const NAME_POOL = [
+  'Averon','Keldis','Mavora','Zerith','Lunaris','Velor','Caelis','Nareth',
+  'Solven','Arven','Daris','Elyon','Ravon','Taris','Korvath','Sylen',
+  'Dreska','Halven','Mireth','Tavros'
+];
+
+const NODES_DEF = {};
+let nameIdx = 0;
+
+MAP_ROWS.forEach(row=>{
+  row.cells.forEach(cell=>{
+    const id = 'r' + row.r + 'c' + cell.c;
+    const isCap = cell.type === 'capital';
+    NODES_DEF[id] = {
+      x: COL_X[cell.c], y: ROW_Y[row.r],
+      type: cell.type,
+      owner: row.r <= 4 ? 'ai' : 'player',
+      name: isCap ? (row.r === 0 ? 'Varkor' : 'Novera') : NAME_POOL[nameIdx++],
+      row: row.r, col: cell.c
+    };
+  });
+});
+
+const ENEMY_CAPITAL  = 'r0c2';
+const PLAYER_CAPITAL = 'r9c2';
+
+const ROADS = [];
+MAP_ROWS.forEach((row, ri)=>{
+  row.cells.forEach(cell=>{
+    const idA = 'r' + ri + 'c' + cell.c;
+    if(ri + 1 < MAP_ROWS.length){
+      MAP_ROWS[ri+1].cells.forEach(next=>{
+        if(Math.abs(cell.c - next.c) <= 1){
+          ROADS.push([idA, 'r' + (ri+1) + 'c' + next.c]);
+        }
+      });
+    }
+  });
+});
+
+/* ============================================================
+   State
+   ============================================================ */
+let NODES = {};
+let G = null;
+
+function resetGame(){
+  NODES = {};
+  for(const id in NODES_DEF) NODES[id] = Object.assign({}, NODES_DEF[id]);
+  G = {
+    round:1, phase:'player', playerMode:'attack',
+    playerSkills:{ air:0, negotiate:0, guerrilla:0, secret:0, blitz:0 },
+    aiSkills:{ air:0, negotiate:0, guerrilla:0, secret:0, blitz:0 },
+    attacker:null, target:null,
+    airTarget:null, negTarget:null, guerTarget:null,
+    blitzTargets:[],
+    skillOwner:null,
+    busy:false, over:false,
+    damaged:{}, turbulent:{}
+  };
+}
+
+function neighbors(id){
+  const r = [];
+  ROADS.forEach(e=>{
+    if(e[0]===id) r.push(e[1]);
+    if(e[1]===id) r.push(e[0]);
+  });
+  return r;
+}
+
+function isDamaged(id){ return G.damaged[id] !== undefined && G.round <= G.damaged[id]; }
+function isTurbulent(id){ return G.turbulent[id] !== undefined && G.round <= G.turbulent[id]; }
+
+function canBeAttackedBy(targetId, side){
+  return neighbors(targetId).some(n => NODES[n].owner === side && !isTurbulent(n));
+}
+
+function getTargets(side){
+  const enemy = side==='ai' ? 'player' : 'ai';
+  const res = [];
+  for(const id in NODES){
+    if(NODES[id].owner !== enemy) continue;
+    if(canBeAttackedBy(id, side)) res.push(id);
+  }
+  return res;
+}
+
+/* ============================================================
+   Connectivity
+   ============================================================ */
+function floodFrom(startId, owner){
+  const visited = new Set();
+  if(!NODES[startId] || NODES[startId].owner !== owner) return visited;
+  visited.add(startId);
+  const q = [startId];
+  while(q.length){
+    const id = q.shift();
+    for(const nb of neighbors(id)){
+      if(!visited.has(nb) && NODES[nb].owner === owner){
+        visited.add(nb); q.push(nb);
+      }
+    }
+  }
+  return visited;
+}
+
+function checkConnectivity(){
+  const flipped = [];
+  let guard = 0;
+  while(guard++ < 20){
+    let changed = false;
+    const aiReach = floodFrom(ENEMY_CAPITAL, 'ai');
+    for(const id in NODES){
+      if(NODES[id].owner === 'ai' && !aiReach.has(id)){
+        NODES[id].owner = 'player';
+        if(G.damaged[id]) delete G.damaged[id];
+        if(G.turbulent[id]) delete G.turbulent[id];
+        flipped.push(id); changed = true;
+      }
+    }
+    const pReach = floodFrom(PLAYER_CAPITAL, 'player');
+    for(const id in NODES){
+      if(NODES[id].owner === 'player' && !pReach.has(id)){
+        NODES[id].owner = 'ai';
+        if(G.damaged[id]) delete G.damaged[id];
+        if(G.turbulent[id]) delete G.turbulent[id];
+        flipped.push(id); changed = true;
+      }
+    }
+    if(!changed) break;
+  }
+  return flipped;
+}
+
+/* ============================================================
+   Intro
+   ============================================================ */
+const introLines = ["The armies gather.","The borders collapse.","The war begins."];
+let introIndex = 0;
+function playIntro(){
+  const box = document.getElementById('introText');
+  box.innerHTML = introLines[introIndex];
+  box.style.animation = 'none';
+  void box.offsetWidth;
+  box.style.animation = 'fade 3s';
+  introIndex++;
+  if(introIndex < introLines.length) setTimeout(playIntro, 3000);
+  else setTimeout(()=>{
+    document.getElementById('intro').style.display='none';
+    document.getElementById('menu').style.display='flex';
+  }, 3000);
+}
+playIntro();
+
+function start(){
+  document.getElementById('menu').style.display='none';
+  document.getElementById('game').style.display='flex';
+  resetGame();
+  checkConnectivity();
+  updateHUD(); updateActionBar(); draw();
+}
+
+function backToMenu(){
+  document.getElementById('endScreen').style.display='none';
+  document.getElementById('game').style.display='none';
+  document.getElementById('menu').style.display='flex';
+  resetGame();
+}
+
+/* ============================================================
+   HUD / Toast / Action bar
+   ============================================================ */
+function updateHUD(){
+  document.getElementById('roundInfo').textContent = 'Round ' + G.round;
+  const ti = document.getElementById('turnInfo');
+  if(G.phase === 'player'){
+    if(G.playerMode === 'air') ti.textContent = 'Select an enemy city to bomb';
+    else if(G.playerMode === 'negotiate') ti.textContent = 'Select a region to negotiate';
+    else if(G.playerMode === 'guerrilla') ti.textContent = 'Select an enemy city to sabotage';
+    else if(G.playerMode === 'secret') ti.textContent = 'Select any adjacent enemy region';
+    else if(G.playerMode === 'blitz') ti.textContent = 'Select 2 adjacent enemy cities';
+    else ti.textContent = 'Your Turn — Select Target';
+  } else if(G.phase === 'ai') ti.textContent = 'AI Turn…';
+  else if(G.phase === 'skill') ti.textContent = 'Choose a skill';
+}
+
+function updateActionBar(){
+  const set = (id, n)=>{ const el = document.getElementById(id); if(el) el.textContent = n; };
+  set('airCount', G.playerSkills.air);
+  set('negCount', G.playerSkills.negotiate);
+  set('guerCount', G.playerSkills.guerrilla);
+  set('secretCount', G.playerSkills.secret);
+  set('blitzCount', G.playerSkills.blitz);
+
+  const modes = ['attack','air','negotiate','guerrilla','secret','blitz'];
+  const ids = ['btnAttack','btnAir','btnNeg','btnGuerrilla','btnSecret','btnBlitz'];
+  const enable = G.phase === 'player' && !G.busy && !G.over;
+
+  modes.forEach((m, i)=>{
+    const btn = document.getElementById(ids[i]);
+    if(!btn) return;
+    btn.classList.toggle('active', G.playerMode === m);
+    let have = 1;
+    if(m === 'air') have = G.playerSkills.air;
+    else if(m === 'negotiate') have = G.playerSkills.negotiate;
+    else if(m === 'guerrilla') have = G.playerSkills.guerrilla;
+    else if(m === 'secret') have = G.playerSkills.secret;
+    else if(m === 'blitz') have = G.playerSkills.blitz;
+    if(m !== 'attack') btn.classList.toggle('hidden', have <= 0);
+    btn.disabled = !enable || have <= 0;
+    btn.classList.toggle('disabled', have <= 0);
+  });
+}
+
+let toastTimer = null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 2400);
+}
+
+/* ============================================================
+   Draw
+   ============================================================ */
+function draw(){
+  const map = document.getElementById('map');
+  map.innerHTML = '';
+
+  ROADS.forEach(r=>{
+    const a = NODES[r[0]], b = NODES[r[1]];
+    if(!a || !b) return;
+    const l = document.createElementNS(NS,'line');
+    l.setAttribute('x1',a.x); l.setAttribute('y1',a.y);
+    l.setAttribute('x2',b.x); l.setAttribute('y2',b.y);
+    l.setAttribute('class','road');
+    map.appendChild(l);
+  });
+
+  let targets = [];
+  if(!G.busy && !G.over && G.phase === 'player'){
+    if(G.playerMode === 'air'){
+      for(const id in NODES)
+        if(NODES[id].owner === 'ai' && NODES[id].type === 'city') targets.push(id);
+    } else if(G.playerMode === 'negotiate'){
+      for(const id in NODES)
+        if(NODES[id].owner === 'ai' && NODES[id].type !== 'capital' && canBeAttackedBy(id, 'player')) targets.push(id);
+    } else if(G.playerMode === 'guerrilla'){
+      for(const id in NODES)
+        if(NODES[id].owner === 'ai' && NODES[id].type === 'city' && canBeAttackedBy(id, 'player')) targets.push(id);
+    } else if(G.playerMode === 'secret'){
+      targets = getTargets('player');
+    } else if(G.playerMode === 'blitz'){
+      for(const id in NODES)
+        if(NODES[id].owner === 'ai' && NODES[id].type === 'city' && canBeAttackedBy(id, 'player') && !G.blitzTargets.includes(id)) targets.push(id);
+    } else {
+      targets = getTargets('player');
+    }
+  }
+
+  for(const id in NODES){
+    const n = NODES[id];
+    const g = document.createElementNS(NS,'g');
+    g.style.cursor = targets.includes(id) ? 'pointer' : 'default';
+    g.onclick = ()=>onNodeClick(id);
+
+    let s;
+    if(n.type === 'capital'){
+      s = document.createElementNS(NS,'polygon');
+      s.setAttribute('points',`${n.x},${n.y-20} ${n.x+20},${n.y} ${n.x},${n.y+20} ${n.x-20},${n.y}`);
+    } else if(n.type === 'mine'){
+      s = document.createElementNS(NS,'rect');
+      s.setAttribute('x', n.x-10); s.setAttribute('y', n.y-10);
+      s.setAttribute('width',20); s.setAttribute('height',20);
+      s.setAttribute('rx',2);
+    } else {
+      s = document.createElementNS(NS,'circle');
+      s.setAttribute('cx',n.x); s.setAttribute('cy',n.y); s.setAttribute('r',10);
+    }
+    let cls = (n.owner==='player'?'blue':'red');
+    if(targets.includes(id)) cls += ' target';
+    s.setAttribute('class', cls);
+    g.appendChild(s);
+
+    const t = document.createElementNS(NS,'text');
+    t.textContent = n.name;
+    t.setAttribute('x', n.x); t.setAttribute('y', n.y + 26);
+    t.setAttribute('class','label');
+    g.appendChild(t);
+
+    if(isDamaged(id)){
+      const m = document.createElementNS(NS,'text');
+      m.textContent = '✕'; m.setAttribute('x', n.x); m.setAttribute('y', n.y - 14);
+      m.setAttribute('text-anchor','middle'); m.setAttribute('fill','#fff'); m.setAttribute('font-size','13');
+      g.appendChild(m);
+    }
+    if(isTurbulent(id)){
+      const m = document.createElementNS(NS,'text');
+      m.textContent = '✪'; m.setAttribute('x', n.x + 14); m.setAttribute('y', n.y - 10);
+      m.setAttribute('text-anchor','middle'); m.setAttribute('fill','#ffd766'); m.setAttribute('font-size','13');
+      g.appendChild(m);
+    }
+    map.appendChild(g);
+  }
+
+  drawFront(map);
+  updateHUD(); updateActionBar();
+}
+
+function drawFront(map){
+  const p = [];
+  ROADS.forEach(r=>{
+    if(NODES[r[0]].owner !== NODES[r[1]].owner){
+      p.push([(NODES[r[0]].x + NODES[r[1]].x)/2, (NODES[r[0]].y + NODES[r[1]].y)/2]);
+    }
+  });
+  p.sort((a,b)=>a[0]-b[0]);
+  if(p.length){
+    const path = document.createElementNS(NS,'path');
+    path.setAttribute('d','M ' + p.map(x=>x.join(' ')).join(' L '));
+    path.setAttribute('class','front');
+    map.appendChild(path);
+  }
+}
+
+/* ============================================================
+   Mode switching
+   ============================================================ */
+function setMode(mode){
+  if(G.phase !== 'player' || G.busy || G.over) return;
+  const have = mode === 'attack' ? 1 : (G.playerSkills[mode] || 0);
+  if(have <= 0){ toast('Not available'); return; }
+  G.playerMode = mode;
+  if(mode === 'blitz') G.blitzTargets = [];
+  draw();
+}
+
+/* ============================================================
+   Player click
+   ============================================================ */
+function onNodeClick(id){
+  if(G.over || G.busy || G.phase !== 'player') return;
+  const n = NODES[id];
+
+  if(G.playerMode === 'air'){
+    if(n.owner !== 'ai' || n.type !== 'city'){ toast('Choose an enemy city'); return; }
+    G.playerSkills.air--; G.airTarget = id;
+    G.skillOwner = 'player'; G.attacker = 'player';
+    G.busy = true; draw(); startTetris(); return;
+  }
+  if(G.playerMode === 'negotiate'){
+    if(n.owner !== 'ai' || n.type === 'capital'){ toast('Choose an enemy city or minefield'); return; }
+    if(!canBeAttackedBy(id, 'player')){ toast('Must be adjacent'); return; }
+    G.playerSkills.negotiate--; G.negTarget = id;
+    G.skillOwner = 'player'; G.attacker = 'player';
+    G.busy = true; draw(); startPoker(); return;
+  }
+  if(G.playerMode === 'guerrilla'){
+    if(n.owner !== 'ai' || n.type !== 'city'){ toast('Choose an enemy city'); return; }
+    if(!canBeAttackedBy(id, 'player')){ toast('Must be adjacent'); return; }
+    G.playerSkills.guerrilla--; G.guerTarget = id;
+    G.skillOwner = 'player'; G.attacker = 'player';
+    G.busy = true; draw(); startSnake(); return;
+  }
+  if(G.playerMode === 'secret'){
+    if(n.owner !== 'ai'){ toast('Choose an enemy region'); return; }
+    if(!canBeAttackedBy(id, 'player')){ toast('Must be adjacent'); return; }
+    G.playerSkills.secret--; G.target = id; G.attacker = 'player';
+    G.busy = true; draw();
+    setTimeout(()=>concludeBattle(true), 700); return;
+  }
+  if(G.playerMode === 'blitz'){
+    if(n.owner !== 'ai' || n.type === 'capital'){ toast('Choose an enemy city'); return; }
+    if(!canBeAttackedBy(id, 'player')){ toast('Must be adjacent'); return; }
+    if(G.blitzTargets.includes(id)) return;
+    G.blitzTargets.push(id);
+    if(G.blitzTargets.length === 2){
+      G.playerSkills.blitz--;
+      G.attacker = 'player'; G.busy = true; draw();
+      startCheckers(false);
+    } else draw();
+    return;
+  }
+
+  if(n.owner === 'player') return;
+  if(!canBeAttackedBy(id, 'player')){ toast('Must be adjacent to your territory'); return; }
+  G.attacker = 'player'; G.target = id;
+  G.busy = true; draw();
+  if(n.type === 'mine') startMinesweeper();
+  else if(isDamaged(id)) concludeBattle(true);
+  else startChess();
+}
+
+/* ============================================================
+   Turn transitions
+   ============================================================ */
+function playerActionDone(){
+  G.playerMode = 'attack';
+  G.blitzTargets = [];
+  G.phase = 'ai';
+  updateHUD(); updateActionBar(); draw();
+  setTimeout(aiAct, 900);
+}
+
+function aiAct(){
+  if(G.over) return;
+
+  const attackTargets = getTargets('ai');
+  const playerCities = Object.keys(NODES).filter(id =>
+    NODES[id].owner === 'player' && NODES[id].type === 'city' && !isTurbulent(id) && canBeAttackedBy(id, 'ai'));
+  const negTargets = attackTargets.filter(id => NODES[id].type !== 'capital');
+  const anyTargets = attackTargets;
+
+  if(attackTargets.includes(PLAYER_CAPITAL)){
+    return performAIAttack(PLAYER_CAPITAL);
+  }
+
+  const options = ['attack','attack'];
+  if(playerCities.length && G.aiSkills.air > 0) options.push('air');
+  if(negTargets.length && G.aiSkills.negotiate > 0) options.push('negotiate');
+  if(playerCities.length && G.aiSkills.guerrilla > 0) options.push('guerrilla');
+  if(anyTargets.length && G.aiSkills.secret > 0) options.push('secret');
+  if(playerCities.length >= 2 && G.aiSkills.blitz > 0) options.push('blitz');
+  options.push('attack');
+
+  const pick = options[Math.floor(Math.random()*options.length)];
+
+  if(pick === 'air'){
+    G.aiSkills.air--;
+    G.airTarget = playerCities[Math.floor(Math.random()*playerCities.length)];
+    G.skillOwner = 'ai'; G.attacker = 'ai'; G.busy = true;
+    draw();
+    toast('AI launches an air strike on ' + NODES[G.airTarget].name);
+    setTimeout(startShooter, 700); return;
+  }
+  if(pick === 'negotiate'){
+    G.aiSkills.negotiate--;
+    G.negTarget = negTargets[Math.floor(Math.random()*negTargets.length)];
+    G.skillOwner = 'ai'; G.attacker = 'ai'; G.busy = true;
+    draw();
+    toast('AI opens negotiation for ' + NODES[G.negTarget].name);
+    setTimeout(startPoker, 700); return;
+  }
+  if(pick === 'guerrilla'){
+    G.aiSkills.guerrilla--;
+    G.guerTarget = playerCities[Math.floor(Math.random()*playerCities.length)];
+    G.skillOwner = 'ai'; G.attacker = 'ai'; G.busy = true;
+    draw();
+    toast('AI sends guerrillas to ' + NODES[G.guerTarget].name);
+    setTimeout(startWhack, 700); return;
+  }
+  if(pick === 'secret'){
+    G.aiSkills.secret--;
+    G.target = anyTargets[Math.floor(Math.random()*anyTargets.length)];
+    G.attacker = 'ai'; G.busy = true;
+    draw();
+    toast('AI deploys secret weapon on ' + NODES[G.target].name);
+    setTimeout(()=>concludeBattle(true), 1000); return;
+  }
+  if(pick === 'blitz'){
+    G.aiSkills.blitz--;
+    const shuf = playerCities.slice().sort(()=>Math.random()-0.5);
+    G.blitzTargets = [shuf[0], shuf[1]];
+    G.attacker = 'ai'; G.busy = true;
+    draw();
+    toast('AI blitzes ' + G.blitzTargets.map(id=>NODES[id].name).join(' & '));
+    setTimeout(()=>startCheckers(true), 700); return;
+  }
+
+  const target = chooseAITarget();
+  if(!target){ aiActionDone(); return; }
+  performAIAttack(target);
+}
+
+function performAIAttack(target){
+  G.attacker = 'ai'; G.target = target;
+  G.busy = true; draw();
+  if(NODES[target].type === 'mine'){
+    setTimeout(()=>concludeBattle(Math.random() < 0.5), 900);
+  } else if(isDamaged(target)){
+    setTimeout(()=>concludeBattle(true), 900);
+  } else {
+    startChess();
+  }
+}
+
+function aiActionDone(){
+  G.busy = false;
+  draw();
+
+  if(NODES[PLAYER_CAPITAL].owner === 'ai'){ gameOver('Defeat'); return; }
+  if(NODES[ENEMY_CAPITAL].owner === 'player'){ gameOver('Victory'); return; }
+
+  const aiPool = ['air','negotiate','guerrilla'];
+  if(G.round % 5 === 0) aiPool.push('secret');
+  const capThreatened = neighbors(ENEMY_CAPITAL).some(id => NODES[id].owner === 'player' && !isTurbulent(id));
+  if(capThreatened) aiPool.push('blitz');
+
+  const total = G.aiSkills.air + G.aiSkills.negotiate + G.aiSkills.guerrilla + G.aiSkills.secret + G.aiSkills.blitz;
+  if(total < 6){
+    const pick = aiPool[Math.floor(Math.random()*aiPool.length)];
+    G.aiSkills[pick]++;
+  }
+
+  G.phase = 'skill';
+  updateHUD(); updateActionBar();
+  showSkillScreen();
+}
+
+function concludeBattle(attackerWon){
+  G.busy = false;
+  if(attackerWon){
+    const id = G.target;
+    NODES[id].owner = G.attacker;
+    if(G.damaged[id]) delete G.damaged[id];
+    if(G.turbulent[id]) delete G.turbulent[id];
+    toast((G.attacker==='player'?'You captured ':'AI captured ') + NODES[id].name + '!');
+  } else {
+    toast((G.attacker==='player'?'Failed to capture ':'AI failed to capture ') + NODES[G.target].name);
+  }
+  const flipped = checkConnectivity();
+  draw();
+  if(flipped.length) setTimeout(()=>toast(flipped.length + ' isolated region(s) switched sides'), 700);
+  if(NODES[PLAYER_CAPITAL].owner === 'ai'){ gameOver('Defeat'); return; }
+  if(NODES[ENEMY_CAPITAL].owner === 'player'){ gameOver('Victory'); return; }
+  if(G.attacker === 'player') playerActionDone();
+  else aiActionDone();
+}
+
+function gameOver(result){
+  G.over = true;
+  const win = (result === 'Victory');
+  document.getElementById('endTitle').textContent = win ? 'VICTORY' : 'DEFEAT';
+  document.getElementById('endTitle').className = win ? 'win' : 'lose';
+  document.getElementById('endLine').className = win ? 'win' : 'lose';
+  document.getElementById('endSub').textContent = win
+    ? 'Varkor has fallen. The war is yours.'
+    : 'Novera has fallen. The war is lost.';
+  setTimeout(()=>{
+    document.getElementById('game').style.display = 'none';
+    document.getElementById('endScreen').style.display = 'flex';
+  }, 700);
+}
+
+/* ============================================================
+   Skill screen — all eligible options
+   ============================================================ */
+const SKILL_DEFS = {
+  air:       { ico:'✈', nm:'AIR STRIKE',   ds:'Bomb an enemy city. Play Tetris to succeed. Damaged city skips Chess on next assault.' },
+  negotiate: { ico:'♠', nm:'NEGOTIATE',    ds:'Wager an adjacent region. Best 3-card hand takes it. Capitals excluded.' },
+  guerrilla: { ico:'✪', nm:'GUERRILLA',    ds:'Sabotage an enemy city with Snake. Target becomes turbulent for 3 rounds.' },
+  secret:    { ico:'☢', nm:'SECRET WEAPON',ds:'Skip chess — capture any adjacent enemy region instantly.' },
+  blitz:     { ico:'⚡︎', nm:'BLITZ',      ds:'Attack 2 cities at once with Checkers. Only when your capital is threatened.' }
+};
+
+function showSkillScreen(){
+  const pool = ['air','negotiate','guerrilla'];
+  if(G.round % 5 === 0) pool.push('secret');
+  const capThreatened = neighbors(PLAYER_CAPITAL).some(id =>
+    NODES[id].owner === 'ai' && !isTurbulent(id));
+  if(capThreatened) pool.push('blitz');
+
+  const btns = document.getElementById('skillBtns');
+  btns.innerHTML = '';
+  pool.forEach(kind=>{
+    const def = SKILL_DEFS[kind];
+    const div = document.createElement('div');
+    div.className = 'skillBtn';
+    div.innerHTML = '<div class="ico">'+def.ico+'</div><div class="nm">'+def.nm+'</div><div class="ds">'+def.ds+'</div>';
+    div.onclick = ()=>grantSkill(kind);
+    btns.appendChild(div);
+  });
+  document.getElementById('skillScreen').style.display = 'flex';
+}
+
+function grantSkill(kind){
+  document.getElementById('skillScreen').style.display='none';
+  if(kind === 'air') G.playerSkills.air++;
+  else if(kind === 'negotiate') G.playerSkills.negotiate++;
+  else if(kind === 'guerrilla') G.playerSkills.guerrilla++;
+  else if(kind === 'secret') G.playerSkills.secret++;
+  else if(kind === 'blitz') G.playerSkills.blitz++;
+
+  toast(SKILL_DEFS[kind].nm + ' acquired');
+  G.round++;
+  G.phase = 'player';
+  G.playerMode = 'attack';
+  updateHUD(); updateActionBar(); draw();
+}
+
+function afterSkillAction(){
+  if(G.over) return;
+  G.skillOwner = null;
+  G.playerMode = 'attack';
+  G.blitzTargets = [];
+  if(G.attacker === 'player') playerActionDone();
+  else aiActionDone();
+}
+
+/* ============================================================
+   Surrender
+   ============================================================ */
+function surrenderGame(){
+  if(G.over) return;
+
+  if(Chess.active){
+    Chess.active = false;
+    document.getElementById('chessScreen').style.display = 'none';
+    concludeBattle(G.attacker === 'player' ? false : true); return;
+  }
+  if(Mine.active){
+    Mine.active = false; Mine.over = true;
+    document.getElementById('minesScreen').style.display = 'none';
+    concludeBattle(false); return;
+  }
+  if(Tetris.running){
+    Tetris.running = false; clearInterval(Tetris.timer);
+    document.getElementById('tetrisScreen').style.display = 'none';
+    G.airTarget = null; toast('Air strike aborted');
+    afterSkillAction(); return;
+  }
+  if(Shooter.running){
+    Shooter.running = false; clearInterval(Shooter.timer);
+    document.getElementById('shooterScreen').style.display = 'none';
+    if(G.airTarget){ G.damaged[G.airTarget] = G.round + 2; toast(NODES[G.airTarget].name + ' bombed!'); }
+    G.airTarget = null; afterSkillAction(); return;
+  }
+  if(Poker.running){
+    Poker.running = false;
+    document.getElementById('pokerScreen').style.display = 'none';
+    resolvePoker(false); return;
+  }
+  if(Snake.running){
+    Snake.running = false; clearInterval(Snake.timer);
+    document.getElementById('snakeScreen').style.display = 'none';
+    G.guerTarget = null; toast('Guerrilla aborted');
+    afterSkillAction(); return;
+  }
+  if(Checkers.running){
+    Checkers.running = false;
+    document.getElementById('checkersScreen').style.display = 'none';
+    if(G.attacker === 'player') toast('Blitz failed');
+    else toast('You defended against blitz!');
+    G.blitzTargets = [];
+    afterSkillAction(); return;
+  }
+  if(Whack.running){
+    Whack.running = false; clearInterval(Whack.timer);
+    document.getElementById('whackScreen').style.display = 'none';
+    if(G.guerTarget){
+      G.turbulent[G.guerTarget] = G.round + 3;
+      toast(NODES[G.guerTarget].name + ' turbulent');
+    }
+    G.guerTarget = null;
+    afterSkillAction(); return;
+  }
+}
+
+/* ============================================================
+   AI target choice
+   ============================================================ */
+function chooseAITarget(){
+  const targets = getTargets('ai');
+  if(!targets.length) return null;
+  if(targets.includes(PLAYER_CAPITAL)) return PLAYER_CAPITAL;
+  let best = null, bestScore = -Infinity;
+  for(const t of targets){
+    const saved = NODES[t].owner;
+    NODES[t].owner = 'ai';
+    let sc = boardMinimax(2, false);
+    NODES[t].owner = saved;
+    sc += NODES[t].type === 'capital' ? 6000 : NODES[t].type === 'city' ? 400 : 260;
+    if(sc > bestScore){ bestScore = sc; best = t; }
+  }
+  return best;
+}
+
+function boardMinimax(depth, maximizing){
+  if(depth === 0) return evalBoard('ai');
+  const side = maximizing ? 'ai' : 'player';
+  const targets = getTargets(side);
+  if(!targets.length) return evalBoard('ai');
+  let best = maximizing ? -Infinity : Infinity;
+  for(const t of targets){
+    const saved = NODES[t].owner;
+    NODES[t].owner = side;
+    let sc;
+    if(side === 'ai' && t === PLAYER_CAPITAL) sc = 1e9;
+    else if(side === 'player' && t === ENEMY_CAPITAL) sc = -1e9;
+    else sc = boardMinimax(depth-1, !maximizing);
+    NODES[t].owner = saved;
+    if(maximizing) best = Math.max(best, sc);
+    else best = Math.min(best, sc);
+  }
+  return best;
+}
+
+function evalBoard(perspective){
+  const oppCap = perspective === 'ai' ? PLAYER_CAPITAL : ENEMY_CAPITAL;
+  const oppNode = NODES[oppCap];
+  if(!oppNode) return 0;
+  let s = 0;
+  for(const id in NODES){
+    const n = NODES[id];
+    let v;
+    if(id === PLAYER_CAPITAL || id === ENEMY_CAPITAL) v = 5000;
+    else if(n.type === 'city') v = 300;
+    else v = 200;
+    const d = Math.hypot(n.x - oppNode.x, n.y - oppNode.y);
+    v += Math.max(0, 420 - d) * 0.3;
+    s += (n.owner === perspective) ? v : -v;
+  }
+  return s;
+}
+
+/* ============================================================
+   CHESS
+   ============================================================ */
+const VAL = {p:100, n:320, b:330, r:500, q:900, k:20000};
+const UNI = {
+  w:{k:'♔',q:'♕',r:'♖',b:'♗',n:'♘',p:'♙'},
+  b:{k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'}
+};
+
+const Chess = {
+  board:null, selected:null, moves:[], turn:'w', active:false,
+  playerCol:'w', aiCol:'b',
+  castling:{wK:true,wQ:true,bK:true,bQ:true},
+  positionCount:{}
+};
+
+function inB(r,c){ return r>=0 && r<8 && c>=0 && c<8; }
+function other(c){ return c==='w' ? 'b' : 'w'; }
+
+function newChessBoard(){
+  const back = ['r','n','b','q','k','b','n','r'];
+  const b = [];
+  for(let r=0;r<8;r++) b.push(new Array(8).fill(null));
+  for(let c=0;c<8;c++){
+    b[0][c] = {t:back[c], col:'b'};
+    b[1][c] = {t:'p', col:'b'};
+    b[6][c] = {t:'p', col:'w'};
+    b[7][c] = {t:back[c], col:'w'};
+  }
+  return b;
+}
+
+function cloneBoard(b){ return b.map(row => row.map(p => p ? {t:p.t, col:p.col} : null)); }
+
+function positionKey(board, castling, turn){
+  let s = turn + '|';
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const p = board[r][c];
+    s += p ? (p.col + p.t) : '.';
+  }
+  s += '|' + (castling.wK?'K':'') + (castling.wQ?'Q':'') + (castling.bK?'k':'') + (castling.bQ?'q':'');
+  return s;
+}
+
+function makeMove(board, m, castling){
+  const p = board[m.from[0]][m.from[1]];
+  board[m.to[0]][m.to[1]] = p;
+  board[m.from[0]][m.from[1]] = null;
+  if(p.t === 'p' && (m.to[0] === 0 || m.to[0] === 7)) p.t = 'q';
+  if(p.t === 'k' && Math.abs(m.to[1] - m.from[1]) === 2){
+    if(m.to[1] > m.from[1]){
+      board[m.to[0]][5] = board[m.to[0]][7]; board[m.to[0]][7] = null;
+    } else {
+      board[m.to[0]][3] = board[m.to[0]][0]; board[m.to[0]][0] = null;
+    }
+  }
+  if(castling){
+    if(p.t === 'k'){
+      if(p.col === 'w'){ castling.wK = false; castling.wQ = false; }
+      else { castling.bK = false; castling.bQ = false; }
+    }
+    if(p.t === 'r'){
+      if(m.from[0] === 7 && m.from[1] === 0) castling.wQ = false;
+      if(m.from[0] === 7 && m.from[1] === 7) castling.wK = false;
+      if(m.from[0] === 0 && m.from[1] === 0) castling.bQ = false;
+      if(m.from[0] === 0 && m.from[1] === 7) castling.bK = false;
+    }
+    if(m.to[0] === 7 && m.to[1] === 0) castling.wQ = false;
+    if(m.to[0] === 7 && m.to[1] === 7) castling.wK = false;
+    if(m.to[0] === 0 && m.to[1] === 0) castling.bQ = false;
+    if(m.to[0] === 0 && m.to[1] === 7) castling.bK = false;
+  }
+}
+
+function pseudoMoves(board, col, castling){
+  const out = [];
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const p = board[r][c];
+    if(!p || p.col !== col) continue;
+
+    if(p.t === 'p'){
+      const dir = col === 'w' ? -1 : 1;
+      const startRow = col === 'w' ? 6 : 1;
+      if(inB(r+dir,c) && !board[r+dir][c]){
+        out.push({from:[r,c], to:[r+dir,c]});
+        if(r === startRow && !board[r+2*dir][c]) out.push({from:[r,c], to:[r+2*dir,c]});
+      }
+      for(const dc of [-1,1]){
+        const nr = r+dir, nc = c+dc;
+        if(inB(nr,nc) && board[nr][nc] && board[nr][nc].col !== col)
+          out.push({from:[r,c], to:[nr,nc]});
+      }
+    }
+    if(p.t === 'n'){
+      for(const [dr,dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]){
+        const nr=r+dr, nc=c+dc;
+        if(inB(nr,nc) && (!board[nr][nc] || board[nr][nc].col !== col))
+          out.push({from:[r,c], to:[nr,nc]});
+      }
+    }
+    if(p.t === 'b' || p.t === 'q'){
+      for(const [dr,dc] of [[-1,-1],[-1,1],[1,-1],[1,1]]){
+        let nr=r+dr, nc=c+dc;
+        while(inB(nr,nc)){
+          if(!board[nr][nc]) out.push({from:[r,c], to:[nr,nc]});
+          else{ if(board[nr][nc].col !== col) out.push({from:[r,c], to:[nr,nc]}); break; }
+          nr+=dr; nc+=dc;
+        }
+      }
+    }
+    if(p.t === 'r' || p.t === 'q'){
+      for(const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]){
+        let nr=r+dr, nc=c+dc;
+        while(inB(nr,nc)){
+          if(!board[nr][nc]) out.push({from:[r,c], to:[nr,nc]});
+          else{ if(board[nr][nc].col !== col) out.push({from:[r,c], to:[nr,nc]}); break; }
+          nr+=dr; nc+=dc;
+        }
+      }
+    }
+    if(p.t === 'k'){
+      for(const [dr,dc] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){
+        const nr=r+dr, nc=c+dc;
+        if(inB(nr,nc) && (!board[nr][nc] || board[nr][nc].col !== col))
+          out.push({from:[r,c], to:[nr,nc]});
+      }
+      const back = col === 'w' ? 7 : 0;
+      if(r === back && c === 4 && castling){
+        const canK = col === 'w' ? castling.wK : castling.bK;
+        const canQ = col === 'w' ? castling.wQ : castling.bQ;
+        const enemy = other(col);
+        if(canK && !board[back][5] && !board[back][6] &&
+           !isAttacked(board, back, 4, enemy) &&
+           !isAttacked(board, back, 5, enemy) &&
+           !isAttacked(board, back, 6, enemy) &&
+           board[back][7] && board[back][7].t === 'r'){
+          out.push({from:[r,c], to:[back,6]});
+        }
+        if(canQ && !board[back][1] && !board[back][2] && !board[back][3] &&
+           !isAttacked(board, back, 4, enemy) &&
+           !isAttacked(board, back, 3, enemy) &&
+           !isAttacked(board, back, 2, enemy) &&
+           board[back][0] && board[back][0].t === 'r'){
+          out.push({from:[r,c], to:[back,2]});
+        }
+      }
+    }
+  }
+  return out;
+}
+
+function isAttacked(board, r, c, byCol){
+  const pd = byCol === 'w' ? 1 : -1;
+  for(const dc of [-1,1]){
+    const nr=r+pd, nc=c+dc;
+    if(inB(nr,nc)){
+      const p = board[nr][nc];
+      if(p && p.col === byCol && p.t === 'p') return true;
+    }
+  }
+  for(const [dr,dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]){
+    const nr=r+dr, nc=c+dc;
+    if(inB(nr,nc)){
+      const p = board[nr][nc];
+      if(p && p.col === byCol && p.t === 'n') return true;
+    }
+  }
+  for(const [dr,dc] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){
+    const nr=r+dr, nc=c+dc;
+    if(inB(nr,nc)){
+      const p = board[nr][nc];
+      if(p && p.col === byCol && p.t === 'k') return true;
+    }
+  }
+  for(const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]){
+    let nr=r+dr, nc=c+dc;
+    while(inB(nr,nc)){
+      const p = board[nr][nc];
+      if(p){ if(p.col === byCol && (p.t === 'r' || p.t === 'q')) return true; break; }
+      nr+=dr; nc+=dc;
+    }
+  }
+  for(const [dr,dc] of [[-1,-1],[-1,1],[1,-1],[1,1]]){
+    let nr=r+dr, nc=c+dc;
+    while(inB(nr,nc)){
+      const p = board[nr][nc];
+      if(p){ if(p.col === byCol && (p.t === 'b' || p.t === 'q')) return true; break; }
+      nr+=dr; nc+=dc;
+    }
+  }
+  return false;
+}
+
+function findKing(board, col){
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const p = board[r][c];
+    if(p && p.t === 'k' && p.col === col) return [r,c];
+  }
+  return null;
+}
+
+function inCheck(board, col){
+  const k = findKing(board, col);
+  if(!k) return true;
+  return isAttacked(board, k[0], k[1], other(col));
+}
+
+function legalMoves(board, col, castling){
+  const ms = pseudoMoves(board, col, castling);
+  const out = [];
+  for(const m of ms){
+    const cap = board[m.to[0]][m.to[1]];
+    const pc  = board[m.from[0]][m.from[1]];
+    board[m.to[0]][m.to[1]] = pc; board[m.from[0]][m.from[1]] = null;
+    const ok = !inCheck(board, col);
+    board[m.from[0]][m.from[1]] = pc; board[m.to[0]][m.to[1]] = cap;
+    if(ok) out.push(m);
+  }
+  return out;
+}
+
+function evaluate(board, col){
+  let s = 0;
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const p = board[r][c];
+    if(!p) continue;
+    s += (p.col === col) ? VAL[p.t] : -VAL[p.t];
+  }
+  return s;
+}
+
+function search(board, depth, alpha, beta, col){
+  if(depth === 0) return evaluate(board, col);
+  const moves = pseudoMoves(board, col, null);
+  if(!moves.length) return -99999;
+  let best = -Infinity;
+  for(const m of moves){
+    const tgt = board[m.to[0]][m.to[1]];
+    if(tgt && tgt.t === 'k') return 99999;
+    const nb = cloneBoard(board);
+    makeMove(nb, m, null);
+    const sc = -search(nb, depth-1, -beta, -alpha, other(col));
+    if(sc > best) best = sc;
+    if(best > alpha) alpha = best;
+    if(alpha >= beta) break;
+  }
+  return best;
+}
+
+function findBestMove(board, col, depth){
+  const moves = pseudoMoves(board, col, null);
+  if(!moves.length) return null;
+  moves.sort((a,b)=>{
+    const va = board[a.to[0]][a.to[1]] ? VAL[board[a.to[0]][a.to[1]].t] : 0;
+    const vb = board[b.to[0]][b.to[1]] ? VAL[board[b.to[0]][b.to[1]].t] : 0;
+    return vb - va;
+  });
+  let best = null, bestScore = -Infinity, alpha = -Infinity, beta = Infinity;
+  for(const m of moves){
+    const nb = cloneBoard(board);
+    makeMove(nb, m, null);
+    const sc = -search(nb, depth-1, -beta, -alpha, other(col));
+    if(sc > bestScore){ bestScore = sc; best = m; }
+    if(sc > alpha) alpha = sc;
+  }
+  return best;
+}
+
+function startChess(){
+  const attacker = G.attacker;
+  Chess.playerCol = attacker === 'player' ? 'w' : 'b';
+  Chess.aiCol     = attacker === 'player' ? 'b' : 'w';
+  Chess.board = newChessBoard();
+  Chess.turn = 'w';
+  Chess.selected = null; Chess.moves = [];
+  Chess.active = true;
+  Chess.castling = {wK:true,wQ:true,bK:true,bQ:true};
+  Chess.positionCount = {};
+  Chess.positionCount[positionKey(Chess.board, Chess.castling, Chess.turn)] = 1;
+
+  document.getElementById('chessInfo').textContent =
+    attacker === 'player'
+      ? 'Attacking ' + NODES[G.target].name + ' — win to capture'
+      : NODES[G.target].name + ' under attack — win to defend';
+
+  document.getElementById('chessScreen').style.display = 'flex';
+  document.getElementById('chessStatus').textContent =
+    Chess.turn === Chess.playerCol ? 'Your move' : 'AI thinking…';
+
+  renderChess();
+  if(Chess.turn !== Chess.playerCol) setTimeout(aiChessMove, 500);
+}
+
+function renderChess(){
+  const el = document.getElementById('chessBoard');
+  el.innerHTML = '';
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const sq = document.createElement('div');
+    sq.className = 'sq ' + (((r+c)%2===0) ? 'light' : 'dark');
+    const p = Chess.board[r][c];
+    if(p){
+      const sp = document.createElement('span');
+      sp.className = p.col === 'w' ? 'pw' : 'pb';
+      sp.textContent = UNI[p.col][p.t];
+      sq.appendChild(sp);
+    }
+    if(Chess.selected && Chess.selected[0]===r && Chess.selected[1]===c) sq.classList.add('sel');
+    if(Chess.moves.some(m => m.to[0]===r && m.to[1]===c))
+      sq.classList.add(Chess.board[r][c] ? 'cap' : 'mov');
+    sq.onclick = ()=>onChessClick(r,c);
+    el.appendChild(sq);
+  }
+}
+
+function onChessClick(r,c){
+  if(!Chess.active) return;
+  if(Chess.turn !== Chess.playerCol) return;
+  const p = Chess.board[r][c];
+  if(p && p.col === Chess.playerCol){
+    Chess.selected = [r,c];
+    Chess.moves = legalMoves(Chess.board, Chess.playerCol, Chess.castling)
+                    .filter(m => m.from[0]===r && m.from[1]===c);
+    renderChess(); return;
+  }
+  if(Chess.selected){
+    const mv = Chess.moves.find(m => m.to[0]===r && m.to[1]===c);
+    if(mv){
+      makeMove(Chess.board, mv, Chess.castling);
+      Chess.selected = null; Chess.moves = [];
+      Chess.turn = other(Chess.playerCol);
+      renderChess(); afterMove(); return;
+    }
+  }
+  Chess.selected = null; Chess.moves = []; renderChess();
+}
+
+function afterMove(){
+  const key = positionKey(Chess.board, Chess.castling, Chess.turn);
+  Chess.positionCount[key] = (Chess.positionCount[key] || 0) + 1;
+  if(Chess.positionCount[key] >= 3){ endChess('draw'); return; }
+  const res = checkChessEnd();
+  if(res !== null){ endChess(res); return; }
+  if(Chess.turn !== Chess.playerCol){
+    document.getElementById('chessStatus').textContent = 'AI thinking…';
+    setTimeout(aiChessMove, 250);
+  } else {
+    document.getElementById('chessStatus').textContent = 'Your move';
+  }
+}
+
+function aiChessMove(){
+  if(!Chess.active) return;
+  const mv = findBestMove(Chess.board, Chess.aiCol, 3);
+  if(!mv){ endChess(other(Chess.aiCol)); return; }
+  makeMove(Chess.board, mv, Chess.castling);
+  Chess.turn = Chess.playerCol;
+  renderChess();
+  const key = positionKey(Chess.board, Chess.castling, Chess.turn);
+  Chess.positionCount[key] = (Chess.positionCount[key] || 0) + 1;
+  if(Chess.positionCount[key] >= 3){ endChess('draw'); return; }
+  const res = checkChessEnd();
+  if(res !== null){ endChess(res); return; }
+  document.getElementById('chessStatus').textContent = 'Your move';
+}
+
+function checkChessEnd(){
+  const side = Chess.turn;
+  const ms = legalMoves(Chess.board, side, Chess.castling);
+  if(ms.length === 0){
+    if(inCheck(Chess.board, side)) return other(side);
+    return 'draw';
+  }
+  return null;
+}
+
+function endChess(winner){
+  Chess.active = false;
+  const attackerWon = (winner === 'w');
+  const playerWon   = (winner === Chess.playerCol);
+  document.getElementById('chessStatus').textContent =
+    winner === 'draw' ? 'Draw — attack failed'
+    : (playerWon ? 'You win!' : 'You lose!');
+  setTimeout(()=>{
+    document.getElementById('chessScreen').style.display = 'none';
+    concludeBattle(attackerWon);
+  }, 1600);
+}
+
+/* ============================================================
+   MINESWEEPER (no mines in corners)
+   ============================================================ */
+const Mine = { rows:8, cols:8, mines:10, grid:[], revealed:[], flags:[], active:false, over:false };
+
+function startMinesweeper(){
+  Mine.grid = []; Mine.revealed = []; Mine.flags = [];
+  Mine.over = false; Mine.active = true;
+  for(let r=0;r<Mine.rows;r++){
+    Mine.grid.push(new Array(Mine.cols).fill(0));
+    Mine.revealed.push(new Array(Mine.cols).fill(false));
+    Mine.flags.push(new Array(Mine.cols).fill(false));
+  }
+  const forbidden = new Set([
+    '0,0', '0,' + (Mine.cols-1),
+    (Mine.rows-1) + ',0', (Mine.rows-1) + ',' + (Mine.cols-1)
+  ]);
+  let placed = 0, guard = 0;
+  while(placed < Mine.mines && guard++ < 500){
+    const r = Math.floor(Math.random()*Mine.rows);
+    const c = Math.floor(Math.random()*Mine.cols);
+    if(forbidden.has(r+','+c)) continue;
+    if(Mine.grid[r][c] !== -1){ Mine.grid[r][c] = -1; placed++; }
+  }
+  for(let r=0;r<Mine.rows;r++) for(let c=0;c<Mine.cols;c++){
+    if(Mine.grid[r][c] === -1) continue;
+    let n = 0;
+    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+      const nr=r+dr, nc=c+dc;
+      if(nr>=0&&nr<Mine.rows&&nc>=0&&nc<Mine.cols && Mine.grid[nr][nc]===-1) n++;
+    }
+    Mine.grid[r][c] = n;
+  }
+  document.getElementById('minesInfo').textContent =
+    'Capture ' + NODES[G.target].name + ' — clear all ' + Mine.mines + ' mines';
+  document.getElementById('minesScreen').style.display = 'flex';
+  renderMines();
+}
+
+function renderMines(){
+  const el = document.getElementById('minesBoard');
+  el.innerHTML = '';
+  el.style.gridTemplateColumns = 'repeat(' + Mine.cols + ', 1fr)';
+  for(let r=0;r<Mine.rows;r++) for(let c=0;c<Mine.cols;c++){
+    const cell = document.createElement('div');
+    cell.className = 'mcell';
+    if(Mine.revealed[r][c]){
+      cell.classList.add('revealed');
+      if(Mine.grid[r][c] === -1){ cell.classList.add('boom'); cell.textContent = '☠︎'; }
+      else if(Mine.grid[r][c] > 0){ cell.textContent = Mine.grid[r][c]; cell.classList.add('n' + Mine.grid[r][c]); }
+    } else if(Mine.flags[r][c]){ cell.textContent = '☒'; }
+    cell.onclick = ()=>revealCell(r,c);
+    cell.oncontextmenu = (e)=>{ e.preventDefault(); toggleFlag(r,c); };
+    el.appendChild(cell);
+  }
+}
+
+function toggleFlag(r,c){
+  if(!Mine.active || Mine.over) return;
+  if(Mine.revealed[r][c]) return;
+  Mine.flags[r][c] = !Mine.flags[r][c];
+  renderMines();
+}
+
+function revealCell(r,c){
+  if(!Mine.active || Mine.over) return;
+  if(Mine.revealed[r][c] || Mine.flags[r][c]) return;
+  if(Mine.grid[r][c] === -1){
+    Mine.revealed[r][c] = true;
+    Mine.over = true; Mine.active = false;
+    renderMines();
+    setTimeout(()=>{
+      document.getElementById('minesScreen').style.display = 'none';
+      concludeBattle(false);
+    }, 1400);
+    return;
+  }
+  floodReveal(r,c);
+  renderMines();
+  if(checkMinesWin()){
+    Mine.over = true; Mine.active = false;
+    setTimeout(()=>{
+      document.getElementById('minesScreen').style.display = 'none';
+      concludeBattle(true);
+    }, 700);
+  }
+}
+
+function floodReveal(r,c){
+  if(r<0||r>=Mine.rows||c<0||c>=Mine.cols) return;
+  if(Mine.revealed[r][c] || Mine.flags[r][c]) return;
+  if(Mine.grid[r][c] === -1) return;
+  Mine.revealed[r][c] = true;
+  if(Mine.grid[r][c] === 0){
+    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++)
+      if(dr||dc) floodReveal(r+dr, c+dc);
+  }
+}
+
+function checkMinesWin(){
+  for(let r=0;r<Mine.rows;r++) for(let c=0;c<Mine.cols;c++)
+    if(Mine.grid[r][c] !== -1 && !Mine.revealed[r][c]) return false;
+  return true;
+}
+
+/* ============================================================
+   TETRIS
+   ============================================================ */
+const TET_SHAPES = [
+  {m:[[1,1,1,1]], c:'#ffffff'},
+  {m:[[1,1],[1,1]], c:'#dddddd'},
+  {m:[[0,1,0],[1,1,1]], c:'#bbbbbb'},
+  {m:[[1,0,0],[1,1,1]], c:'#999999'},
+  {m:[[0,0,1],[1,1,1]], c:'#888888'},
+  {m:[[0,1,1],[1,1,0]], c:'#666666'},
+  {m:[[1,1,0],[0,1,1]], c:'#555555'}
+];
+const Tetris = { cols:10, rows:16, cell:24, board:[], piece:null, px:0, py:0, timer:null, running:false, lines:0, score:0 };
+
+function tetrisCollide(dx=0, dy=0, mat=null){
+  const p = Tetris.piece;
+  const m = mat || p.m;
+  for(let r=0;r<m.length;r++){
+    for(let c=0;c<m[r].length;c++){
+      if(!m[r][c]) continue;
+      const nx = Tetris.px + c + dx;
+      const ny = Tetris.py + r + dy;
+      if(nx < 0 || nx >= Tetris.cols || ny >= Tetris.rows) return true;
+      if(ny >= 0 && Tetris.board[ny][nx]) return true;
+    }
+  }
+  return false;
+}
+
+function tetrisSpawn(){
+  const s = TET_SHAPES[Math.floor(Math.random()*TET_SHAPES.length)];
+  Tetris.piece = { m: s.m.map(r=>r.slice()), c: s.c };
+  Tetris.px = Math.floor((Tetris.cols - s.m[0].length)/2);
+  Tetris.py = 0;
+  if(tetrisCollide()) tetrisEnd(false);
+}
+
+function tetrisLock(){
+  const p = Tetris.piece;
+  for(let r=0;r<p.m.length;r++) for(let c=0;c<p.m[r].length;c++){
+    if(!p.m[r][c]) continue;
+    const ny = Tetris.py + r, nx = Tetris.px + c;
+    if(ny >= 0 && ny < Tetris.rows && nx >= 0 && nx < Tetris.cols) Tetris.board[ny][nx] = p.c;
+  }
+  let cleared = 0;
+  for(let r=Tetris.rows-1;r>=0;r--){
+    if(Tetris.board[r].every(v=>v)){
+      Tetris.board.splice(r,1);
+      Tetris.board.unshift(new Array(Tetris.cols).fill(0));
+      cleared++; r++;
+    }
+  }
+  if(cleared){
+    Tetris.lines += cleared;
+    Tetris.score = Math.min(100, Tetris.lines * 34);
+    document.getElementById('tetrisScore').textContent = 'Score: ' + Tetris.score + ' / 100';
+    if(Tetris.lines >= 3){ tetrisEnd(true); return; }
+  }
+  tetrisSpawn();
+}
+
+function tetrisRotate(){
+  const p = Tetris.piece;
+  const m = p.m;
+  const rotated = [];
+  for(let c=0;c<m[0].length;c++){
+    const row = [];
+    for(let r=m.length-1;r>=0;r--) row.push(m[r][c]);
+    rotated.push(row);
+  }
+  if(!tetrisCollide(0,0,rotated)) p.m = rotated;
+}
+
+function tetrisTick(){
+  if(!Tetris.running) return;
+  if(tetrisCollide(0,1)) tetrisLock();
+  else Tetris.py++;
+  drawTetris();
+}
+
+function drawTetris(){
+  const ctx = Tetris.ctx;
+  const cell = Tetris.cell;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0,0,Tetris.cols*cell,Tetris.rows*cell);
+  ctx.strokeStyle = '#1e1e1e';
+  for(let c=0;c<=Tetris.cols;c++){ ctx.beginPath(); ctx.moveTo(c*cell,0); ctx.lineTo(c*cell,Tetris.rows*cell); ctx.stroke(); }
+  for(let r=0;r<=Tetris.rows;r++){ ctx.beginPath(); ctx.moveTo(0,r*cell); ctx.lineTo(Tetris.cols*cell,r*cell); ctx.stroke(); }
+  for(let r=0;r<Tetris.rows;r++) for(let c=0;c<Tetris.cols;c++){
+    if(Tetris.board[r][c]){
+      ctx.fillStyle = Tetris.board[r][c];
+      ctx.fillRect(c*cell+1, r*cell+1, cell-2, cell-2);
+    }
+  }
+  if(Tetris.piece){
+    const p = Tetris.piece;
+    ctx.fillStyle = p.c;
+    for(let r=0;r<p.m.length;r++) for(let c=0;c<p.m[r].length;c++){
+      if(p.m[r][c]) ctx.fillRect((Tetris.px+c)*cell+1, (Tetris.py+r)*cell+1, cell-2, cell-2);
+    }
+  }
+}
+
+function tetrisAction(k){
+  if(!Tetris.running) return;
+  if(k === 'a' && !tetrisCollide(-1,0)){ Tetris.px--; drawTetris(); }
+  if(k === 'd' && !tetrisCollide( 1,0)){ Tetris.px++; drawTetris(); }
+  if(k === 's'){ if(!tetrisCollide(0,1)) Tetris.py++; else tetrisLock(); drawTetris(); }
+  if(k === 'w'){ tetrisRotate(); drawTetris(); }
+}
+
+function startTetris(){
+  const cvs = document.getElementById('tetrisCanvas');
+  Tetris.ctx = cvs.getContext('2d');
+  Tetris.running = true;
+  Tetris.lines = 0; Tetris.score = 0;
+  Tetris.board = [];
+  for(let r=0;r<Tetris.rows;r++) Tetris.board.push(new Array(Tetris.cols).fill(0));
+  document.getElementById('tetrisScore').textContent = 'Score: 0 / 100';
+  document.getElementById('tetrisStatus').textContent = 'W rotate · A left · S down · D right';
+  document.getElementById('tetrisScreen').style.display = 'flex';
+  tetrisSpawn(); drawTetris();
+  clearInterval(Tetris.timer);
+  Tetris.timer = setInterval(tetrisTick, 500);
+}
+
+function tetrisEnd(win){
+  Tetris.running = false;
+  clearInterval(Tetris.timer);
+  document.getElementById('tetrisStatus').textContent = win ? 'STRIKE SUCCESSFUL' : 'STRIKE FAILED';
+  setTimeout(()=>{
+    document.getElementById('tetrisScreen').style.display = 'none';
+    if(win && G.airTarget){ G.damaged[G.airTarget] = G.round + 2; toast(NODES[G.airTarget].name + ' damaged for 2 rounds'); }
+    else { toast('Air strike failed'); }
+    G.airTarget = null;
+    afterSkillAction();
+  }, 1400);
+}
+
+/* ============================================================
+   SHOOTER
+   ============================================================ */
+const Shooter = {
+  canvas:null, ctx:null, running:false, timer:null,
+  player:{x:250,y:420}, bullets:[], enemies:[],
+  kills:0, leaks:0, frame:0, move:{left:false, right:false}
+};
+
+function startShooter(){
+  const cvs = document.getElementById('shooterCanvas');
+  Shooter.canvas = cvs;
+  Shooter.ctx = cvs.getContext('2d');
+  Shooter.running = true;
+  Shooter.bullets = []; Shooter.enemies = [];
+  Shooter.kills = 0; Shooter.leaks = 0; Shooter.frame = 0;
+  Shooter.player = {x:250, y:420};
+  Shooter.move = {left:false, right:false};
+  document.getElementById('shooterStatus').textContent = 'Move mouse or use ← → · Auto-fire';
+  document.getElementById('shooterScreen').style.display = 'flex';
+  cvs.onmousemove = e=>{
+    const rect = cvs.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (cvs.width / rect.width);
+    Shooter.player.x = Math.max(20, Math.min(cvs.width - 20, x));
+  };
+  clearInterval(Shooter.timer);
+  Shooter.timer = setInterval(shooterTick, 30);
+}
+
+function shooterTick(){
+  if(!Shooter.running) return;
+  const s = Shooter;
+  s.frame++;
+  if(s.move.left)  s.player.x = Math.max(20, s.player.x - 6);
+  if(s.move.right) s.player.x = Math.min(s.canvas.width - 20, s.player.x + 6);
+  if(s.frame % 22 === 0 && s.enemies.length < 5){
+    s.enemies.push({ x: 40 + Math.random()*420, y: -20, vy: 1.4 + Math.random()*1.4, vx: (Math.random()-0.5)*1.2 });
+  }
+  if(s.frame % 6 === 0) s.bullets.push({x: s.player.x, y: s.player.y - 20, vy: -9});
+  s.bullets = s.bullets.filter(b=>{ b.y += b.vy; return b.y > -10; });
+  let leaked = 0;
+  s.enemies = s.enemies.filter(e=>{
+    e.y += e.vy; e.x += e.vx;
+    if(e.x < 20 || e.x > 480) e.vx *= -1;
+    if(e.y > 460){ leaked++; return false; }
+    return true;
+  });
+  s.leaks += leaked;
+  s.enemies = s.enemies.filter(e=>{
+    for(let i=0;i<s.bullets.length;i++){
+      const b = s.bullets[i];
+      if(Math.abs(b.x - e.x) < 18 && Math.abs(b.y - e.y) < 18){ s.bullets.splice(i,1); s.kills++; return false; }
+    }
+    return true;
+  });
+  drawShooter();
+  if(s.kills >= 10) shooterEnd(true);
+  else if(s.leaks >= 3) shooterEnd(false);
+}
+
+function drawShooter(){
+  const ctx = Shooter.ctx;
+  const W = Shooter.canvas.width, H = Shooter.canvas.height;
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle = '#141414';
+  for(let x=0;x<W;x+=40){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for(let y=0;y<H;y+=40){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  ctx.fillStyle = '#fff';
+  Shooter.bullets.forEach(b=> ctx.fillRect(b.x-1.5, b.y, 3, 10));
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+  Shooter.enemies.forEach(e=>{
+    ctx.beginPath();
+    ctx.moveTo(e.x, e.y + 14); ctx.lineTo(e.x - 14, e.y - 10); ctx.lineTo(e.x + 14, e.y - 10);
+    ctx.closePath(); ctx.stroke();
+  });
+  const p = Shooter.player;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - 18); ctx.lineTo(p.x - 16, p.y + 12); ctx.lineTo(p.x + 16, p.y + 12);
+  ctx.closePath(); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = '16px serif';
+  ctx.fillText('KILLS: ' + Shooter.kills + ' / 10', 16, 26);
+  ctx.fillText('LEAKS: ' + Shooter.leaks + ' / 3', 16, 48);
+}
+
+function shooterEnd(playerWon){
+  Shooter.running = false;
+  clearInterval(Shooter.timer);
+  document.getElementById('shooterStatus').textContent = playerWon ? 'INTERCEPTED!' : 'CITY BOMBED';
+  setTimeout(()=>{
+    document.getElementById('shooterScreen').style.display = 'none';
+    if(!playerWon && G.airTarget){ G.damaged[G.airTarget] = G.round + 2; toast(NODES[G.airTarget].name + ' damaged for 2 rounds'); }
+    else if(playerWon){ toast('Air strike intercepted!'); }
+    G.airTarget = null;
+    afterSkillAction();
+  }, 1400);
+}
+
+/* ============================================================
+   SNAKE
+   ============================================================ */
+const Snake = {
+  cols:20, rows:20, cell:20,
+  snake:[], dir:{x:1,y:0}, nextDir:{x:1,y:0},
+  food:null, eaten:0, timer:null, running:false
+};
+const SNAKE_GOAL = 8;
+
+function snakeSpawnFood(){
+  const empty = [];
+  for(let r=0;r<Snake.rows;r++) for(let c=0;c<Snake.cols;c++){
+    if(!Snake.snake.some(s=>s.x===c && s.y===r)) empty.push({x:c, y:r});
+  }
+  if(!empty.length) return;
+  Snake.food = empty[Math.floor(Math.random()*empty.length)];
+}
+
+function snakeTick(){
+  if(!Snake.running) return;
+  Snake.dir = Snake.nextDir;
+  const head = Snake.snake[0];
+  const nh = {x: head.x + Snake.dir.x, y: head.y + Snake.dir.y};
+  if(nh.x < 0 || nh.x >= Snake.cols || nh.y < 0 || nh.y >= Snake.rows){ snakeEnd(false); return; }
+  if(Snake.snake.some(s=>s.x===nh.x && s.y===nh.y)){ snakeEnd(false); return; }
+  Snake.snake.unshift(nh);
+  if(Snake.food && nh.x === Snake.food.x && nh.y === Snake.food.y){
+    Snake.eaten++;
+    document.getElementById('snakeScore').textContent = 'Food: ' + Snake.eaten + ' / ' + SNAKE_GOAL;
+    if(Snake.eaten >= SNAKE_GOAL){ drawSnake(); snakeEnd(true); return; }
+    snakeSpawnFood();
+  } else {
+    Snake.snake.pop();
+  }
+  drawSnake();
+}
+
+function snakeSetDir(k){
+  if(!Snake.running) return;
+  const d = Snake.dir;
+  if(k === 'w' && d.y !== 1) Snake.nextDir = {x:0, y:-1};
+  if(k === 's' && d.y !== -1) Snake.nextDir = {x:0, y:1};
+  if(k === 'a' && d.x !== 1) Snake.nextDir = {x:-1, y:0};
+  if(k === 'd' && d.x !== -1) Snake.nextDir = {x:1, y:0};
+}
+
+function drawSnake(){
+  const ctx = Snake.ctx;
+  const cell = Snake.cell;
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,Snake.cols*cell,Snake.rows*cell);
+  ctx.strokeStyle = '#111';
+  for(let x=0;x<=Snake.cols;x++){ ctx.beginPath(); ctx.moveTo(x*cell,0); ctx.lineTo(x*cell,Snake.rows*cell); ctx.stroke(); }
+  for(let y=0;y<=Snake.rows;y++){ ctx.beginPath(); ctx.moveTo(0,y*cell); ctx.lineTo(Snake.cols*cell,y*cell); ctx.stroke(); }
+  if(Snake.food){
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc((Snake.food.x+0.5)*cell, (Snake.food.y+0.5)*cell, cell*0.32, 0, Math.PI*2);
+    ctx.fill();
+  }
+  Snake.snake.forEach((s, i)=>{
+    ctx.fillStyle = i === 0 ? '#fff' : '#bbb';
+    ctx.fillRect(s.x*cell+2, s.y*cell+2, cell-4, cell-4);
+  });
+}
+
+function startSnake(){
+  const cvs = document.getElementById('snakeCanvas');
+  Snake.ctx = cvs.getContext('2d');
+  Snake.running = true;
+  Snake.snake = [{x:10, y:10}, {x:9, y:10}, {x:8, y:10}];
+  Snake.dir = {x:1, y:0}; Snake.nextDir = {x:1, y:0};
+  Snake.eaten = 0;
+  snakeSpawnFood();
+  document.getElementById('snakeScore').textContent = 'Food: 0 / ' + SNAKE_GOAL;
+  document.getElementById('snakeStatus').textContent = 'W A S D to move';
+  document.getElementById('snakeScreen').style.display = 'flex';
+  drawSnake();
+  clearInterval(Snake.timer);
+  Snake.timer = setInterval(snakeTick, 150);
+}
+
+function snakeEnd(win){
+  Snake.running = false;
+  clearInterval(Snake.timer);
+  document.getElementById('snakeStatus').textContent = win ? 'SABOTAGE SUCCESSFUL' : 'SABOTAGE FAILED';
+  setTimeout(()=>{
+    document.getElementById('snakeScreen').style.display = 'none';
+    if(win && G.guerTarget){
+      G.turbulent[G.guerTarget] = G.round + 3;
+      toast(NODES[G.guerTarget].name + ' turbulent for 3 rounds');
+    } else { toast('Guerrilla failed'); }
+    G.guerTarget = null;
+    afterSkillAction();
+  }, 1400);
+}
+
+/* ============================================================
+   WHACK-A-MOLE
+   ============================================================ */
+const Whack = {
+  canvas:null, ctx:null, running:false, timer:null,
+  dots:[], score:0, elapsed:0, spawnTimer:0,
+  goal:4, duration:15000
+};
+
+function startWhack(){
+  const cvs = document.getElementById('whackCanvas');
+  Whack.canvas = cvs;
+  Whack.ctx = cvs.getContext('2d');
+  Whack.running = true;
+  Whack.dots = [];
+  Whack.score = 0;
+  Whack.elapsed = 0;
+  Whack.spawnTimer = 500;
+
+  document.getElementById('whackScore').textContent = 'Score: 0 / ' + Whack.goal;
+  document.getElementById('whackStatus').textContent = 'Click the dots as they appear';
+  document.getElementById('whackScreen').style.display = 'flex';
+  cvs.onclick = whackClick;
+  drawWhack();
+
+  clearInterval(Whack.timer);
+  Whack.timer = setInterval(whackTick, 60);
+}
+
+function whackTick(){
+  if(!Whack.running) return;
+  Whack.elapsed += 60;
+  Whack.spawnTimer += 60;
+
+  if(Whack.spawnTimer >= 750 && Whack.dots.length < 4){
+    Whack.spawnTimer = 0;
+    const x = 40 + Math.random() * (Whack.canvas.width - 80);
+    const y = 40 + Math.random() * (Whack.canvas.height - 80);
+    Whack.dots.push({x, y, life: 1400, r: 24});
+  }
+
+  Whack.dots = Whack.dots.filter(d=>{
+    d.life -= 60;
+    if(d.life <= 0){
+      Whack.score -= 1;
+      document.getElementById('whackScore').textContent = 'Score: ' + Whack.score + ' / ' + Whack.goal;
+      return false;
+    }
+    return true;
+  });
+
+  drawWhack();
+
+  if(Whack.score >= Whack.goal){ whackEnd(true); return; }
+  if(Whack.elapsed >= Whack.duration){ whackEnd(false); return; }
+}
+
+function whackClick(e){
+  if(!Whack.running) return;
+  const rect = Whack.canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (Whack.canvas.width / rect.width);
+  const y = (e.clientY - rect.top) * (Whack.canvas.height / rect.height);
+  for(let i=0;i<Whack.dots.length;i++){
+    const d = Whack.dots[i];
+    if(Math.hypot(x - d.x, y - d.y) < d.r){
+      Whack.dots.splice(i, 1);
+      Whack.score++;
+      document.getElementById('whackScore').textContent = 'Score: ' + Whack.score + ' / ' + Whack.goal;
+      return;
+    }
+  }
+}
+
+function drawWhack(){
+  const ctx = Whack.ctx;
+  const W = Whack.canvas.width, H = Whack.canvas.height;
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle = '#1a1a1a';
+  for(let x=0;x<W;x+=40){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for(let y=0;y<H;y+=40){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  const timeLeft = Math.max(0, Whack.duration - Whack.elapsed);
+  ctx.fillStyle = '#333'; ctx.fillRect(0, 0, W, 6);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W * (timeLeft / Whack.duration), 6);
+
+  Whack.dots.forEach(d=>{
+    const alpha = Math.min(1, d.life / 400);
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.r, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,' + alpha + ')';
+    ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+
+  ctx.fillStyle = '#fff'; ctx.font = '16px serif';
+  ctx.fillText('SCORE: ' + Whack.score + ' / ' + Whack.goal, 16, 34);
+}
+
+function whackEnd(playerWon){
+  Whack.running = false;
+  clearInterval(Whack.timer);
+  document.getElementById('whackStatus').textContent = playerWon ? 'DEFENDED!' : 'SABOTAGED!';
+  setTimeout(()=>{
+    document.getElementById('whackScreen').style.display = 'none';
+    if(playerWon){ toast('You repelled the guerrillas!'); }
+    else if(G.guerTarget){
+      G.turbulent[G.guerTarget] = G.round + 3;
+      toast(NODES[G.guerTarget].name + ' is turbulent for 3 rounds');
+    }
+    G.guerTarget = null;
+    afterSkillAction();
+  }, 1400);
+}
+
+/* ============================================================
+   CHECKERS (Blitz) — with correct 6x6 bounds
+   ============================================================ */
+const Checkers = {
+  size:6, board:[], active:false, running:false,
+  turn:'player', selected:null, moves:[],
+  ctx:null, canvas:null, cell:60,
+  noCaptureCount:0, maxNoCapture:40
+};
+
+function inCheckers(r,c){ return r>=0 && r<Checkers.size && c>=0 && c<Checkers.size; }
+
+function checkersInit(){
+  Checkers.board = [];
+  for(let r=0;r<Checkers.size;r++){
+    const row = [];
+    for(let c=0;c<Checkers.size;c++) row.push(null);
+    Checkers.board.push(row);
+  }
+  let placed = 0;
+  for(let r=0;r<2 && placed<3;r++){
+    for(let c=0;c<Checkers.size && placed<3;c++){
+      if((r+c)%2===1){ Checkers.board[r][c] = {col:'ai', king:false}; placed++; }
+    }
+  }
+  placed = 0;
+  for(let r=5;r>=4 && placed<3;r--){
+    for(let c=0;c<Checkers.size && placed<3;c++){
+      if((r+c)%2===1){ Checkers.board[r][c] = {col:'player', king:false}; placed++; }
+    }
+  }
+  Checkers.selected = null;
+  Checkers.moves = [];
+  Checkers.noCaptureCount = 0;
+}
+
+function checkersValidMoves(board, r, c){
+  const p = board[r][c];
+  if(!p) return [];
+  const dirs = [];
+  if(p.col === 'player' || p.king) dirs.push([-1,-1],[-1,1]);
+  if(p.col === 'ai' || p.king) dirs.push([1,-1],[1,1]);
+  const out = [];
+  for(const [dr,dc] of dirs){
+    const nr=r+dr, nc=c+dc;
+    if(!inCheckers(nr,nc)) continue;
+    if(!board[nr][nc]) out.push({from:[r,c], to:[nr,nc], capture:null});
+  }
+  const jumpDirs = p.king ? [[-1,-1],[-1,1],[1,-1],[1,1]] :
+                    p.col === 'player' ? [[-1,-1],[-1,1]] : [[1,-1],[1,1]];
+  for(const [dr,dc] of jumpDirs){
+    const mr=r+dr, mc=c+dc;
+    const tr=r+2*dr, tc=c+2*dc;
+    if(!inCheckers(mr,mc) || !inCheckers(tr,tc)) continue;
+    const mid = board[mr][mc];
+    if(mid && mid.col !== p.col && !board[tr][tc]){
+      out.push({from:[r,c], to:[tr,tc], capture:[mr,mc]});
+    }
+  }
+  return out;
+}
+
+function checkersAllMoves(board, col){
+  const out = [];
+  for(let r=0;r<Checkers.size;r++) for(let c=0;c<Checkers.size;c++){
+    const p = board[r][c];
+    if(!p || p.col !== col) continue;
+    checkersValidMoves(board, r, c).forEach(m=>out.push(m));
+  }
+  return out;
+}
+
+function checkersApply(board, m){
+  const p = board[m.from[0]][m.from[1]];
+  board[m.to[0]][m.to[1]] = p;
+  board[m.from[0]][m.from[1]] = null;
+  if(m.capture) board[m.capture[0]][m.capture[1]] = null;
+  const lastRow = p.col === 'player' ? 0 : Checkers.size-1;
+  if(m.to[0] === lastRow) p.king = true;
+}
+
+function checkersAIMove(){
+  if(!Checkers.running) return;
+  const all = checkersAllMoves(Checkers.board, 'ai');
+  if(!all.length){ endCheckers('player'); return; }
+  const caps = all.filter(m=>m.capture);
+  const pool = caps.length ? caps : all;
+  const mv = pool[Math.floor(Math.random()*pool.length)];
+  const hadCapture = !!mv.capture;
+  checkersApply(Checkers.board, mv);
+  if(hadCapture) Checkers.noCaptureCount = 0;
+  else Checkers.noCaptureCount++;
+  Checkers.turn = 'player';
+  drawCheckers();
+
+  if(Checkers.noCaptureCount >= Checkers.maxNoCapture){ endCheckers('draw'); return; }
+  if(!checkersAllMoves(Checkers.board, 'player').length){ endCheckers('ai'); }
+}
+
+function drawCheckers(){
+  const ctx = Checkers.ctx;
+  const N = Checkers.size, cell = Checkers.cell;
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,N*cell,N*cell);
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+    ctx.fillStyle = (r+c)%2===0 ? '#e8e8e8' : '#151515';
+    ctx.fillRect(c*cell, r*cell, cell, cell);
+  }
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+    const p = Checkers.board[r][c];
+    if(!p) continue;
+    const cx = c*cell + cell/2;
+    const cy = r*cell + cell/2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, cell*0.35, 0, Math.PI*2);
+    ctx.fillStyle = p.col === 'player' ? '#fff' : '#222';
+    ctx.fill();
+    ctx.strokeStyle = p.col === 'player' ? '#000' : '#fff';
+    ctx.lineWidth = 2; ctx.stroke();
+    if(p.king){
+      ctx.fillStyle = p.col === 'player' ? '#000' : '#fff';
+      ctx.font = 'bold 20px serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('♚', cx, cy+1);
+    }
+  }
+  if(Checkers.selected){
+    const [r,c] = Checkers.selected;
+    ctx.strokeStyle = '#ffd766'; ctx.lineWidth = 3;
+    ctx.strokeRect(c*cell+2, r*cell+2, cell-4, cell-4);
+  }
+  Checkers.moves.forEach(m=>{
+    const [r,c] = m.to;
+    ctx.beginPath();
+    ctx.arc(c*cell + cell/2, r*cell + cell/2, cell*0.12, 0, Math.PI*2);
+    ctx.fillStyle = '#ffd766'; ctx.fill();
+  });
+}
+
+function checkersClick(e){
+  if(!Checkers.running) return;
+  if(Checkers.turn !== 'player') return;
+  const rect = Checkers.canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (Checkers.canvas.width / rect.width);
+  const y = (e.clientY - rect.top) * (Checkers.canvas.height / rect.height);
+  const c = Math.floor(x / Checkers.cell);
+  const r = Math.floor(y / Checkers.cell);
+  if(!inCheckers(r,c)) return;
+
+  const p = Checkers.board[r][c];
+  if(p && p.col === 'player'){
+    Checkers.selected = [r,c];
+    Checkers.moves = checkersValidMoves(Checkers.board, r, c);
+    drawCheckers(); return;
+  }
+  if(Checkers.selected){
+    const mv = Checkers.moves.find(m => m.to[0]===r && m.to[1]===c);
+    if(mv){
+      const hadCapture = !!mv.capture;
+      checkersApply(Checkers.board, mv);
+      if(hadCapture) Checkers.noCaptureCount = 0;
+      else Checkers.noCaptureCount++;
+      Checkers.selected = null; Checkers.moves = [];
+      Checkers.turn = 'ai';
+      drawCheckers();
+      if(Checkers.noCaptureCount >= Checkers.maxNoCapture){ endCheckers('draw'); return; }
+      setTimeout(()=>{
+        if(!Checkers.running) return;
+        checkersAIMove();
+      }, 500);
+      return;
+    }
+  }
+  Checkers.selected = null; Checkers.moves = [];
+  drawCheckers();
+}
+
+function startCheckers(aiFirst){
+  const cvs = document.getElementById('checkersCanvas');
+  Checkers.canvas = cvs;
+  Checkers.ctx = cvs.getContext('2d');
+  Checkers.running = true;
+  Checkers.active = true;
+  checkersInit();
+  cvs.onclick = checkersClick;
+
+  document.getElementById('checkersInfo').textContent =
+    (G.attacker === 'player' ? 'Blitz ' : 'Defend blitz ') +
+    G.blitzTargets.map(id=>NODES[id].name).join(' & ') +
+    ' — win at checkers to decide';
+
+  Checkers.turn = aiFirst ? 'ai' : 'player';
+  document.getElementById('checkersStatus').textContent =
+    Checkers.turn === 'player' ? 'Your move' : 'AI moves first…';
+  document.getElementById('checkersScreen').style.display = 'flex';
+  drawCheckers();
+
+  if(aiFirst){
+    setTimeout(()=>{
+      if(!Checkers.running) return;
+      checkersAIMove();
+    }, 700);
+  }
+}
+
+function endCheckers(winner){
+  Checkers.running = false;
+  Checkers.active = false;
+
+  if(winner === 'draw'){
+    document.getElementById('checkersStatus').textContent = 'DRAW';
+    setTimeout(()=>{
+      document.getElementById('checkersScreen').style.display = 'none';
+      toast('Checkers draw — blitz fails');
+      G.blitzTargets = [];
+      afterSkillAction();
+    }, 1600);
+    return;
+  }
+
+  const playerWon = winner === 'player';
+  document.getElementById('checkersStatus').textContent = playerWon ? 'YOU WIN' : 'YOU LOSE';
+
+  setTimeout(()=>{
+    document.getElementById('checkersScreen').style.display = 'none';
+
+    if(G.attacker === 'player'){
+      if(playerWon){
+        G.blitzTargets.forEach(id=>{
+          if(NODES[id]){
+            NODES[id].owner = 'player';
+            if(G.damaged[id]) delete G.damaged[id];
+            if(G.turbulent[id]) delete G.turbulent[id];
+          }
+        });
+        toast('Blitz captured ' + G.blitzTargets.length + ' cities!');
+      } else {
+        toast('Blitz failed');
+      }
+    } else {
+      if(!playerWon){
+        G.blitzTargets.forEach(id=>{
+          if(NODES[id]){
+            NODES[id].owner = 'ai';
+            if(G.damaged[id]) delete G.damaged[id];
+            if(G.turbulent[id]) delete G.turbulent[id];
+          }
+        });
+        toast('AI blitz captured ' + G.blitzTargets.length + ' cities!');
+      } else {
+        toast('You defended against blitz!');
+      }
+    }
+
+    G.blitzTargets = [];
+    const flipped = checkConnectivity();
+    draw();
+    if(flipped.length) setTimeout(()=>toast(flipped.length + ' isolated region(s) switched sides'), 700);
+
+    if(NODES[PLAYER_CAPITAL].owner === 'ai'){ gameOver('Defeat'); return; }
+    if(NODES[ENEMY_CAPITAL].owner === 'player'){ gameOver('Victory'); return; }
+
+    afterSkillAction();
+  }, 1600);
+}
+
+/* ============================================================
+   POKER
+   ============================================================ */
+const SUITS = ['♠','♣','♥','♦'];
+const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+const HAND_SIZE = 6;
+const PICK_COUNT = 3;
+
+const Poker = {
+  deck:[], playerHand:[], aiHand:[],
+  playerPicked:[], aiPicked:null,
+  revealed:false, running:false
+};
+
+function newDeck(){
+  const d = [];
+  for(const s of SUITS) for(const r of RANKS) d.push({s, r, v: RANKS.indexOf(r)+2});
+  return d;
+}
+
+function startPoker(){
+  Poker.deck = newDeck();
+  Poker.running = true; Poker.revealed = false;
+  Poker.playerHand = []; Poker.aiHand = [];
+  Poker.playerPicked = new Array(HAND_SIZE).fill(false);
+  Poker.aiPicked = null;
+
+  for(let i=0;i<HAND_SIZE;i++) Poker.playerHand.push(Poker.deck.splice(Math.floor(Math.random()*Poker.deck.length),1)[0]);
+  for(let i=0;i<HAND_SIZE;i++) Poker.aiHand.push(Poker.deck.splice(Math.floor(Math.random()*Poker.deck.length),1)[0]);
+
+  const isAttack = G.skillOwner === 'player';
+  document.getElementById('pokerInfo').textContent =
+    (isAttack ? 'Claim ' : 'Defend ') + NODES[G.negTarget].name +
+    ' — pick 3 of your 6 cards, then PLAY';
+
+  document.getElementById('pokerStatus').textContent = '';
+  renderPoker();
+  document.getElementById('pokerScreen').style.display = 'flex';
+}
+
+function renderPoker(){
+  const pEl = document.getElementById('pHand');
+  const aEl = document.getElementById('aiHand');
+  pEl.innerHTML = ''; aEl.innerHTML = '';
+
+  for(let i=0;i<HAND_SIZE;i++){
+    const c = Poker.playerHand[i];
+    const div = document.createElement('div');
+    div.className = 'pcard revealed';
+    div.innerHTML = '<div class="rank">'+c.r+'</div><div class="suit">'+c.s+'</div>';
+    if(Poker.playerPicked[i]) div.classList.add('picked');
+    if(Poker.revealed){
+      div.classList.add('hidden');
+      if(!Poker.playerPicked[i]) div.classList.add('dim');
+    } else div.onclick = ()=>pokerPick(i);
+    pEl.appendChild(div);
+  }
+
+  for(let i=0;i<HAND_SIZE;i++){
+    const div = document.createElement('div');
+    if(Poker.revealed){
+      const c = Poker.aiHand[i];
+      div.className = 'pcard revealed hidden';
+      if(Poker.aiPicked.includes(i)) div.classList.add('ai-picked');
+      else div.classList.add('dim');
+      div.innerHTML = '<div class="rank">'+c.r+'</div><div class="suit">'+c.s+'</div>';
+    } else {
+      div.className = 'pcard back'; div.textContent = '?';
+    }
+    aEl.appendChild(div);
+  }
+
+  const btn = document.getElementById('pokerBtn');
+  const picked = Poker.playerPicked.filter(x=>x).length;
+  if(!Poker.revealed && picked === PICK_COUNT){ btn.disabled = false; btn.style.opacity = '1'; }
+  else { btn.disabled = true; btn.style.opacity = '.4'; }
+  btn.textContent = 'PLAY (' + picked + '/' + PICK_COUNT + ')';
+}
+
+function pokerPick(i){
+  if(Poker.revealed) return;
+  const count = Poker.playerPicked.filter(x=>x).length;
+  if(!Poker.playerPicked[i] && count >= PICK_COUNT){ toast('You can only pick ' + PICK_COUNT + ' cards'); return; }
+  Poker.playerPicked[i] = !Poker.playerPicked[i];
+  renderPoker();
+}
+
+function pokerPlay(){
+  if(Poker.revealed) return;
+  if(Poker.playerPicked.filter(x=>x).length !== PICK_COUNT) return;
+  Poker.revealed = true;
+  Poker.aiPicked = bestThreeFrom(Poker.aiHand);
+  renderPoker();
+  document.getElementById('pokerStatus').textContent = 'Revealing…';
+  const playerCards = Poker.playerHand.filter((_,i)=>Poker.playerPicked[i]);
+  const aiCards = Poker.aiPicked.map(i => Poker.aiHand[i]);
+  setTimeout(()=>{
+    const pEval = evaluatePokerHand(playerCards);
+    const aEval = evaluatePokerHand(aiCards);
+    const cmp = comparePokerHands(pEval, aEval);
+    const playerWins = cmp > 0 || (cmp === 0 && Math.random() < 0.5);
+    document.getElementById('pokerStatus').textContent = playerWins ? 'YOU WIN' : 'YOU LOSE';
+    setTimeout(()=>{
+      document.getElementById('pokerScreen').style.display = 'none';
+      resolvePoker(playerWins);
+    }, 1600);
+  }, 700);
+}
+
+function bestThreeFrom(hand){
+  let best = null, bestEval = null;
+  for(let i=0;i<HAND_SIZE;i++){
+    for(let j=i+1;j<HAND_SIZE;j++){
+      for(let k=j+1;k<HAND_SIZE;k++){
+        const ev = evaluatePokerHand([hand[i], hand[j], hand[k]]);
+        if(!bestEval || comparePokerHands(ev, bestEval) > 0){ bestEval = ev; best = [i, j, k]; }
+      }
+    }
+  }
+  return best;
+}
+
+function evaluatePokerHand(cards){
+  const vals = cards.map(c=>c.v).sort((a,b)=>b-a);
+  const suits = cards.map(c=>c.s);
+  const isFlush = suits[0]===suits[1] && suits[1]===suits[2];
+  let v = vals.slice();
+  let isStraight = (vals[0]-vals[1]===1 && vals[1]-vals[2]===1);
+  let isWheel = (vals[0]===14 && vals[1]===3 && vals[2]===2);
+  if(isWheel){ isStraight = true; v = [3,2,1]; }
+  const isTrips = vals[0]===vals[1] && vals[1]===vals[2];
+  const isPair  = vals[0]===vals[1] || vals[1]===vals[2];
+  if(isTrips) return {tier:5, values:vals};
+  if(isFlush && isStraight) return {tier:4, values:v};
+  if(isFlush) return {tier:3, values:vals};
+  if(isStraight) return {tier:2, values:v};
+  if(isPair){
+    let pairVal, kicker;
+    if(vals[0]===vals[1]){ pairVal = vals[0]; kicker = vals[2]; }
+    else{ pairVal = vals[1]; kicker = vals[0]; }
+    return {tier:1, values:[pairVal, kicker]};
+  }
+  return {tier:0, values:vals};
+}
+
+function comparePokerHands(a, b){
+  if(a.tier !== b.tier) return a.tier - b.tier;
+  for(let i=0;i<Math.max(a.values.length,b.values.length);i++){
+    const av = a.values[i] || 0, bv = b.values[i] || 0;
+    if(av !== bv) return av - bv;
+  }
+  return 0;
+}
+
+function resolvePoker(playerWins){
+  Poker.running = false;
+  const isPlayerAttacking = G.skillOwner === 'player';
+  if(isPlayerAttacking){
+    if(playerWins){
+      NODES[G.negTarget].owner = 'player';
+      if(G.damaged[G.negTarget]) delete G.damaged[G.negTarget];
+      if(G.turbulent[G.negTarget]) delete G.turbulent[G.negTarget];
+      toast('You claimed ' + NODES[G.negTarget].name + '!');
+    } else toast('Negotiation failed');
+  } else {
+    if(playerWins) toast('You defended ' + NODES[G.negTarget].name + '!');
+    else {
+      NODES[G.negTarget].owner = 'ai';
+      if(G.damaged[G.negTarget]) delete G.damaged[G.negTarget];
+      if(G.turbulent[G.negTarget]) delete G.turbulent[G.negTarget];
+      toast('AI claimed ' + NODES[G.negTarget].name);
+    }
+  }
+  G.negTarget = null;
+  const flipped = checkConnectivity();
+  draw();
+  if(flipped.length) setTimeout(()=>toast(flipped.length + ' isolated region(s) switched sides'), 700);
+  if(NODES[PLAYER_CAPITAL].owner === 'ai'){ gameOver('Defeat'); return; }
+  if(NODES[ENEMY_CAPITAL].owner === 'player'){ gameOver('Victory'); return; }
+  afterSkillAction();
+}
+
+/* ============================================================
+   Keyboard + mobile buttons
+   ============================================================ */
+document.addEventListener('keydown', e=>{
+  const k = e.key.toLowerCase();
+  if(Tetris.running && ['a','d','s','w'].includes(k)){ tetrisAction(k); e.preventDefault(); return; }
+  if(Snake.running && ['a','d','s','w'].includes(k)){ snakeSetDir(k); e.preventDefault(); return; }
+  if(Shooter.running){
+    if(e.key === 'ArrowLeft'  || k === 'a') Shooter.move.left = true;
+    if(e.key === 'ArrowRight' || k === 'd') Shooter.move.right = true;
+  }
+});
+document.addEventListener('keyup', e=>{
+  const k = e.key.toLowerCase();
+  if(Shooter.running){
+    if(e.key === 'ArrowLeft'  || k === 'a') Shooter.move.left = false;
+    if(e.key === 'ArrowRight' || k === 'd') Shooter.move.right = false;
+  }
+});
+
+function bindHoldButtons(){
+  document.querySelectorAll('.mobRow .mobBtn').forEach(btn=>{
+    const key = btn.dataset.key;
+    const container = btn.parentElement.id;
+    let timer = null;
+    const fire = ()=>{
+      if(container === 'tetrisMobile') tetrisAction(key);
+      else if(container === 'shooterMobile'){
+        if(key === 'left')  Shooter.move.left  = true;
+        if(key === 'right') Shooter.move.right = true;
+      }
+      else if(container === 'snakeMobile') snakeSetDir(key);
+    };
+    const stop = ()=>{
+      clearInterval(timer); timer = null;
+      if(container === 'shooterMobile'){
+        Shooter.move.left = false; Shooter.move.right = false;
+      }
+    };
+    btn.addEventListener('touchstart', e=>{
+      e.preventDefault(); fire();
+      if(key === 'a' || key === 'd' || key === 'left' || key === 'right') timer = setInterval(fire, 110);
+    }, {passive:false});
+    btn.addEventListener('touchend', stop);
+    btn.addEventListener('touchcancel', stop);
+    btn.addEventListener('mousedown', e=>{
+      e.preventDefault(); fire();
+      if(key === 'a' || key === 'd' || key === 'left' || key === 'right') timer = setInterval(fire, 110);
+    });
+    btn.addEventListener('mouseup', stop);
+    btn.addEventListener('mouseleave', stop);
+  });
+}
+bindHoldButtons();
+
+/* ============================================================
+   Boot
+   ============================================================ */
+resetGame();
+</script>
+</body>
+</html>
