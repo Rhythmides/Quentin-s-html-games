@@ -1,0 +1,2010 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ComputerAAA - AAA OS</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121214;
+            color: #1D1D1F;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .os-desktop {
+            background-color: #F4F4F6;
+            background-image: radial-gradient(#C8C8CE 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .aaa-window {
+            background: #FFFFFF;
+            border: 1.5px solid #1D1D1F;
+            box-shadow: 4px 4px 0px #1D1D1F;
+            transition: box-shadow 0.15s ease;
+        }
+
+        .aaa-window-header {
+            background: #FFFFFF;
+            border-bottom: 1.5px solid #1D1D1F;
+        }
+
+        .aaa-btn {
+            background: #FFFFFF;
+            border: 1.5px solid #1D1D1F;
+            transition: all 0.1s ease;
+        }
+
+        .aaa-btn:hover {
+            background: #1D1D1F;
+            color: #FFFFFF;
+        }
+
+        .aaa-btn:active {
+            transform: translate(1px, 1px);
+        }
+
+        .ad-banner-vibrant {
+            background: linear-gradient(135deg, #FF2D55 0%, #FF9500 50%, #FFCC00 100%);
+            color: #FFFFFF;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+            border: 2px solid #FF0033;
+            animation: pulseAd 2s infinite alternate;
+        }
+
+        .ad-popup-frame {
+            background: #FFFDF0;
+            border: 3px solid #FF0033;
+            box-shadow: 8px 8px 0px #FF0033, 0 10px 25px rgba(255,0,51,0.25);
+            animation: shakeAd 0.5s ease-in-out infinite alternate;
+        }
+
+        .ad-badge-neon {
+            background: #007AFF;
+            color: #FFFFFF;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        @keyframes pulseAd {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(40deg); }
+        }
+
+        @keyframes shakeAd {
+            0% { transform: translate(0, 0); }
+            50% { transform: translate(-1px, 1px); }
+            100% { transform: translate(1px, -1px); }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F4F4F6;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1D1D1F;
+        }
+
+        .metro-node {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .metro-node:hover circle {
+            r: 9;
+            stroke-width: 4;
+        }
+
+        .evasive-x {
+            transition: transform 0.12s ease-out;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col justify-between">
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center p-6 select-text">
+        <div class="max-w-md w-full border-2 border-black p-8 bg-white shadow-[8px_8px_0px_#000]">
+            <div class="flex items-center gap-3 mb-6 border-b-2 border-black pb-4">
+                <div class="w-10 h-10 bg-black text-white flex items-center justify-center font-bold text-2xl">A</div>
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-tight">ComputerAAA</h1>
+                    <p class="text-xs text-gray-500 font-mono">AAA OS Enterprise Workstation v4.5.0</p>
+                </div>
+            </div>
+
+            <p class="text-sm font-mono text-gray-700 mb-6 leading-relaxed">
+                欢迎开启 AAA OS 操作系统环境。请选择本次会话的系统运行负荷与监控防御强度：
+            </p>
+
+            <div class="space-y-3 mb-8 font-mono">
+                <button onclick="startGame('low')" class="w-full text-left p-4 border-2 border-black hover:bg-black hover:text-white transition-all group">
+                    <div class="flex justify-between items-center font-bold">
+                        <span>[ 1 ] 低强度模式</span>
+                        <span class="text-xs border border-current px-2 py-0.5">崩溃演进 ~45 分钟</span>
+                    </div>
+                    <div class="text-xs mt-1 text-gray-500 group-hover:text-gray-300">低系统负荷，基础监控，广告与服务衍生缓慢。</div>
+                </button>
+
+                <button onclick="startGame('medium')" class="w-full text-left p-4 border-2 border-black hover:bg-black hover:text-white transition-all group">
+                    <div class="flex justify-between items-center font-bold">
+                        <span>[ 2 ] 中强度模式</span>
+                        <span class="text-xs border border-current px-2 py-0.5">崩溃演进 ~25 分钟</span>
+                    </div>
+                    <div class="text-xs mt-1 text-gray-500 group-hover:text-gray-300">标准系统运行负荷，常规应用调度与衍生扩展。</div>
+                </button>
+
+                <button onclick="startGame('high')" class="w-full text-left p-4 border-2 border-black hover:bg-black hover:text-white transition-all group">
+                    <div class="flex justify-between items-center font-bold">
+                        <span>[ 3 ] 高强度模式</span>
+                        <span class="text-xs border border-current px-2 py-0.5">崩溃演进 ~10 分钟</span>
+                    </div>
+                    <div class="text-xs mt-1 text-gray-500 group-hover:text-gray-300">极限高负载压力测试，极速服务衍生与防线考验。</div>
+                </button>
+            </div>
+
+            <div class="text-xs font-mono text-gray-400 text-center border-t border-gray-200 pt-4">
+                AAA Core System &copy; 2026. ALL RIGHTS RESERVED.
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN OS DESKTOP -->
+    <div id="desktop" class="os-desktop relative flex-1 w-full h-full overflow-hidden" onclick="handleDesktopClick(event)">
+        
+        <div class="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-6 w-auto inline-grid z-10 relative">
+            <div onclick="openApp('sticky')" class="flex flex-col items-center justify-center p-3 w-20 h-20 border border-transparent hover:border-black hover:bg-white/90 cursor-pointer transition-all rounded">
+                <i data-lucide="sticky-note" class="w-8 h-8 text-black mb-1"></i>
+                <span class="text-xs font-mono text-center font-semibold">便签</span>
+            </div>
+            <div onclick="openApp('browser')" class="flex flex-col items-center justify-center p-3 w-20 h-20 border border-transparent hover:border-black hover:bg-white/90 cursor-pointer transition-all rounded">
+                <i data-lucide="globe" class="w-8 h-8 text-black mb-1"></i>
+                <span class="text-xs font-mono text-center font-semibold">极简浏览器</span>
+            </div>
+            <div onclick="openApp('metro')" class="flex flex-col items-center justify-center p-3 w-20 h-20 border border-transparent hover:border-black hover:bg-white/90 cursor-pointer transition-all rounded">
+                <i data-lucide="train" class="w-8 h-8 text-black mb-1"></i>
+                <span class="text-xs font-mono text-center font-semibold">上海地铁</span>
+            </div>
+            <div onclick="openApp('minesweeper')" class="flex flex-col items-center justify-center p-3 w-20 h-20 border border-transparent hover:border-black hover:bg-white/90 cursor-pointer transition-all rounded">
+                <i data-lucide="bomb" class="w-8 h-8 text-black mb-1"></i>
+                <span class="text-xs font-mono text-center font-semibold">扫雷</span>
+            </div>
+            <div onclick="openApp('calc')" class="flex flex-col items-center justify-center p-3 w-20 h-20 border border-transparent hover:border-black hover:bg-white/90 cursor-pointer transition-all rounded">
+                <i data-lucide="calculator" class="w-8 h-8 text-black mb-1"></i>
+                <span class="text-xs font-mono text-center font-semibold">计算器</span>
+            </div>
+            <div onclick="openApp('cleaner')" class="flex flex-col items-center justify-center p-3 w-20 h-20 border border-transparent hover:border-black hover:bg-white/90 cursor-pointer transition-all rounded">
+                <i data-lucide="sparkles" class="w-8 h-8 text-black mb-1"></i>
+                <span class="text-xs font-mono text-center font-semibold">整理大师</span>
+            </div>
+            <div onclick="openApp('stopwatch')" class="flex flex-col items-center justify-center p-3 w-20 h-20 border border-transparent hover:border-black hover:bg-white/90 cursor-pointer transition-all rounded">
+                <i data-lucide="timer" class="w-8 h-8 text-black mb-1"></i>
+                <span class="text-xs font-mono text-center font-semibold">秒表</span>
+            </div>
+            <div onclick="openApp('weather')" class="flex flex-col items-center justify-center p-3 w-20 h-20 border border-transparent hover:border-black hover:bg-white/90 cursor-pointer transition-all rounded">
+                <i data-lucide="cloud-sun" class="w-8 h-8 text-black mb-1"></i>
+                <span class="text-xs font-mono text-center font-semibold">天气</span>
+            </div>
+        </div>
+
+        <div id="desktop-stickies" class="absolute inset-0 pointer-events-none z-10"></div>
+        <div id="window-container" class="absolute inset-0 pointer-events-none z-20"></div>
+        <div id="popup-container" class="absolute inset-0 pointer-events-none z-40"></div>
+        <div id="overlay-container" class="absolute inset-0 pointer-events-none z-50 flex items-center justify-center"></div>
+    </div>
+
+    <!-- TASKBAR -->
+    <div id="taskbar" class="h-12 bg-white border-t-2 border-black flex items-center justify-between px-3 z-50 relative font-mono select-none">
+        <div class="flex items-center gap-2">
+            <button onclick="toggleStartMenu()" class="aaa-btn px-3 py-1.5 flex items-center gap-2 font-bold text-sm">
+                <span class="w-4 h-4 bg-black text-white flex items-center justify-center text-xs">A</span>
+                <span>AAA OS</span>
+            </button>
+            <div class="h-6 w-[1px] bg-black/30 mx-1"></div>
+            <div id="taskbar-tabs" class="flex items-center gap-1.5 overflow-x-auto max-w-[45vw]"></div>
+        </div>
+
+        <div class="flex items-center gap-3 text-xs font-semibold">
+            <div class="flex items-center gap-2 border border-black px-2 py-1 bg-gray-50">
+                <span>防线状态:</span>
+                <span id="defense-status-txt" class="font-bold text-black">稳固</span>
+                <div class="w-12 h-2 border border-black bg-white overflow-hidden">
+                    <div id="system-load-bar" class="h-full bg-black w-[2%] transition-all duration-300"></div>
+                </div>
+            </div>
+
+            <div id="tray-weather-badge" class="hidden sm:flex items-center gap-1 border border-black px-2 py-1 bg-white">
+                <i data-lucide="cloud-sun" class="w-3.5 h-3.5"></i>
+                <span id="tray-weather-txt">上海 21°C</span>
+            </div>
+
+            <div id="system-clock" class="border border-black px-2 py-1 bg-black text-white font-mono">
+                12:00:00
+            </div>
+        </div>
+    </div>
+
+    <!-- START MENU -->
+    <div id="start-menu" class="hidden absolute bottom-14 left-3 w-64 bg-white border-2 border-black shadow-[6px_6px_0px_#000] z-[9000] font-mono p-2">
+        <div class="p-3 border-b-2 border-black mb-2 bg-gray-100 flex items-center justify-between">
+            <span class="font-bold">AAA 系统应用</span>
+            <span class="text-[10px] bg-black text-white px-1.5 py-0.5">v4.5.0</span>
+        </div>
+        <div class="space-y-1">
+            <button onclick="openApp('sticky'); toggleStartMenu();" class="w-full text-left px-3 py-2 hover:bg-black hover:text-white flex items-center gap-2 text-xs">
+                <i data-lucide="sticky-note" class="w-4 h-4"></i> 便签管理
+            </button>
+            <button onclick="openApp('browser'); toggleStartMenu();" class="w-full text-left px-3 py-2 hover:bg-black hover:text-white flex items-center gap-2 text-xs">
+                <i data-lucide="globe" class="w-4 h-4"></i> 极简浏览器
+            </button>
+            <button onclick="openApp('metro'); toggleStartMenu();" class="w-full text-left px-3 py-2 hover:bg-black hover:text-white flex items-center gap-2 text-xs">
+                <i data-lucide="train" class="w-4 h-4"></i> 上海地铁网络
+            </button>
+            <button onclick="openApp('minesweeper'); toggleStartMenu();" class="w-full text-left px-3 py-2 hover:bg-black hover:text-white flex items-center gap-2 text-xs">
+                <i data-lucide="bomb" class="w-4 h-4"></i> 经典扫雷
+            </button>
+            <button onclick="openApp('calc'); toggleStartMenu();" class="w-full text-left px-3 py-2 hover:bg-black hover:text-white flex items-center gap-2 text-xs">
+                <i data-lucide="calculator" class="w-4 h-4"></i> 计算器
+            </button>
+            <button onclick="openApp('cleaner'); toggleStartMenu();" class="w-full text-left px-3 py-2 hover:bg-black hover:text-white flex items-center gap-2 text-xs">
+                <i data-lucide="sparkles" class="w-4 h-4"></i> 系统整理大师
+            </button>
+            <button onclick="openApp('weather'); toggleStartMenu();" class="w-full text-left px-3 py-2 hover:bg-black hover:text-white flex items-center gap-2 text-xs">
+                <i data-lucide="cloud-sun" class="w-4 h-4"></i> 实时天气
+            </button>
+            <button onclick="openApp('stopwatch'); toggleStartMenu();" class="w-full text-left px-3 py-2 hover:bg-black hover:text-white flex items-center gap-2 text-xs">
+                <i data-lucide="timer" class="w-4 h-4"></i> 精密秒表
+            </button>
+        </div>
+        <div class="border-t border-black mt-2 pt-2">
+            <button onclick="restartOS()" class="w-full text-left px-3 py-2 bg-red-50 text-red-700 hover:bg-black hover:text-white flex items-center gap-2 text-xs font-bold border border-red-200">
+                <i data-lucide="power" class="w-4 h-4"></i> 强制重置 AAA OS
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /* Web Audio API Sound Synthesizer Engine */
+        const AudioEngine = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            },
+            beep(freq, duration, type = 'sine', vol = 0.08) {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            },
+            playClick() { this.beep(650, 0.04, 'sine', 0.08); },
+            playOpen() {
+                this.beep(480, 0.05, 'sine', 0.08);
+                setTimeout(() => this.beep(800, 0.08, 'sine', 0.08), 50);
+            },
+            playClose() {
+                this.beep(800, 0.05, 'sine', 0.08);
+                setTimeout(() => this.beep(400, 0.08, 'sine', 0.08), 50);
+            },
+            playAd() {
+                this.beep(1100, 0.06, 'square', 0.05);
+                setTimeout(() => this.beep(1500, 0.08, 'square', 0.05), 60);
+            },
+            playError() {
+                this.beep(220, 0.18, 'sawtooth', 0.12);
+            },
+            playWin() {
+                this.beep(523, 0.08, 'triangle', 0.1);
+                setTimeout(() => this.beep(659, 0.08, 'triangle', 0.1), 80);
+                setTimeout(() => this.beep(783, 0.12, 'triangle', 0.1), 160);
+            }
+        };
+
+        /* Helper: HTML escape */
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        /* CENTRAL OS STATE */
+        let gameState = {
+            started: false,
+            intensity: 'medium',
+            systemLoad: 2,
+            loadRate: 0.02,
+            windows: {},
+            topZIndex: 100,
+
+            stickyNotes: [
+                { id: 1, text: "【工作待办】\n1. 查看上海地铁路线\n2. 校验计算器算法\n3. 保持系统流畅", x: 120, y: 80, bg: '#FFFDE7' }
+            ],
+
+            browserHistory: ['https://aaa-search.internal'],
+            historyIndex: 0,
+
+            minesweeper: {
+                board: [], revealed: [], flagged: [],
+                rows: 9, cols: 9, mines: 10,
+                gameOver: false, gameWon: false, timer: 0, timerInterval: null
+            },
+
+            weather: { city: '上海', temp: '21°C', condition: '多云' },
+
+            stopwatch: { time: 0, interval: null, laps: [] }
+        };
+
+        function startGame(intensity) {
+            AudioEngine.init();
+            AudioEngine.playOpen();
+            gameState.started = true;
+            gameState.intensity = intensity;
+
+            if (intensity === 'low') gameState.loadRate = 0.007;
+            if (intensity === 'medium') gameState.loadRate = 0.022;
+            if (intensity === 'high') gameState.loadRate = 0.06;
+
+            document.getElementById('start-screen').style.display = 'none';
+
+            setInterval(updateClock, 1000);
+            setInterval(gameLoop, 1000);
+
+            renderDesktopStickyNotes();
+            openApp('browser');
+        }
+
+        function gameLoop() {
+            if (!gameState.started) return;
+
+            gameState.systemLoad = Math.min(100, gameState.systemLoad + gameState.loadRate);
+            updateSystemLoadUI();
+
+            if (gameState.systemLoad > 12 && Math.random() < (gameState.systemLoad / 280)) {
+                triggerRandomAd();
+            }
+
+            if (gameState.systemLoad >= 100) {
+                triggerSystemCollapseBSOD();
+            }
+        }
+
+        function updateSystemLoadUI() {
+            const statusEl = document.getElementById('defense-status-txt');
+            const barEl = document.getElementById('system-load-bar');
+
+            if (gameState.systemLoad > 80) {
+                statusEl.innerText = "瘫痪边缘";
+                statusEl.className = "font-bold text-red-600 animate-pulse";
+                barEl.className = "h-full bg-red-600 transition-all duration-300";
+            } else if (gameState.systemLoad > 50) {
+                statusEl.innerText = "濒危";
+                statusEl.className = "font-bold text-orange-600";
+                barEl.className = "h-full bg-orange-500 transition-all duration-300";
+            } else if (gameState.systemLoad > 25) {
+                statusEl.innerText = "受损";
+                statusEl.className = "font-bold text-yellow-600";
+                barEl.className = "h-full bg-yellow-500 transition-all duration-300";
+            } else {
+                statusEl.innerText = "稳固";
+                statusEl.className = "font-bold text-black";
+                barEl.className = "h-full bg-black transition-all duration-300";
+            }
+            barEl.style.width = `${gameState.systemLoad}%`;
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('system-clock').innerText = now.toTimeString().split(' ')[0];
+        }
+
+        function handleDesktopClick(e) {
+            if (e.target.id === 'desktop') {
+                document.getElementById('start-menu').classList.add('hidden');
+            }
+        }
+
+        function toggleStartMenu() {
+            AudioEngine.playClick();
+            const menu = document.getElementById('start-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        /* APPLICATIONS */
+        const APP_DEFS = {
+            sticky: { title: "便签管理", width: 440, height: 420, icon: "sticky-note" },
+            browser: { title: "AAA 极简浏览器", width: 720, height: 540, icon: "globe" },
+            metro: { title: "上海地铁网络 (核心区)", width: 750, height: 540, icon: "train" },
+            minesweeper: { title: "经典扫雷", width: 360, height: 460, icon: "bomb" },
+            calc: { title: "计算器", width: 320, height: 410, icon: "calculator" },
+            cleaner: { title: "系统整理大师", width: 480, height: 380, icon: "sparkles" },
+            weather: { title: "实时天气", width: 460, height: 400, icon: "cloud-sun" },
+            stopwatch: { title: "精密秒表", width: 380, height: 400, icon: "timer" }
+        };
+
+        function openApp(appId) {
+            AudioEngine.playClick();
+            
+            if (gameState.systemLoad > 18 && Math.random() < 0.45) {
+                triggerAppSplashAd(appId, () => spawnAppWindow(appId));
+            } else {
+                spawnAppWindow(appId);
+            }
+        }
+
+        function spawnAppWindow(appId) {
+            if (gameState.windows[appId]) {
+                focusWindow(appId);
+                return;
+            }
+
+            AudioEngine.playOpen();
+            gameState.topZIndex++;
+
+            const def = APP_DEFS[appId];
+            const winEl = document.createElement('div');
+            winEl.id = `win-${appId}`;
+            winEl.className = `aaa-window absolute flex flex-col pointer-events-auto rounded-none`;
+            winEl.style.width = `${def.width}px`;
+            winEl.style.height = `${def.height}px`;
+            winEl.style.left = `${80 + (Object.keys(gameState.windows).length * 25)}px`;
+            winEl.style.top = `${50 + (Object.keys(gameState.windows).length * 25)}px`;
+            winEl.style.zIndex = gameState.topZIndex;
+
+            winEl.onclick = () => focusWindow(appId);
+
+            winEl.innerHTML = `
+                <div class="aaa-window-header flex items-center justify-between px-3 py-2 cursor-move font-mono select-none" onmousedown="dragWindow(event, '${appId}')">
+                    <div class="flex items-center gap-2 text-xs font-bold">
+                        <i data-lucide="${def.icon}" class="w-4 h-4"></i>
+                        <span>${def.title}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button onclick="closeApp('${appId}')" class="w-5 h-5 flex items-center justify-center border border-black hover:bg-black hover:text-white font-bold text-xs">×</button>
+                    </div>
+                </div>
+                <div id="win-body-${appId}" class="flex-1 overflow-auto bg-white flex flex-col relative select-text">
+                    ${getAppHTML(appId)}
+                </div>
+            `;
+
+            document.getElementById('window-container').appendChild(winEl);
+            gameState.windows[appId] = { id: appId, zIndex: gameState.topZIndex };
+
+            lucide.createIcons();
+            renderTaskbarTabs();
+            initAppLogic(appId);
+        }
+
+        function focusWindow(appId) {
+            if (!gameState.windows[appId]) return;
+            gameState.topZIndex++;
+            const winEl = document.getElementById(`win-${appId}`);
+            if (winEl) {
+                winEl.style.zIndex = gameState.topZIndex;
+                gameState.windows[appId].zIndex = gameState.topZIndex;
+            }
+            renderTaskbarTabs();
+        }
+
+        function closeApp(appId) {
+            AudioEngine.playClose();
+            const winEl = document.getElementById(`win-${appId}`);
+            if (winEl) winEl.remove();
+            delete gameState.windows[appId];
+            renderTaskbarTabs();
+        }
+
+        function renderTaskbarTabs() {
+            const tabsContainer = document.getElementById('taskbar-tabs');
+            tabsContainer.innerHTML = '';
+
+            Object.keys(gameState.windows).forEach(appId => {
+                const def = APP_DEFS[appId];
+                const btn = document.createElement('button');
+                btn.className = `aaa-btn px-2 py-1 text-xs flex items-center gap-1.5 font-bold ${gameState.windows[appId].zIndex === gameState.topZIndex ? 'bg-black text-white' : ''}`;
+                btn.onclick = () => focusWindow(appId);
+                btn.innerHTML = `<i data-lucide="${def.icon}" class="w-3.5 h-3.5"></i> <span>${def.title}</span>`;
+                tabsContainer.appendChild(btn);
+            });
+            lucide.createIcons();
+        }
+
+        function dragWindow(e, appId) {
+            e.preventDefault();
+            focusWindow(appId);
+            const win = document.getElementById(`win-${appId}`);
+            let startX = e.clientX - win.offsetLeft;
+            let startY = e.clientY - win.offsetTop;
+
+            function onMouseMove(moveEvent) {
+                win.style.left = `${Math.max(0, moveEvent.clientX - startX)}px`;
+                win.style.top = `${Math.max(0, moveEvent.clientY - startY)}px`;
+            }
+
+            function onMouseUp() {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            }
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        }
+
+        /* 1. STICKY NOTES */
+        function renderDesktopStickyNotes() {
+            const container = document.getElementById('desktop-stickies');
+            container.innerHTML = '';
+
+            gameState.stickyNotes.forEach(note => {
+                const el = document.createElement('div');
+                el.className = 'absolute p-3 border-2 border-black shadow-[4px_4px_0px_#000] pointer-events-auto font-mono text-xs w-52 select-text';
+                el.style.left = `${note.x}px`;
+                el.style.top = `${note.y}px`;
+                el.style.backgroundColor = note.bg || '#FFFDE7';
+
+                el.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-black/20 pb-1 mb-2 cursor-move" onmousedown="dragStickyNote(event, ${note.id})">
+                        <span class="font-bold text-[10px] uppercase tracking-wider text-gray-600">桌面便签 #${note.id}</span>
+                        <button onclick="deleteStickyNote(${note.id})" class="font-bold text-xs hover:text-red-600">×</button>
+                    </div>
+                    <textarea oninput="syncStickyText(${note.id}, this.value)" class="w-full bg-transparent resize-none outline-none h-24 font-mono text-xs leading-relaxed">${escapeHtml(note.text)}</textarea>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function syncStickyText(id, textVal) {
+            const noteObj = gameState.stickyNotes.find(n => n.id === id);
+            if (noteObj) noteObj.text = textVal;
+
+            const appArea = document.getElementById(`sticky-textarea-${id}`);
+            if (appArea && appArea !== document.activeElement) appArea.value = textVal;
+
+            const desktopArea = document.querySelector(`#desktop-stickies [oninput="syncStickyText(${id}, this.value)"]`);
+            if (desktopArea && desktopArea !== document.activeElement) desktopArea.value = textVal;
+        }
+
+        function createStickyNote() {
+            AudioEngine.playClick();
+            const newId = Date.now();
+            gameState.stickyNotes.push({
+                id: newId,
+                text: "新建便签内容...",
+                x: 160 + (gameState.stickyNotes.length * 20),
+                y: 100 + (gameState.stickyNotes.length * 20),
+                bg: '#FFFFFF'
+            });
+
+            renderDesktopStickyNotes();
+            refreshStickyAppList();
+        }
+
+        function deleteStickyNote(id) {
+            AudioEngine.playClick();
+            gameState.stickyNotes = gameState.stickyNotes.filter(n => n.id !== id);
+            renderDesktopStickyNotes();
+            refreshStickyAppList();
+        }
+
+        function refreshStickyAppList() {
+            const bodyEl = document.getElementById('win-body-sticky');
+            if (bodyEl) {
+                bodyEl.innerHTML = getAppHTML('sticky');
+                lucide.createIcons();
+            }
+        }
+
+        function dragStickyNote(e, id) {
+            e.preventDefault();
+            const noteObj = gameState.stickyNotes.find(n => n.id === id);
+            if (!noteObj) return;
+
+            let startX = e.clientX - noteObj.x;
+            let startY = e.clientY - noteObj.y;
+
+            function onMouseMove(mEvt) {
+                noteObj.x = Math.max(10, mEvt.clientX - startX);
+                noteObj.y = Math.max(10, mEvt.clientY - startY);
+                renderDesktopStickyNotes();
+            }
+
+            function onMouseUp() {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            }
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        }
+
+        /* 2. BROWSER */
+
+        function browserNavigate(url) {
+            AudioEngine.playClick();
+            let target = (url || '').trim();
+            if (!target) return;
+
+            // 判断输入是否像 URL；不像就当搜索词
+            const isUrlLike = /^https?:\/\//i.test(target)
+                || target.includes('.internal')
+                || /\.(com|cn|org|net|io|dev|app)(\/|$|\?)/i.test(target)
+                || target.startsWith('aaa-')
+                || target.startsWith('cyber-')
+                || target.startsWith('shanghai-');
+
+            if (!isUrlLike) {
+                target = `https://aaa-search.internal/search-query?q=${encodeURIComponent(target)}`;
+            } else if (!/^https?:\/\//i.test(target)) {
+                target = 'https://' + target;
+            }
+
+            if (gameState.browserHistory[gameState.historyIndex] !== target) {
+                gameState.browserHistory = gameState.browserHistory.slice(0, gameState.historyIndex + 1);
+                gameState.browserHistory.push(target);
+                gameState.historyIndex = gameState.browserHistory.length - 1;
+            }
+            renderBrowserPage();
+        }
+
+        function browserBack() {
+            if (gameState.historyIndex > 0) {
+                AudioEngine.playClick();
+                gameState.historyIndex--;
+                renderBrowserPage();
+            }
+        }
+
+        function browserForward() {
+            if (gameState.historyIndex < gameState.browserHistory.length - 1) {
+                AudioEngine.playClick();
+                gameState.historyIndex++;
+                renderBrowserPage();
+            }
+        }
+
+        function browserRefresh() {
+            AudioEngine.playClick();
+            renderBrowserPage();
+        }
+
+        function renderBrowserPage() {
+            const currentUrl = gameState.browserHistory[gameState.historyIndex] || 'https://aaa-search.internal';
+            const urlInput = document.getElementById('browser-url-bar');
+            const contentArea = document.getElementById('browser-page-body');
+
+            if (urlInput) urlInput.value = currentUrl;
+            if (!contentArea) return;
+
+            // 关键：search-query 必须在 aaa-search 之前判断
+            if (currentUrl.includes('search-query')) {
+                const qPart = currentUrl.split('q=')[1] || '';
+                const query = decodeURIComponent(qPart.split('&')[0]);
+                contentArea.innerHTML = getDumbSearchResultsHTML(query);
+            } else if (currentUrl.includes('aaa-search.internal')) {
+                contentArea.innerHTML = getBrowserHomeHTML();
+            } else if (currentUrl.includes('aaa-news.internal')) {
+                contentArea.innerHTML = getBrowserNewsHTML();
+            } else if (currentUrl.includes('shanghai-metro.internal')) {
+                contentArea.innerHTML = getBrowserMetroArticleHTML();
+            } else if (currentUrl.includes('cyber-warning.internal')) {
+                contentArea.innerHTML = getBrowserWarningHTML();
+            } else if (currentUrl.includes('cyber-mall.internal')) {
+                contentArea.innerHTML = getBrowserMallHTML();
+            } else if (currentUrl.includes('aaa-wiki.internal')) {
+                contentArea.innerHTML = getBrowserWikiHTML();
+            } else if (currentUrl.includes('cyber-blog.internal')) {
+                contentArea.innerHTML = getBrowserBlogHTML();
+            } else if (currentUrl.includes('aaa-forum.internal')) {
+                contentArea.innerHTML = getBrowserForumHTML();
+            } else {
+                contentArea.innerHTML = getBrowserNotFoundHTML(currentUrl);
+            }
+            lucide.createIcons();
+        }
+
+        function triggerBrowserSearch() {
+            const input = document.getElementById('browser-search-input');
+            const term = input ? input.value.trim() : '';
+            if (!term) return;
+            browserNavigate(term);
+        }
+
+        function getBrowserHomeHTML() {
+            return `
+                <div class="max-w-md mx-auto text-center my-8 font-mono">
+                    <h2 class="text-3xl font-black mb-1 tracking-tight">AAA Search</h2>
+                    <p class="text-xs text-gray-500 mb-6">AAA OS 独家智能算法搜索引擎 · 已为您过滤 0 条广告</p>
+                    <div class="flex border-2 border-black mb-6 shadow-[3px_3px_0px_#000]">
+                        <input id="browser-search-input" type="text" placeholder="输入关键字（如：地铁、修电脑、防脱发、AI 副业）..." class="flex-1 p-2 outline-none text-xs" onkeydown="if(event.key==='Enter') triggerBrowserSearch()" />
+                        <button onclick="triggerBrowserSearch()" class="bg-black text-white px-4 font-bold text-xs hover:bg-gray-800">搜索</button>
+                    </div>
+                    <div class="text-left text-xs space-y-2 text-gray-600 border-t border-gray-200 pt-4">
+                        <p class="font-bold text-black">热门推荐词条：</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="cursor-pointer underline hover:text-black" onclick="browserNavigate('上海地铁')">上海地铁</span>
+                            <span class="cursor-pointer underline hover:text-black" onclick="browserNavigate('修电脑')">一键修电脑</span>
+                            <span class="cursor-pointer underline hover:text-black" onclick="browserNavigate('防脱发')">防脱发秘方</span>
+                            <span class="cursor-pointer underline hover:text-black" onclick="browserNavigate('AI 副业')">AI 副业课</span>
+                            <span class="cursor-pointer underline hover:text-black" onclick="browserNavigate('贷款')">极速贷款</span>
+                            <span class="cursor-pointer underline hover:text-black" onclick="browserNavigate('https://cyber-mall.internal')">赛博易购</span>
+                            <span class="cursor-pointer underline hover:text-black" onclick="browserNavigate('https://aaa-news.internal')">AAA 快讯</span>
+                            <span class="cursor-pointer underline hover:text-black" onclick="browserNavigate('https://aaa-forum.internal')">AAA 论坛</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        const AD_COLOR_MAP = {
+            red:     { border: 'border-red-500',     bg: 'bg-red-50',     hover: 'hover:bg-red-100',     badge: 'bg-red-600',     text: 'text-red-700' },
+            purple:  { border: 'border-purple-500',  bg: 'bg-purple-50',  hover: 'hover:bg-purple-100',  badge: 'bg-purple-600',  text: 'text-purple-700' },
+            emerald: { border: 'border-emerald-500', bg: 'bg-emerald-50', hover: 'hover:bg-emerald-100', badge: 'bg-emerald-600', text: 'text-emerald-700' },
+            amber:   { border: 'border-amber-500',   bg: 'bg-amber-50',   hover: 'hover:bg-amber-100',   badge: 'bg-amber-600',   text: 'text-amber-700' }
+        };
+
+        function getDumbSearchResultsHTML(query) {
+            const q = (query || '').trim() || '赛博';
+            const qSafe = escapeHtml(q);
+            const qLower = q.toLowerCase();
+
+            // 精准结果（相对有用的）
+            const preciseResults = [];
+            if (/地铁|metro|交通|线路/.test(qLower)) {
+                preciseResults.push({
+                    title: `上海轨道交通官方指南 - ${qSafe} 换乘路线图`,
+                    desc: '包含人民广场、陆家嘴、静安寺、徐家汇等核心车站的换乘信息与运行时刻表。',
+                    url: 'https://shanghai-metro.internal',
+                    tag: '官网'
+                });
+            }
+            if (/修|维修|蓝屏|坏了|电脑/.test(qLower)) {
+                preciseResults.push({
+                    title: `AAA 认证维修大师 - 30 分钟上门修好`,
+                    desc: '专业团队，随叫随到。修不好不收钱（但上门费 200，检测费 500，材料费另计）。',
+                    url: 'https://cyber-mall.internal',
+                    tag: '推广'
+                });
+            }
+            if (/脱发|生发|头发|秃/.test(qLower)) {
+                preciseResults.push({
+                    title: `量子纠缠防脱发发带 - 官方旗舰店`,
+                    desc: '基于量子纠缠原理！戴上即生发，告别程序员加班脱发危机。今日 0.1 折。',
+                    url: 'https://cyber-mall.internal',
+                    tag: '推广'
+                });
+            }
+            if (/扫雷|游戏|game|小游戏/.test(qLower)) {
+                preciseResults.push({
+                    title: `在线扫雷 - 无需下载即点即玩`,
+                    desc: 'AAA 内置经典扫雷，100% 无广告（本句由广告主提供，不代表本页面观点）。',
+                    url: 'https://aaa-forum.internal',
+                    tag: '游戏'
+                });
+            }
+            if (/ai|人工智能|大模型|gpt|副业|课/.test(qLower)) {
+                preciseResults.push({
+                    title: `前大厂 P9 亲授《用 AI 月入十万》`,
+                    desc: '不会写代码也能学！3 天速成 AI Agent 工程师，仅剩 2 席。',
+                    url: 'https://cyber-mall.internal',
+                    tag: '推广'
+                });
+            }
+
+            const genericResults = [
+                {
+                    title: `AAA 百科 - ${qSafe} 词条`,
+                    desc: `${qSafe} 是一个被广泛讨论的话题。本词条由 AAA 百科 AI 生成，仅供参考，不保证准确性。`,
+                    url: 'https://aaa-wiki.internal',
+                    tag: '百科'
+                },
+                {
+                    title: `${qSafe} - 我的真实经历，看完我沉默了 3 分钟`,
+                    desc: '来自 AAA 个人博客。页面含 12 个弹窗广告与 3 段自动播放视频，请谨慎阅读。',
+                    url: 'https://cyber-blog.internal',
+                    tag: '博客'
+                },
+                {
+                    title: `${qSafe} 相关问题 - 99% 的人都答错了，你来试试？`,
+                    desc: 'AAA 论坛精华帖，已有 128,431 人参与讨论，广告位同步招商中。',
+                    url: 'https://aaa-forum.internal',
+                    tag: '论坛'
+                }
+            ];
+
+            const ads = [
+                {
+                    title: `${qSafe}·一秒 999 刀 传奇开局送 1000 连抽！`,
+                    desc: '【打工人必备】告别繁琐操作，无需安装直接爆装！今日充值立返 999 亿金币！',
+                    color: 'red'
+                },
+                {
+                    title: `10 分钟成为 AI 大厂 CEO 爆款课程`,
+                    desc: '不要写代码！只要听课 10 分钟即送「量子理财大师 VIP」，年化收益高达 999%！',
+                    color: 'purple'
+                },
+                {
+                    title: `${qSafe} 极速贷款 · 最高 20 万 3 分钟到账`,
+                    desc: '身份证即可申请，不看征信、不看流水。年化 3.9% 起（*实际综合年化以审批为准）。',
+                    color: 'emerald'
+                },
+                {
+                    title: `9.9 元学理财 · 学完即返 99 元`,
+                    desc: 'AAA 金融课堂出品，报名即抽「赛博养生大礼包」，仅剩 3 席。',
+                    color: 'amber'
+                }
+            ];
+
+            const allResults = [...preciseResults, ...genericResults];
+            const ad1 = ads[0];
+            const ad2 = ads[1];
+            const ad3 = ads[Math.floor(Math.random() * ads.length)];
+
+            const renderAd = (ad) => {
+                const c = AD_COLOR_MAP[ad.color];
+                return `
+                    <div class="p-3 border-2 ${c.border} ${c.bg} ${c.hover} cursor-pointer transition-colors" onclick="triggerRandomAd()">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="${c.badge} text-white font-bold text-[10px] px-1.5 py-0.5">赞助商推广</span>
+                            <span class="font-bold ${c.text} underline text-sm">${ad.title}</span>
+                        </div>
+                        <p class="text-gray-700">${ad.desc}</p>
+                    </div>
+                `;
+            };
+
+            const renderResult = (r) => `
+                <div class="p-3 border border-black bg-white">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-[10px] border border-black px-1.5 py-0.5 bg-gray-50">${r.tag || '网页'}</span>
+                        <span class="text-blue-700 font-bold underline text-sm block cursor-pointer" onclick="browserNavigate('${r.url}')">
+                            ${r.title}
+                        </span>
+                    </div>
+                    <p class="text-gray-600 ml-0.5">${r.desc}</p>
+                    <p class="text-[10px] text-green-700 mt-1 ml-0.5">${r.url}</p>
+                </div>
+            `;
+
+            const resultCount = Math.floor(Math.random() * 9000) + 999;
+            const elapsed = (Math.random() * 0.9 + 0.1).toFixed(2);
+            const totalPages = Math.floor(Math.random() * 900) + 100;
+
+            return `
+                <div class="max-w-xl mx-auto font-mono text-xs space-y-3 my-4 select-text">
+                    <div class="border-b border-black pb-2 flex justify-between items-center text-gray-500">
+                        <span>找到关于 "${qSafe}" 的约 ${resultCount.toLocaleString()} 条结果 (${elapsed} 秒)</span>
+                        <button onclick="browserNavigate('https://aaa-search.internal')" class="underline hover:text-black">返回搜索主页</button>
+                    </div>
+
+                    <div class="text-[10px] text-gray-500 border border-dashed border-gray-400 p-2">
+                        ⓘ 本页共 ${allResults.length + 3} 条内容，其中 3 条为赞助商推广。AAA Search 已尽力为您排序。
+                    </div>
+
+                    ${renderAd(ad1)}
+                    ${allResults[0] ? renderResult(allResults[0]) : ''}
+                    ${renderAd(ad2)}
+                    ${allResults[1] ? renderResult(allResults[1]) : ''}
+                    ${renderAd(ad3)}
+                    ${allResults[2] ? renderResult(allResults[2]) : ''}
+
+                    <div class="text-center text-[10px] text-gray-400 py-4 border-t border-gray-200">
+                        —— 以上为第 1 页，共 ${totalPages} 页 · 广告位持续招商中 ——
+                    </div>
+                </div>
+            `;
+        }
+
+        function getBrowserNewsHTML() {
+            return `
+                <div class="p-6 font-mono max-w-lg mx-auto space-y-4">
+                    <div class="border-b-2 border-black pb-2">
+                        <h2 class="text-xl font-black">AAA 赛博快讯</h2>
+                        <p class="text-xs text-gray-500">2026年10月 实时更新</p>
+                    </div>
+                    <article class="space-y-2 text-xs">
+                        <h3 class="font-bold text-sm">专家称量子防脱发发带销量破纪录</h3>
+                        <p class="text-gray-700 leading-relaxed">据 AAA 科技快讯，最新上市的量子纠缠防脱发发带在程序员与办公族群中狂销。科学家指出其通过「赛博养生」原理带来心理安抚效果。</p>
+                    </article>
+                    <div class="ad-banner-vibrant p-3 text-center text-xs font-bold cursor-pointer" onclick="triggerRandomAd()">
+                        🔥 [今日特惠] 点击即领「纯金 RTX 9090Ti」预购折扣券！
+                    </div>
+                    <article class="space-y-2 text-xs pt-2 border-t border-gray-200">
+                        <h3 class="font-bold text-sm">研究：每天上网 8 小时的人，寿命比每天上网 10 小时的人长</h3>
+                        <p class="text-gray-700 leading-relaxed">来源：量子养生研究院（民间）。</p>
+                    </article>
+                </div>
+            `;
+        }
+
+        function getBrowserMetroArticleHTML() {
+            return `
+                <div class="p-6 font-mono max-w-lg mx-auto space-y-4">
+                    <div class="border-b-2 border-black pb-2">
+                        <h2 class="text-xl font-black">上海轨道交通核心网</h2>
+                        <p class="text-xs text-gray-500">AAA OS 城市出行资讯</p>
+                    </div>
+                    <p class="text-xs text-gray-700 leading-relaxed">
+                        上海地铁网络覆盖城市各个主要区域。核心换乘枢纽包括人民广场（1/2/8号线）、静安寺（2/7/14号线）、陆家嘴（2/14号线）与徐家汇（1/9/11号线）。
+                    </p>
+                    <button onclick="openApp('metro')" class="aaa-btn p-2 text-xs font-bold w-full bg-black text-white">
+                        点击打开交互式上海地铁路线图
+                    </button>
+                </div>
+            `;
+        }
+
+        function getBrowserWarningHTML() {
+            return `
+                <div class="p-6 font-mono max-w-lg mx-auto space-y-4 text-center">
+                    <i data-lucide="shield-alert" class="w-12 h-12 mx-auto text-black"></i>
+                    <h2 class="text-xl font-black">系统安全提示</h2>
+                    <p class="text-xs text-gray-600 leading-relaxed">
+                        您的 AAA OS 正在监控当前网络负荷。请妥善管理弹窗广告，避免系统防线崩溃。
+                    </p>
+                </div>
+            `;
+        }
+
+        function getBrowserMallHTML() {
+            return `
+                <div class="p-6 font-mono max-w-lg mx-auto space-y-4">
+                    <div class="border-b-2 border-black pb-2 flex justify-between items-center">
+                        <h2 class="text-xl font-black">赛博易购 Mall</h2>
+                        <span class="text-xs border border-black px-2 py-0.5">正品保证</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <div class="border border-black p-3 bg-gray-50 cursor-pointer" onclick="triggerRandomAd()">
+                            <p class="font-bold mb-1">量子防脱发发带</p>
+                            <p class="text-red-600 font-black">¥ 9.9</p>
+                            <span class="text-[10px] text-gray-500">原价 ¥ 9999 · 限时 0.1 折</span>
+                        </div>
+                        <div class="border border-black p-3 bg-gray-50 cursor-pointer" onclick="triggerRandomAd()">
+                            <p class="font-bold mb-1">纯金 RTX 9090Ti</p>
+                            <p class="text-red-600 font-black">¥ 999,999</p>
+                            <span class="text-[10px] text-gray-500">一卡换一套房</span>
+                        </div>
+                        <div class="border border-black p-3 bg-gray-50 cursor-pointer" onclick="triggerRandomAd()">
+                            <p class="font-bold mb-1">AI 数字人分身</p>
+                            <p class="text-red-600 font-black">¥ 199/月</p>
+                            <span class="text-[10px] text-gray-500">帮你开会 / 加班 / 回消息</span>
+                        </div>
+                        <div class="border border-black p-3 bg-gray-50 cursor-pointer" onclick="triggerRandomAd()">
+                            <p class="font-bold mb-1">赛博养生泡脚桶</p>
+                            <p class="text-red-600 font-black">¥ 299</p>
+                            <span class="text-[10px] text-gray-500">老中医（民间）联合研发</span>
+                        </div>
+                        <div class="border border-black p-3 bg-gray-50 cursor-pointer" onclick="triggerRandomAd()">
+                            <p class="font-bold mb-1">9.9 元理财课</p>
+                            <p class="text-red-600 font-black">¥ 9.9</p>
+                            <span class="text-[10px] text-gray-500">学完年化 999%</span>
+                        </div>
+                        <div class="border border-black p-3 bg-gray-50 cursor-pointer" onclick="triggerRandomAd()">
+                            <p class="font-bold mb-1">防蓝光护眼镜</p>
+                            <p class="text-red-600 font-black">¥ 49</p>
+                            <span class="text-[10px] text-gray-500">戴了等于没戴</span>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-gray-400 text-center pt-2 border-t border-gray-200">
+                        * 本商城所有商品均由第三方商家提供，AAA OS 不对商品真实性、有效性、量子属性负责。
+                    </p>
+                </div>
+            `;
+        }
+
+        function getBrowserWikiHTML() {
+            return `
+                <div class="p-6 font-mono max-w-lg mx-auto space-y-4 select-text">
+                    <div class="border-b-2 border-black pb-2">
+                        <h2 class="text-xl font-black">AAA 百科</h2>
+                        <p class="text-xs text-gray-500">自由的百科全书 · 本页由 AI 生成，仅供参考</p>
+                    </div>
+                    <div class="text-xs space-y-3">
+                        <div class="border-2 border-black p-3 bg-yellow-50">
+                            <p class="font-bold mb-1">⚠️ 本条目需要补充可靠来源</p>
+                            <p class="text-gray-600">自 2019 年起，本条目已持续 7 年缺少引用来源。请协助补充，或直接无视。</p>
+                        </div>
+                        <h3 class="font-black text-sm">赛博（Cyber）</h3>
+                        <p class="text-gray-700 leading-relaxed">
+                            赛博一词源于控制论（Cybernetics），现广泛用于形容一切带有科技感但实际用途不明的产品。
+                            例如：赛博养生、赛博理财、赛博防脱发发带。
+                        </p>
+                        <p class="text-gray-700 leading-relaxed">
+                            在 AAA OS 中，赛博一词常用于修饰各类广告文案，以提升其可信度约 300%。
+                        </p>
+                        <div class="border-t border-gray-200 pt-3 text-[10px] text-gray-400">
+                            最近编辑：AAA_管理员_Bot（于 2 秒前） · 本条目被锁定以防止编辑战
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getBrowserBlogHTML() {
+            return `
+                <div class="font-mono max-w-lg mx-auto select-text">
+                    <div class="ad-banner-vibrant p-3 text-center text-xs font-bold cursor-pointer" onclick="triggerRandomAd()">
+                        ⚡ 赞助商：您的浏览速度已落后 99% 的用户，点击加速
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div class="border-b border-black pb-2">
+                            <h2 class="text-lg font-black">我的个人博客</h2>
+                            <p class="text-xs text-gray-500">记录生活 · 分享折腾 · 广告位招租</p>
+                        </div>
+                        <article class="text-xs space-y-3">
+                            <h3 class="font-black text-sm">我花 3000 块买的量子防脱发发带，用了 3 天后……</h3>
+                            <p class="text-gray-700 leading-relaxed">
+                                先声明，这篇不是广告。真的不是。（本文由量子发带官方赞助）
+                            </p>
+                            <p class="text-gray-700 leading-relaxed">
+                                用了三天之后，我发现我的头发……还是那样。但心情好了很多。
+                                可能是因为花 3000 块这件事本身让我焦虑转移了。
+                            </p>
+                            <div class="border-2 border-red-500 bg-red-50 p-3 text-center cursor-pointer" onclick="triggerRandomAd()">
+                                <p class="font-bold text-red-700">👉 同款发带限时 0.1 折，点我抢购</p>
+                            </div>
+                            <p class="text-gray-700 leading-relaxed">
+                                总结：智商税，但很快乐。
+                            </p>
+                        </article>
+                        <div class="border-t border-gray-200 pt-3 text-[10px] text-gray-400">
+                            阅读量：1（含本人 3 次刷新） · 评论：0
+                        </div>
+                    </div>
+                    <div class="ad-banner-vibrant p-3 text-center text-xs font-bold cursor-pointer" onclick="triggerRandomAd()">
+                        🎁 底部广告位 · 点击领取神秘大礼包
+                    </div>
+                </div>
+            `;
+        }
+
+        function getBrowserForumHTML() {
+            return `
+                <div class="p-6 font-mono max-w-lg mx-auto space-y-4 select-text">
+                    <div class="border-b-2 border-black pb-2 flex justify-between items-center">
+                        <h2 class="text-xl font-black">AAA 论坛</h2>
+                        <span class="text-[10px] border border-black px-1.5 py-0.5">在线 12,847 人</span>
+                    </div>
+                    <div class="space-y-2 text-xs">
+                        <div class="border border-black p-3 bg-white">
+                            <p class="font-bold mb-1">【求助】电脑总是弹广告，怎么关？</p>
+                            <p class="text-gray-500 text-[10px]">楼主 · 3 分钟前 · 回复 128</p>
+                        </div>
+                        <div class="border border-black p-3 bg-white">
+                            <p class="font-bold mb-1">【求助】安装了整理大师后，电脑更卡了</p>
+                            <p class="text-gray-500 text-[10px]">楼主 · 12 分钟前 · 回复 47</p>
+                        </div>
+                        <div class="border border-black p-3 bg-white">
+                            <p class="font-bold mb-1">【讨论】AAA OS 到底能不能撑过今天？</p>
+                            <p class="text-gray-500 text-[10px]">楼主 · 刚刚 · 回复 999+</p>
+                        </div>
+                        <div class="border-2 border-red-500 bg-red-50 p-3 cursor-pointer" onclick="triggerRandomAd()">
+                            <p class="font-bold text-red-700 mb-1">【置顶】AAA 官方认证 · 一键清理全家桶（广告）</p>
+                            <p class="text-gray-500 text-[10px]">管理员推荐 · 回复 0</p>
+                        </div>
+                    </div>
+                    <div class="text-center pt-4">
+                        <button onclick="triggerRandomAd()" class="aaa-btn px-4 py-1.5 text-xs font-bold">加载更多帖子</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getBrowserNotFoundHTML(url) {
+            const safeUrl = escapeHtml(url);
+            return `
+                <div class="p-8 font-mono max-w-md mx-auto text-center space-y-4 select-text">
+                    <div class="text-6xl font-black">404</div>
+                    <h2 class="text-lg font-black">页面走丢了</h2>
+                    <p class="text-xs text-gray-600 leading-relaxed">
+                        无法访问 <span class="font-bold break-all">${safeUrl}</span><br>
+                        该页面可能已被删除、改名，或从未存在过。
+                    </p>
+                    <div class="border-2 border-black p-3 bg-yellow-50 text-left text-xs">
+                        <p class="font-bold mb-1">💡 也许您想找：</p>
+                        <div class="space-y-1">
+                            <p class="cursor-pointer underline hover:text-black" onclick="browserNavigate('https://aaa-search.internal')">→ AAA Search 主页</p>
+                            <p class="cursor-pointer underline hover:text-black" onclick="browserNavigate('https://shanghai-metro.internal')">→ 上海地铁资讯</p>
+                            <p class="cursor-pointer underline hover:text-black" onclick="browserNavigate('https://cyber-mall.internal')">→ 赛博易购商城</p>
+                        </div>
+                    </div>
+                    <button onclick="triggerRandomAd()" class="aaa-btn px-4 py-2 text-xs font-bold w-full">返回上一页（其实是广告）</button>
+                </div>
+            `;
+        }
+
+        /* 3. MINESWEEPER */
+        function initMinesweeper() {
+            const ms = gameState.minesweeper;
+            ms.board = Array(81).fill(0);
+            ms.revealed = Array(81).fill(false);
+            ms.flagged = Array(81).fill(false);
+            ms.gameOver = false;
+            ms.gameWon = false;
+            ms.timer = 0;
+
+            if (ms.timerInterval) clearInterval(ms.timerInterval);
+            ms.timerInterval = setInterval(() => {
+                if (!ms.gameOver && !ms.gameWon && ms.revealed.some(r => r)) {
+                    ms.timer++;
+                    const timerEl = document.getElementById('ms-timer');
+                    if (timerEl) timerEl.innerText = String(ms.timer).padStart(3, '0');
+                }
+            }, 1000);
+
+            let planted = 0;
+            while (planted < 10) {
+                let idx = Math.floor(Math.random() * 81);
+                if (ms.board[idx] !== 'M') {
+                    ms.board[idx] = 'M';
+                    planted++;
+                }
+            }
+
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    let idx = r * 9 + c;
+                    if (ms.board[idx] === 'M') continue;
+
+                    let count = 0;
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            let nr = r + dr, nc = c + dc;
+                            if (nr >= 0 && nr < 9 && nc >= 0 && nc < 9) {
+                                if (ms.board[nr * 9 + nc] === 'M') count++;
+                            }
+                        }
+                    }
+                    ms.board[idx] = count;
+                }
+            }
+
+            renderMinesweeperGrid();
+        }
+
+        function renderMinesweeperGrid() {
+            const gridContainer = document.getElementById('minesweeper-grid');
+            const counterEl = document.getElementById('ms-counter');
+            const smileyEl = document.getElementById('ms-smiley');
+            if (!gridContainer) return;
+
+            gridContainer.innerHTML = '';
+            const ms = gameState.minesweeper;
+
+            let flagCount = ms.flagged.filter(f => f).length;
+            if (counterEl) counterEl.innerText = String(10 - flagCount).padStart(3, '0');
+
+            if (smileyEl) {
+                if (ms.gameOver) smileyEl.innerText = '😵';
+                else if (ms.gameWon) smileyEl.innerText = '😎';
+                else smileyEl.innerText = '😄';
+            }
+
+            for (let i = 0; i < 81; i++) {
+                const cellBtn = document.createElement('button');
+                cellBtn.className = 'w-7 h-7 font-mono font-black text-xs flex items-center justify-center border select-none transition-all';
+
+                if (ms.revealed[i]) {
+                    cellBtn.classList.add('bg-gray-100', 'border-gray-300');
+                    if (ms.board[i] === 'M') {
+                        cellBtn.innerText = '💣';
+                        cellBtn.classList.add('bg-red-600', 'text-white');
+                    } else if (ms.board[i] > 0) {
+                        cellBtn.innerText = ms.board[i];
+                        const colors = ['', 'text-blue-600', 'text-green-600', 'text-red-600', 'text-purple-700', 'text-yellow-700'];
+                        cellBtn.classList.add(colors[ms.board[i]] || 'text-black');
+                    }
+                } else if (ms.flagged[i]) {
+                    cellBtn.classList.add('bg-gray-200', 'border-black');
+                    cellBtn.innerText = '🚩';
+                } else {
+                    cellBtn.classList.add('bg-gray-300', 'border-gray-400', 'hover:bg-gray-200', 'shadow-inner');
+                }
+
+                cellBtn.onclick = () => revealMineCell(i);
+                cellBtn.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    toggleMineFlag(i);
+                };
+
+                gridContainer.appendChild(cellBtn);
+            }
+        }
+
+        function revealMineCell(idx) {
+            const ms = gameState.minesweeper;
+            if (ms.gameOver || ms.gameWon || ms.flagged[idx] || ms.revealed[idx]) return;
+
+            AudioEngine.playClick();
+            ms.revealed[idx] = true;
+
+            if (ms.board[idx] === 'M') {
+                ms.gameOver = true;
+                for (let i = 0; i < 81; i++) {
+                    if (ms.board[i] === 'M') ms.revealed[i] = true;
+                }
+                AudioEngine.playError();
+                renderMinesweeperGrid();
+                setTimeout(() => triggerRandomAd(), 300);
+                return;
+            }
+
+            if (ms.board[idx] === 0) {
+                let queue = [idx];
+                while (queue.length > 0) {
+                    let current = queue.shift();
+                    let r = Math.floor(current / 9), c = current % 9;
+
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            let nr = r + dr, nc = c + dc;
+                            if (nr >= 0 && nr < 9 && nc >= 0 && nc < 9) {
+                                let nIdx = nr * 9 + nc;
+                                if (!ms.revealed[nIdx] && !ms.flagged[nIdx]) {
+                                    ms.revealed[nIdx] = true;
+                                    if (ms.board[nIdx] === 0) queue.push(nIdx);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            checkMinesweeperWin();
+            renderMinesweeperGrid();
+        }
+
+        function toggleMineFlag(idx) {
+            const ms = gameState.minesweeper;
+            if (ms.gameOver || ms.gameWon || ms.revealed[idx]) return;
+
+            AudioEngine.playClick();
+            ms.flagged[idx] = !ms.flagged[idx];
+            checkMinesweeperWin();
+            renderMinesweeperGrid();
+        }
+
+        function checkMinesweeperWin() {
+            const ms = gameState.minesweeper;
+            let unrevealedCount = ms.revealed.filter(r => !r).length;
+            if (unrevealedCount === 10 && !ms.gameOver) {
+                ms.gameWon = true;
+                AudioEngine.playWin();
+            }
+        }
+
+        /* 4. METRO */
+        let metroScale = 1;
+        function zoomMetro(factor) {
+            metroScale *= factor;
+            metroScale = Math.max(0.6, Math.min(2.5, metroScale));
+            const svgEl = document.getElementById('metro-svg');
+            if (svgEl) svgEl.style.transform = `scale(${metroScale})`;
+        }
+
+        function resetMetroZoom() {
+            metroScale = 1;
+            const svgEl = document.getElementById('metro-svg');
+            if (svgEl) svgEl.style.transform = `scale(1)`;
+        }
+
+        function selectMetroStation(name) {
+            AudioEngine.playClick();
+            const fromSel = document.getElementById('metro-from');
+            if (fromSel) fromSel.value = name;
+        }
+
+        function calculateMetroRoute() {
+            AudioEngine.playClick();
+            const from = document.getElementById('metro-from').value;
+            const to = document.getElementById('metro-to').value;
+            const resultBox = document.getElementById('metro-route-result');
+            const resultTxt = document.getElementById('metro-route-text');
+
+            if (from === to) {
+                resultTxt.innerText = `⚠️ 起点与终点相同 (${from})，无需乘车。`;
+            } else {
+                resultTxt.innerText = `🚇 [推荐路线]: 从 ${from} 乘坐地铁前往 ${to}，途径核心换乘枢纽，预计耗时 15 分钟，票价 4 元。`;
+            }
+            resultBox.classList.remove('hidden');
+        }
+
+        /* 5. CALCULATOR */
+        let calcVal = "0";
+        let calcExpr = "";
+        function calcInput(char) {
+            AudioEngine.playClick();
+            const disp = document.getElementById('calc-display');
+            if (!disp) return;
+
+            if (char === 'C') {
+                calcVal = "0";
+                calcExpr = "";
+            } else if (char === 'DEL') {
+                calcVal = calcVal.length > 1 ? calcVal.slice(0, -1) : "0";
+            } else {
+                if (calcVal === "0" && char !== '.') calcVal = char;
+                else calcVal += char;
+            }
+            disp.innerText = calcVal;
+        }
+
+        function calcEqual() {
+            AudioEngine.playClick();
+            const disp = document.getElementById('calc-display');
+            const exprEl = document.getElementById('calc-expr');
+            if (!disp) return;
+
+            try {
+                const res = eval(calcVal);
+                exprEl.innerText = `${calcVal} =`;
+                calcVal = String(res);
+                disp.innerText = calcVal;
+
+                if (Math.abs(res) > 10000) {
+                    setTimeout(() => triggerRandomAd(), 400);
+                }
+            } catch(e) {
+                disp.innerText = "ERROR";
+                calcVal = "0";
+            }
+        }
+
+        /* 6. CLEANER */
+        function runSysCleaner() {
+            AudioEngine.playClick();
+            const btn = document.getElementById('cleaner-btn');
+            const bar = document.getElementById('cleaner-progress-bar');
+            const txt = document.getElementById('cleaner-progress-txt');
+            if (!btn || !bar) return;
+
+            btn.disabled = true;
+            btn.innerText = "正在深度整理垃圾缓存...";
+
+            let prog = 0;
+            const iv = setInterval(() => {
+                prog += 20;
+                bar.style.width = `${prog}%`;
+                txt.innerText = `${prog}%`;
+
+                if (prog >= 100) {
+                    clearInterval(iv);
+                    btn.disabled = false;
+                    btn.innerText = "一键开始深度整理";
+
+                    gameState.systemLoad = Math.min(100, gameState.systemLoad + 12);
+                    updateSystemLoadUI();
+                    AudioEngine.playError();
+
+                    spawnFloatingPopupAd();
+                    spawnFloatingPopupAd();
+                    spawnFloatingPopupAd();
+                }
+            }, 120);
+        }
+
+        /* 7. WEATHER */
+        function switchWeatherCity(city) {
+            AudioEngine.playClick();
+            if (city === '上海') {
+                gameState.weather = { city: '上海', temp: '21°C', condition: '多云 / 湿度 65%' };
+            } else if (city === '北京') {
+                gameState.weather = { city: '北京', temp: '16°C', condition: '晴朗 / 湿度 35%' };
+            } else if (city === '深圳') {
+                gameState.weather = { city: '深圳', temp: '28°C', condition: '阵雨 / 湿度 80%' };
+            }
+
+            document.getElementById('tray-weather-txt').innerText = `${gameState.weather.city} ${gameState.weather.temp.split(' ')[0]}`;
+
+            const winBody = document.getElementById('win-body-weather');
+            if (winBody) {
+                winBody.innerHTML = getAppHTML('weather');
+                lucide.createIcons();
+            }
+        }
+
+        /* 8. STOPWATCH */
+        function toggleStopwatch() {
+            AudioEngine.playClick();
+            const btn = document.getElementById('sw-start-btn');
+            const disp = document.getElementById('stopwatch-display');
+
+            if (gameState.stopwatch.interval) {
+                clearInterval(gameState.stopwatch.interval);
+                gameState.stopwatch.interval = null;
+                btn.innerText = "继续";
+            } else {
+                btn.innerText = "暂停";
+                gameState.stopwatch.interval = setInterval(() => {
+                    gameState.stopwatch.time += 10;
+                    let ms = Math.floor((gameState.stopwatch.time % 1000) / 10);
+                    let sec = Math.floor((gameState.stopwatch.time / 1000) % 60);
+                    let min = Math.floor(gameState.stopwatch.time / 60000);
+                    disp.innerText = `${min < 10 ? '0'+min : min}:${sec < 10 ? '0'+sec : sec}.${ms < 10 ? '0'+ms : ms}`;
+                }, 10);
+            }
+        }
+
+        function recordStopwatchLap() {
+            AudioEngine.playClick();
+            if (gameState.stopwatch.time > 0) {
+                let dispText = document.getElementById('stopwatch-display').innerText;
+                gameState.stopwatch.laps.unshift(dispText);
+                const listEl = document.getElementById('stopwatch-laps-list');
+                if (listEl) {
+                    listEl.innerHTML = gameState.stopwatch.laps.map((lap, i) => `
+                        <div class="flex justify-between py-1 border-b border-gray-200 text-xs">
+                            <span>计圈 #${gameState.stopwatch.laps.length - i}</span>
+                            <span class="font-bold font-mono">${lap}</span>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        function resetStopwatch() {
+            AudioEngine.playClick();
+            if (gameState.stopwatch.interval) clearInterval(gameState.stopwatch.interval);
+            gameState.stopwatch.interval = null;
+            gameState.stopwatch.time = 0;
+            gameState.stopwatch.laps = [];
+            document.getElementById('stopwatch-display').innerText = "00:00.00";
+            document.getElementById('sw-start-btn').innerText = "开始";
+            const listEl = document.getElementById('stopwatch-laps-list');
+            if (listEl) listEl.innerHTML = '';
+        }
+
+        /* APP HTML */
+        function getAppHTML(appId) {
+            if (appId === 'sticky') {
+                return `
+                    <div class="p-4 flex flex-col h-full font-mono">
+                        <div class="flex justify-between items-center mb-3 pb-2 border-b-2 border-black">
+                            <span class="font-bold text-sm">桌面便签管理器 (${gameState.stickyNotes.length})</span>
+                            <button onclick="createStickyNote()" class="aaa-btn px-3 py-1 text-xs font-bold bg-black text-white">+ 新增便签</button>
+                        </div>
+                        <p class="text-xs text-gray-600 mb-3">便签将直接固定在 AAA OS 桌面层，编辑内容即时同步。</p>
+                        <div class="flex-1 overflow-y-auto space-y-3">
+                            ${gameState.stickyNotes.map(n => `
+                                <div class="p-3 border-2 border-black bg-gray-50 flex flex-col gap-2">
+                                    <div class="flex justify-between items-center text-xs border-b border-gray-300 pb-1">
+                                        <span class="font-bold">便签 ID: #${n.id}</span>
+                                        <button onclick="deleteStickyNote(${n.id})" class="text-red-600 font-bold hover:underline">删除便签</button>
+                                    </div>
+                                    <textarea id="sticky-textarea-${n.id}" oninput="syncStickyText(${n.id}, this.value)" class="w-full border border-black p-2 text-xs font-mono h-20 outline-none resize-none bg-white">${escapeHtml(n.text)}</textarea>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (appId === 'browser') {
+                const banners = [
+                    '📢 您的浏览器版本过低，建议升级为 AAA 极速浏览器',
+                    '🎁 恭喜您获得 1 次抽奖机会（剩余 0 次）',
+                    '🍜 您有 3 张外卖红包即将过期，满 20 减 1',
+                    '📦 您的快递在转运中心滞留，点击申请理赔',
+                    '⚠️ 检测到您已连续上网 4 小时，建议立即购买护眼仪'
+                ];
+                const bannerText = banners[Math.floor(Math.random() * banners.length)];
+                return `
+                    <div class="flex flex-col h-full font-mono">
+                        <div class="p-2 border-b-2 border-black bg-gray-100 flex items-center gap-2 text-xs">
+                            <button onclick="browserBack()" class="aaa-btn px-2 py-0.5">←</button>
+                            <button onclick="browserForward()" class="aaa-btn px-2 py-0.5">→</button>
+                            <button onclick="browserRefresh()" class="aaa-btn px-2 py-0.5">↻</button>
+                            <button onclick="browserNavigate('https://aaa-search.internal')" class="aaa-btn px-2 py-0.5">🏠</button>
+                            <input id="browser-url-bar" type="text" value="${escapeHtml(gameState.browserHistory[gameState.historyIndex] || 'https://aaa-search.internal')}" class="flex-1 border border-black px-2 py-1 outline-none text-xs" onkeydown="if(event.key==='Enter') browserNavigate(this.value)" />
+                            <button onclick="browserNavigate(document.getElementById('browser-url-bar').value)" class="aaa-btn px-3 py-1 font-bold">前往</button>
+                        </div>
+
+                        ${gameState.systemLoad > 10 ? `
+                        <div class="ad-banner-vibrant p-2 text-center text-xs flex justify-between items-center px-4 font-bold cursor-pointer" onclick="triggerRandomAd()">
+                            <span>${bannerText}</span>
+                            <span class="ad-badge-neon">查看详情</span>
+                        </div>
+                        ` : ''}
+
+                        <div id="browser-page-body" class="flex-1 overflow-y-auto bg-white">
+                            ${getBrowserHomeHTML()}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (appId === 'metro') {
+                return `
+                    <div class="flex flex-col h-full font-mono">
+                        <div class="p-3 border-b-2 border-black bg-gray-50 flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold">起点:</span>
+                                <select id="metro-from" class="border border-black p-1 bg-white">
+                                    <option>人民广场</option>
+                                    <option>陆家嘴</option>
+                                    <option>静安寺</option>
+                                    <option>徐家汇</option>
+                                </select>
+                                <span class="font-bold">终点:</span>
+                                <select id="metro-to" class="border border-black p-1 bg-white">
+                                    <option>陆家嘴</option>
+                                    <option>人民广场</option>
+                                    <option>静安寺</option>
+                                    <option>徐家汇</option>
+                                </select>
+                                <button onclick="calculateMetroRoute()" class="aaa-btn px-3 py-1 font-bold bg-black text-white">路线规划</button>
+                            </div>
+
+                            <div class="flex items-center gap-1">
+                                <button onclick="zoomMetro(1.2)" class="aaa-btn px-2 py-0.5 font-bold">+</button>
+                                <button onclick="zoomMetro(0.8)" class="aaa-btn px-2 py-0.5 font-bold">-</button>
+                                <button onclick="resetMetroZoom()" class="aaa-btn px-2 py-0.5 font-bold">重置</button>
+                            </div>
+                        </div>
+
+                        <div id="metro-route-result" class="hidden p-2 bg-black text-white text-xs font-bold flex justify-between items-center">
+                            <span id="metro-route-text">路线计算结果...</span>
+                            <button onclick="document.getElementById('metro-route-result').classList.add('hidden')" class="text-white">✕</button>
+                        </div>
+
+                        <div class="flex-1 overflow-hidden relative bg-white flex items-center justify-center cursor-grab">
+                            <svg id="metro-svg" width="680" height="420" viewBox="0 0 680 420" class="transition-transform duration-200">
+                                <defs>
+                                    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#E5E5EA" stroke-width="1"/>
+                                    </pattern>
+                                </defs>
+                                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                                <path d="M 150,340 L 260,220 L 340,180 L 480,180" fill="none" stroke="#1D1D1F" stroke-width="5" />
+                                <path d="M 120,150 L 240,150 L 340,180 L 520,180" fill="none" stroke="#666666" stroke-width="4" stroke-dasharray="8 4" />
+                                <path d="M 240,150 L 340,180 L 520,280" fill="none" stroke="#999999" stroke-width="3" />
+
+                                <g class="metro-node" onclick="selectMetroStation('徐家汇')">
+                                    <circle cx="150" cy="340" r="7" fill="#FFFFFF" stroke="#1D1D1F" stroke-width="3" />
+                                    <text x="130" y="365" font-size="11" font-weight="bold" font-family="monospace">徐家汇 (1/9/11)</text>
+                                </g>
+
+                                <g class="metro-node" onclick="selectMetroStation('静安寺')">
+                                    <circle cx="240" cy="150" r="7" fill="#FFFFFF" stroke="#1D1D1F" stroke-width="3" />
+                                    <text x="200" y="130" font-size="11" font-weight="bold" font-family="monospace">静安寺 (2/7/14)</text>
+                                </g>
+
+                                <g class="metro-node" onclick="selectMetroStation('人民广场')">
+                                    <circle cx="340" cy="180" r="10" fill="#1D1D1F" stroke="#FFFFFF" stroke-width="2" />
+                                    <text x="310" y="210" font-size="12" font-weight="black" font-family="monospace">人民广场 (核心枢纽)</text>
+                                </g>
+
+                                <g class="metro-node" onclick="selectMetroStation('陆家嘴')">
+                                    <circle cx="520" cy="180" r="7" fill="#FFFFFF" stroke="#1D1D1F" stroke-width="3" />
+                                    <text x="500" y="160" font-size="11" font-weight="bold" font-family="monospace">陆家嘴 (2/14)</text>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (appId === 'minesweeper') {
+                return `
+                    <div class="flex flex-col h-full font-mono items-center justify-center p-4 bg-gray-50 select-none">
+                        <div class="border-2 border-black bg-white p-4 shadow-[4px_4px_0px_#000]">
+                            <div class="flex justify-between items-center mb-3 border-2 border-black p-2 bg-gray-100">
+                                <span id="ms-counter" class="bg-black text-red-500 font-mono font-black text-lg px-2 py-0.5 border border-gray-700">010</span>
+                                <button id="ms-smiley" onclick="initMinesweeper()" class="text-2xl hover:scale-110 transition-transform">😄</button>
+                                <span id="ms-timer" class="bg-black text-red-500 font-mono font-black text-lg px-2 py-0.5 border border-gray-700">000</span>
+                            </div>
+                            <div id="minesweeper-grid" class="grid grid-cols-9 gap-1 bg-black p-1 border-2 border-black"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (appId === 'calc') {
+                return `
+                    <div class="flex flex-col h-full font-mono p-4 bg-white">
+                        <div class="border-2 border-black p-3 mb-4 bg-gray-50 text-right">
+                            <div id="calc-expr" class="text-xs text-gray-500 h-4 mb-1"></div>
+                            <div id="calc-display" class="text-2xl font-black truncate">0</div>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-2 flex-1">
+                            <button onclick="calcInput('C')" class="aaa-btn font-bold text-xs">C</button>
+                            <button onclick="calcInput('DEL')" class="aaa-btn font-bold text-xs">DEL</button>
+                            <button onclick="calcInput('/')" class="aaa-btn font-bold text-xs">/</button>
+                            <button onclick="calcInput('*')" class="aaa-btn font-bold text-xs">*</button>
+
+                            <button onclick="calcInput('7')" class="aaa-btn font-bold">7</button>
+                            <button onclick="calcInput('8')" class="aaa-btn font-bold">8</button>
+                            <button onclick="calcInput('9')" class="aaa-btn font-bold">9</button>
+                            <button onclick="calcInput('-')" class="aaa-btn font-bold text-xs">-</button>
+
+                            <button onclick="calcInput('4')" class="aaa-btn font-bold">4</button>
+                            <button onclick="calcInput('5')" class="aaa-btn font-bold">5</button>
+                            <button onclick="calcInput('6')" class="aaa-btn font-bold">6</button>
+                            <button onclick="calcInput('+')" class="aaa-btn font-bold text-xs">+</button>
+
+                            <button onclick="calcInput('1')" class="aaa-btn font-bold">1</button>
+                            <button onclick="calcInput('2')" class="aaa-btn font-bold">2</button>
+                            <button onclick="calcInput('3')" class="aaa-btn font-bold">3</button>
+                            <button onclick="calcEqual()" class="aaa-btn font-bold bg-black text-white row-span-2">=</button>
+
+                            <button onclick="calcInput('0')" class="aaa-btn font-bold col-span-2">0</button>
+                            <button onclick="calcInput('.')" class="aaa-btn font-bold">.</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (appId === 'cleaner') {
+                return `
+                    <div class="p-6 font-mono flex flex-col h-full justify-between bg-white">
+                        <div>
+                            <div class="flex items-center gap-2 mb-4 border-b-2 border-black pb-2">
+                                <i data-lucide="sparkles" class="w-5 h-5"></i>
+                                <span class="font-bold text-base">AAA 系统整理大师</span>
+                            </div>
+                            <p class="text-xs text-gray-600 mb-6 leading-relaxed">
+                                本工具将对 AAA OS 运行内存、碎屑缓存与后台关联服务进行深度清理与加速。
+                            </p>
+
+                            <div class="border-2 border-black p-4 mb-6 bg-gray-50">
+                                <div class="flex justify-between text-xs font-bold mb-2">
+                                    <span>优化进度:</span>
+                                    <span id="cleaner-progress-txt">0%</span>
+                                </div>
+                                <div class="w-full h-4 border border-black bg-white">
+                                    <div id="cleaner-progress-bar" class="h-full bg-black w-0 transition-all duration-200"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="cleaner-btn" onclick="runSysCleaner()" class="aaa-btn p-3 font-bold text-sm w-full bg-black text-white hover:bg-gray-800">
+                            一键开始深度整理
+                        </button>
+                    </div>
+                `;
+            }
+
+            if (appId === 'weather') {
+                const bannerTxt = `☔ 预警：检测到${gameState.weather.city}即将降雨！点击立即领取「量子极速防爆雨伞」50 元大额券！`;
+                return `
+                    <div class="p-5 font-mono flex flex-col h-full justify-between bg-white">
+                        <div>
+                            <div class="flex justify-between items-center border-b-2 border-black pb-3 mb-4">
+                                <div>
+                                    <div class="flex gap-2 mb-1">
+                                        <button onclick="switchWeatherCity('上海')" class="text-xs underline font-bold ${gameState.weather.city === '上海' ? 'text-black font-black' : 'text-gray-400'}">上海</button>
+                                        <button onclick="switchWeatherCity('北京')" class="text-xs underline font-bold ${gameState.weather.city === '北京' ? 'text-black font-black' : 'text-gray-400'}">北京</button>
+                                        <button onclick="switchWeatherCity('深圳')" class="text-xs underline font-bold ${gameState.weather.city === '深圳' ? 'text-black font-black' : 'text-gray-400'}">深圳</button>
+                                    </div>
+                                    <h3 class="font-black text-lg">${gameState.weather.city}</h3>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-3xl font-black">${gameState.weather.temp}</span>
+                                    <p class="text-[10px] text-gray-500">${gameState.weather.condition}</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-4 gap-2 text-center text-xs mb-4">
+                                <div class="border border-black p-2 bg-gray-50">
+                                    <p class="text-gray-500 text-[10px]">周一</p>
+                                    <p class="font-bold my-1">22°C</p>
+                                    <i data-lucide="sun" class="w-4 h-4 mx-auto"></i>
+                                </div>
+                                <div class="border border-black p-2 bg-gray-50">
+                                    <p class="text-gray-500 text-[10px]">周二</p>
+                                    <p class="font-bold my-1">19°C</p>
+                                    <i data-lucide="cloud-rain" class="w-4 h-4 mx-auto"></i>
+                                </div>
+                                <div class="border border-black p-2 bg-gray-50">
+                                    <p class="text-gray-500 text-[10px]">周三</p>
+                                    <p class="font-bold my-1">20°C</p>
+                                    <i data-lucide="cloud" class="w-4 h-4 mx-auto"></i>
+                                </div>
+                                <div class="border border-black p-2 bg-gray-50">
+                                    <p class="text-gray-500 text-[10px]">周四</p>
+                                    <p class="font-bold my-1">23°C</p>
+                                    <i data-lucide="sun" class="w-4 h-4 mx-auto"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ad-banner-vibrant p-3 text-center text-xs font-bold cursor-pointer" onclick="triggerRandomAd()">
+                            ${bannerTxt}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (appId === 'stopwatch') {
+                return `
+                    <div class="p-5 font-mono flex flex-col h-full justify-between bg-white">
+                        <div class="text-center w-full">
+                            <span class="text-xs font-bold border border-black px-2 py-0.5">高精度计时引擎</span>
+                            <div id="stopwatch-display" class="text-3xl font-black my-4 tracking-widest border-2 border-black p-3 bg-gray-50">
+                                00:00.00
+                            </div>
+                        </div>
+
+                        <div id="stopwatch-laps-list" class="flex-1 overflow-y-auto my-2 border border-black p-2 bg-gray-50 max-h-28"></div>
+
+                        <div class="flex gap-2 w-full">
+                            <button id="sw-start-btn" onclick="toggleStopwatch()" class="aaa-btn flex-1 py-2 font-bold text-xs bg-black text-white">开始</button>
+                            <button onclick="recordStopwatchLap()" class="aaa-btn flex-1 py-2 font-bold text-xs">计圈</button>
+                            <button onclick="resetStopwatch()" class="aaa-btn flex-1 py-2 font-bold text-xs">重置</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `<div class="p-4 font-mono text-xs">应用程序加载中...</div>`;
+        }
+
+        function initAppLogic(appId) {
+            if (appId === 'minesweeper') initMinesweeper();
+        }
+
+        /* 9. PARODY ADS & COLLAPSE */
+        const AD_TEMPLATES = [
+            {
+                title: "🎬 短剧 · 第 3 集",
+                body: "她刚下飞机，全城首富跪地喊妈。前一秒被退婚，后一秒继承千亿家产。前 46 集需会员。",
+                btnText: "解锁全集 · 首月 0 元",
+                color: "bg-rose-600"
+            },
+            {
+                title: "🤖 前大厂 P9 亲授",
+                body: "不会写代码也能学！3 天速成 AI Agent 工程师，学完即送「量子算力会员」。仅剩 2 席。",
+                btnText: "0 元抢座",
+                color: "bg-indigo-600"
+            },
+            {
+                title: "💰 最高可借 20 万",
+                body: "身份证即可申请，最快 3 分钟到账。年化 3.9% 起。*实际综合年化费率以审批为准。",
+                btnText: "测测我能借多少",
+                color: "bg-emerald-600"
+            },
+            {
+                title: "🔥 家人们 321 上链接",
+                body: "厂长连夜跑路，库存 9999 件清仓！原价 9999，现在 9.9 包邮送运费险。倒计时 00:03。",
+                btnText: "9.9 抢购（仅剩 3 件）",
+                color: "bg-orange-500"
+            },
+            {
+                title: "🪓 好友帮你砍了一刀",
+                body: "还差 0.01 元即可提现 500 元！进度 99.99%，再邀请 3 位好友即可成功。",
+                btnText: "继续砍一刀",
+                color: "bg-red-500"
+            },
+            {
+                title: "🧹 C 盘已爆满 99.9%",
+                body: "检测到 128GB 垃圾、37 个开机自启项、4 个高危漏洞。立即清理可提速 300%。",
+                btnText: "一键清理（顺带装 5 个全家桶）",
+                color: "bg-sky-600"
+            },
+            {
+                title: "☁️ 下载速度已被限制",
+                body: "开通超级会员，立即解锁极速通道，速度可提升至 101KB/s。",
+                btnText: "开通会员 · 首月 0 元",
+                color: "bg-blue-600"
+            },
+            {
+                title: "🛡️ 反诈中心提醒您",
+                body: "刚刚那个按钮是假的。这个也是。",
+                btnText: "我不信",
+                color: "bg-gray-800"
+            }
+        ];
+
+        function triggerRandomAd() {
+            if (!gameState.started) return;
+
+            const rnd = Math.random();
+            if (rnd < 0.65) {
+                spawnFloatingPopupAd();
+            } else {
+                spawnVideoOverlayAd();
+            }
+        }
+
+        function triggerAppSplashAd(appId, callback) {
+            AudioEngine.playAd();
+            const overlay = document.getElementById('overlay-container');
+            const splashEl = document.createElement('div');
+            splashEl.className = "pointer-events-auto bg-white border-4 border-black p-6 shadow-[12px_12px_0px_#000] max-w-sm w-full font-mono text-center select-none relative";
+
+            let timer = 3;
+            splashEl.innerHTML = `
+                <div class="ad-badge-neon inline-block mb-3">AAA 开屏推荐服务</div>
+                <h3 class="text-lg font-black mb-2 text-red-600">⚡ 正在为您匹配最优广告</h3>
+                <p class="text-xs text-gray-600 mb-2">已为您跳过 3 个无关广告</p>
+                <p class="text-[10px] text-gray-400 mb-6">目标应用：${escapeHtml(APP_DEFS[appId].title)}</p>
+                <button id="splash-skip-btn" class="aaa-btn w-full py-2 font-bold text-xs bg-black text-white">
+                    跳过广告 (${timer}s)
+                </button>
+            `;
+
+            overlay.appendChild(splashEl);
+
+            const iv = setInterval(() => {
+                timer--;
+                const btn = document.getElementById('splash-skip-btn');
+                if (btn) {
+                    if (timer > 0) {
+                        btn.innerText = `跳过广告 (${timer}s)`;
+                    } else {
+                        btn.innerText = "直接进入应用 »";
+                        btn.onclick = () => {
+                            clearInterval(iv);
+                            splashEl.remove();
+                            callback();
+                        };
+                    }
+                } else {
+                    clearInterval(iv);
+                }
+            }, 1000);
+        }
+
+        function spawnFloatingPopupAd() {
+            AudioEngine.playAd();
+            const container = document.getElementById('popup-container');
+            const ad = AD_TEMPLATES[Math.floor(Math.random() * AD_TEMPLATES.length)];
+
+            const popup = document.createElement('div');
+            popup.className = "ad-popup-frame absolute pointer-events-auto w-72 p-4 font-mono select-none";
+            
+            popup.style.left = `${Math.random() * (window.innerWidth - 320)}px`;
+            popup.style.top = `${Math.random() * (window.innerHeight - 240)}px`;
+
+            const isEvasive = gameState.systemLoad > 40;
+
+            popup.innerHTML = `
+                <div class="flex justify-between items-center border-b-2 border-red-500 pb-2 mb-3">
+                    <span class="font-black text-xs text-red-600 flex items-center gap-1">
+                        <i data-lucide="alert-triangle" class="w-4 h-4"></i> ${ad.title}
+                    </span>
+                    <button onclick="handleDeceptiveClose(event)" onmouseover="${isEvasive ? 'evadeButton(this)' : ''}" class="evasive-x w-5 h-5 bg-red-600 text-white font-black text-xs flex items-center justify-center">×</button>
+                </div>
+                <p class="text-xs text-gray-800 font-bold mb-4 leading-relaxed">${ad.body}</p>
+                <button onclick="triggerFissionAd()" class="w-full ${ad.color} text-white font-extrabold text-xs py-2 border-2 border-black shadow-[2px_2px_0px_#000] hover:brightness-110">
+                    ${ad.btnText}
+                </button>
+            `;
+
+            container.appendChild(popup);
+            lucide.createIcons();
+        }
+
+        function evadeButton(btn) {
+            const offsetX = (Math.random() - 0.5) * 100;
+            const offsetY = (Math.random() - 0.5) * 100;
+            btn.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+        }
+
+        function handleDeceptiveClose(e) {
+            e.stopPropagation();
+            AudioEngine.playAd();
+
+            if (gameState.systemLoad > 30) {
+                spawnFloatingPopupAd();
+                spawnFloatingPopupAd();
+            } else {
+                const p = e.target.closest('.ad-popup-frame');
+                if (p) p.remove();
+            }
+        }
+
+        function triggerFissionAd() {
+            AudioEngine.playAd();
+            gameState.systemLoad = Math.min(100, gameState.systemLoad + 6);
+            updateSystemLoadUI();
+            spawnFloatingPopupAd();
+            spawnFloatingPopupAd();
+        }
+
+        function spawnVideoOverlayAd() {
+            AudioEngine.playAd();
+            const overlay = document.getElementById('overlay-container');
+            if (overlay.children.length > 0) return;
+
+            const videoEl = document.createElement('div');
+            videoEl.className = "pointer-events-auto bg-black border-4 border-yellow-400 p-4 shadow-[16px_16px_0px_#FFCC00] max-w-lg w-full font-mono text-white select-none relative";
+
+            let timer = 5;
+            videoEl.innerHTML = `
+                <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+                    <span class="text-xs font-bold text-yellow-400 flex items-center gap-1">
+                        <i data-lucide="play-circle" class="w-4 h-4"></i> 全屏高清视频演示
+                    </span>
+                    <button id="video-skip-btn" class="text-xs bg-gray-800 text-gray-400 px-3 py-1 font-bold border border-gray-600">
+                        ${timer} 秒后可跳过
+                    </button>
+                </div>
+
+                <div class="w-full h-44 bg-gradient-to-r from-rose-900 via-indigo-900 to-black flex flex-col items-center justify-center p-4 text-center my-2 border border-yellow-400/30">
+                    <div class="animate-bounce text-4xl mb-2">🎬</div>
+                    <h2 class="text-xl font-black text-yellow-300 tracking-wider">《总裁的 99 次求婚》第 1 集</h2>
+                    <p class="text-xs text-yellow-100 mt-1">你以为他是穷小子，其实他是……（会员可看）</p>
+                    <p class="text-[10px] text-yellow-200/70 mt-2">正在缓冲 99% · 剩余广告 15 秒</p>
+                </div>
+
+                <div class="flex justify-between items-center text-[10px] text-gray-400">
+                    <span>广告编号: #AD-VIDEO-9902</span>
+                    <span>点击视频区域跳转</span>
+                </div>
+            `;
+
+            overlay.appendChild(videoEl);
+            lucide.createIcons();
+
+            const iv = setInterval(() => {
+                timer--;
+                const btn = document.getElementById('video-skip-btn');
+                if (btn) {
+                    if (timer > 0) {
+                        btn.innerText = `${timer} 秒后可跳过`;
+                    } else {
+                        btn.className = "text-xs bg-yellow-400 text-black px-3 py-1 font-black cursor-pointer hover:bg-white";
+                        btn.innerText = "跳过广告 ✕";
+                        btn.onclick = () => {
+                            clearInterval(iv);
+                            videoEl.remove();
+                        };
+                    }
+                } else {
+                    clearInterval(iv);
+                }
+            }, 1000);
+        }
+
+        function triggerSystemCollapseBSOD() {
+            AudioEngine.playError();
+            document.body.innerHTML = `
+                <div class="h-screen w-screen bg-black text-white p-12 font-mono flex flex-col justify-between select-none">
+                    <div>
+                        <div class="text-6xl font-black mb-6">AAA OS HALT</div>
+                        <p class="text-xl mb-4">系统防线瘫痪告警: SYSTEM_DEFENSE_COLLAPSE (0x000000FF)</p>
+                        <p class="text-sm text-gray-400 max-w-2xl leading-relaxed mb-8">
+                            AAA OS 捕获到不可逆的系统负荷与服务爆发。关联防线已完全瘫痪，无法继续响应常规应用调度指令。
+                        </p>
+                        <div class="border border-white p-4 max-w-md bg-gray-900 text-xs space-y-1 text-gray-300">
+                            <p>> Task scheduler halted.</p>
+                            <p>> Defense buffer depleted.</p>
+                            <p>> Total system entropy reached 100%.</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button onclick="restartOS()" class="bg-white text-black font-extrabold px-6 py-3 border-2 border-white hover:bg-gray-200 text-sm">
+                            重启 AAA OS 恢复初始环境
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function restartOS() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>
