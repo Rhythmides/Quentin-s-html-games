@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>起落架 · Landing Gear</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:#000;
+    font-family:"Courier New",ui-monospace,Menlo,monospace;color:#e8e8e8;
+    -webkit-user-select:none;user-select:none;touch-action:none;
+    overscroll-behavior:none}
+  #c{position:fixed;inset:0;display:block}
+  #ov{position:fixed;inset:0;display:none;flex-direction:column;
+    align-items:center;justify-content:center;z-index:10;
+    background:#f4f3ee;color:#1a1a1a;padding:22px;text-align:center;
+    animation:fade .35s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  #ovc{max-width:660px;width:100%;max-height:92vh;overflow-y:auto;padding:6px}
+  .title{font-size:clamp(22px,6vw,42px);letter-spacing:.32em;margin-bottom:6px;font-weight:400}
+  .sub{font-size:clamp(10px,2.6vw,13px);letter-spacing:.5em;opacity:.4;margin-bottom:26px}
+  .h1{font-size:clamp(15px,3.8vw,20px);letter-spacing:.2em;margin:14px 0 10px}
+  .h2{font-size:clamp(10px,2.8vw,12px);letter-spacing:.24em;opacity:.5;margin-bottom:18px}
+  .body{font-size:clamp(11px,3vw,13.5px);line-height:2;opacity:.82;
+    text-align:left;margin:0 auto 18px;max-width:520px;letter-spacing:.06em}
+  .body.c{text-align:center}
+  .rule{width:70%;max-width:380px;height:1px;background:#1a1a1a22;margin:20px auto}
+  .btnbar{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:22px}
+  .btn{background:transparent;border:1px solid #1a1a1a66;color:#1a1a1a;
+    padding:12px 26px;font-family:inherit;font-size:clamp(11px,3vw,13px);
+    letter-spacing:.24em;cursor:pointer;transition:.16s;border-radius:2px;min-width:118px}
+  .btn:hover,.btn:active{background:#1a1a1a;color:#f4f3ee}
+  .btn.primary{border-color:#1a1a1a;background:#1a1a1a0f}
+  .tag{display:inline-block;border:1px solid #1a1a1a44;padding:3px 10px;
+    font-size:10px;letter-spacing:.24em;opacity:.7;margin-bottom:14px;border-radius:2px}
+  .mem{font-size:clamp(10px,2.8vw,12px);letter-spacing:.16em;opacity:.55;line-height:2.1}
+  .dead{font-size:clamp(24px,7vw,46px);letter-spacing:.34em;margin-bottom:8px}
+  .scroll{max-height:36vh;overflow-y:auto;padding:0 6px}
+  .ladder{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin:16px 0 4px}
+  .pip{width:11px;height:11px;border:1px solid #1a1a1a55;border-radius:50%}
+  .pip.done{background:#1a1a1a;border-color:#1a1a1a}
+  .pip.cur{border-color:#1a1a1a;box-shadow:0 0 0 3px #1a1a1a22}
+  #fbtn{position:fixed;display:none;z-index:5;
+    right:calc(22px + env(safe-area-inset-right));
+    bottom:calc(26px + env(safe-area-inset-bottom));
+    width:98px;height:98px;border-radius:50%;
+    border:2px solid #1a1a1a88;background:#f4f3eecc;color:#1a1a1a;
+    font-family:inherit;font-size:13px;letter-spacing:.18em;
+    align-items:center;justify-content:center;cursor:pointer;
+    touch-action:none}
+  #fbtn.on{background:#1a1a1a;color:#f4f3ee;border-color:#1a1a1a}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<button id="fbtn">投弹</button>
+<div id="ov"><div id="ovc"></div></div>
+<script>
+"use strict";
+
+/* ================= 工具 ================= */
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const rndi=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const TAU=Math.PI*2;
+
+/* ================= 画布 ================= */
+const cv=document.getElementById('c');
+const ctx=cv.getContext('2d',{alpha:false});
+let W=0,H=0,DPR=1,cxp=0,cyp=0,focal=600;
+const NEAR=16;
+
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=Math.floor(window.innerWidth);
+  H=Math.floor(window.innerHeight);
+  cv.width=Math.floor(W*DPR); cv.height=Math.floor(H*DPR);
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  cxp=W/2; cyp=H/2;
+  focal=Math.min(W,H)*0.92;
+}
+window.addEventListener('resize',resize);
+window.addEventListener('orientationchange',()=>setTimeout(resize,120));
+
+/* ================= 主题 ================= */
+let TH={bg:'#f4f3ee',r:22,g:22,b:26,dark:false};
+function fg(a){ return 'rgba('+TH.r+','+TH.g+','+TH.b+','+a+')'; }
+function applyTheme(name){
+  if(name==='night'){ TH={bg:'#101013',r:230,g:230,b:236,dark:true}; }
+  else if(name==='dawn'){ TH={bg:'#e4ded1',r:28,g:24,b:22,dark:false}; }
+  else { TH={bg:'#f4f3ee',r:22,g:22,b:26,dark:false}; }
+}
+
+/* ================= 音频 ================= */
+let AC=null,master=null,musicGain=null,sfxGain=null,noiseBuf=null;
+let engineSrc=null,engineGain=null;
+let musicOn=false,musicTimer=null,nextNoteT=0,musicStep=0;
+
+function initAudio(){
+  if(AC) return;
+  const Ctx=window.AudioContext||window.webkitAudioContext;
+  if(!Ctx) return;
+  AC=new Ctx();
+  master=AC.createGain(); master.gain.value=0.6; master.connect(AC.destination);
+  musicGain=AC.createGain(); musicGain.gain.value=0; musicGain.connect(master);
+  sfxGain=AC.createGain(); sfxGain.gain.value=0.85; sfxGain.connect(master);
+  const len=Math.floor(AC.sampleRate*2);
+  noiseBuf=AC.createBuffer(1,len,AC.sampleRate);
+  const d=noiseBuf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+}
+function resumeAudio(){
+  if(!AC) initAudio();
+  if(AC&&AC.state==='suspended') AC.resume();
+}
+function noiseHit(dur,freq,q,gain,type){
+  if(!AC) return;
+  const t=AC.currentTime;
+  const s=AC.createBufferSource(); s.buffer=noiseBuf;
+  const f=AC.createBiquadFilter(); f.type=type||'lowpass';
+  f.frequency.value=freq; f.Q.value=q;
+  const g=AC.createGain();
+  g.gain.setValueAtTime(gain,t);
+  g.gain.exponentialRampToValueAtTime(0.0008,t+dur);
+  s.connect(f); f.connect(g); g.connect(sfxGain);
+  s.start(t); s.stop(t+dur+0.02);
+}
+function toneHit(f0,f1,dur,gain,type){
+  if(!AC) return;
+  const t=AC.currentTime;
+  const o=AC.createOscillator(); o.type=type||'sine';
+  o.frequency.setValueAtTime(f0,t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(f1,1),t+dur);
+  const g=AC.createGain();
+  g.gain.setValueAtTime(gain,t);
+  g.gain.exponentialRampToValueAtTime(0.0008,t+dur);
+  o.connect(g); g.connect(sfxGain);
+  o.start(t); o.stop(t+dur+0.02);
+}
+const SFX={
+  gun(){ noiseHit(0.07,2600,1.2,0.26); toneHit(180,60,0.06,0.13,'square'); },
+  boom(){ noiseHit(0.85,320,0.7,0.7); toneHit(120,28,0.7,0.4,'sine'); },
+  hit(){ noiseHit(0.22,900,1.4,0.38); toneHit(320,90,0.18,0.18,'triangle'); },
+  flak(){ noiseHit(0.55,520,0.9,0.45); toneHit(200,45,0.5,0.26,'sine'); },
+  radio(){ noiseHit(0.35,1400,3.5,0.14,'bandpass'); },
+  click(){ noiseHit(0.04,3200,2,0.16); },
+  kill(){ noiseHit(1.0,280,0.6,0.65); toneHit(160,32,0.9,0.45,'sine'); },
+  warn(){ toneHit(880,880,0.09,0.1,'square'); }
+};
+function sfx(k){ if(!AC) return; if(SFX[k]) SFX[k](); }
+
+function startEngine(){
+  if(!AC||engineSrc) return;
+  const s=AC.createBufferSource(); s.buffer=noiseBuf; s.loop=true;
+  const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=95; f.Q.value=5;
+  const g=AC.createGain(); g.gain.value=0.09;
+  const lfo=AC.createOscillator(); lfo.type='sine'; lfo.frequency.value=21;
+  const lg=AC.createGain(); lg.gain.value=22;
+  lfo.connect(lg); lg.connect(f.frequency); lfo.start();
+  s.connect(f); f.connect(g); g.connect(sfxGain);
+  s.start();
+  engineSrc=s; engineGain=g;
+}
+function stopEngine(){
+  if(!engineSrc) return;
+  try{ engineSrc.stop(); }catch(e){}
+  engineSrc=null; engineGain=null;
+}
+function engineLevel(v){
+  if(engineGain&&AC) engineGain.gain.setTargetAtTime(v,AC.currentTime,0.2);
+}
+
+const BPM=134, SPB=60/BPM, STEP=SPB/4;
+const SCALE=[220.00,246.94,261.63,293.66,329.63,349.23,392.00,440.00,493.88,523.25,587.33,659.25];
+const BASS=[110,110,164.81,110,110,110,130.81,146.83,174.61,174.61,130.81,174.61,196,196,146.83,164.81];
+const MEL=[5,7,8,7,5,4,5,-1,7,8,10,8,7,5,-1,4,3,5,7,5,3,2,3,-1,5,4,2,4,5,-1,7,-1];
+
+function mnote(freq,t,dur,type,g,cut){
+  if(!AC) return;
+  const o1=AC.createOscillator(); o1.type=type; o1.frequency.value=freq;
+  const o2=AC.createOscillator(); o2.type=type; o2.frequency.value=freq*1.006;
+  const o3=AC.createOscillator(); o3.type=type; o3.frequency.value=freq*0.993;
+  const gn=AC.createGain();
+  gn.gain.setValueAtTime(0,t);
+  gn.gain.linearRampToValueAtTime(g,t+0.018);
+  gn.gain.exponentialRampToValueAtTime(0.0006,t+dur);
+  const f=AC.createBiquadFilter(); f.type='lowpass';
+  f.frequency.setValueAtTime(cut*2.4,t);
+  f.frequency.exponentialRampToValueAtTime(Math.max(cut*0.5,180),t+dur);
+  f.Q.value=1.6;
+  o1.connect(gn); o2.connect(gn); o3.connect(gn);
+  gn.connect(f); f.connect(musicGain);
+  o1.start(t); o2.start(t); o3.start(t);
+  o1.stop(t+dur+0.06); o2.stop(t+dur+0.06); o3.stop(t+dur+0.06);
+}
+function mkick(t){
+  if(!AC) return;
+  const o=AC.createOscillator(); o.type='sine';
+  o.frequency.setValueAtTime(128,t);
+  o.frequency.exponentialRampToValueAtTime(42,t+0.14);
+  const g=AC.createGain();
+  g.gain.setValueAtTime(0.4,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+0.3);
+  o.connect(g); g.connect(musicGain);
+  o.start(t); o.stop(t+0.34);
+}
+function schedMusic(){
+  if(!AC) return;
+  while(nextNoteT<AC.currentTime+0.3){
+    const s=musicStep%32;
+    if(s%2===0){
+      const bi=(s/2)%BASS.length;
+      mnote(BASS[bi],nextNoteT,STEP*1.7,'sawtooth',0.18,150);
+    }
+    if(s%2===1){
+      const mi=MEL[Math.floor(s/2)%MEL.length];
+      if(mi>=0) mnote(SCALE[mi],nextNoteT,STEP*1.9,'triangle',0.07,340);
+    }
+    if(s%8===0) mkick(nextNoteT);
+    if(s%16===12) mkick(nextNoteT+STEP);
+    nextNoteT+=STEP; musicStep++;
+  }
+}
+function startMusic(){
+  if(!AC||musicOn) return;
+  musicOn=true;
+  nextNoteT=AC.currentTime+0.15;
+  musicGain.gain.setTargetAtTime(0.22,AC.currentTime,0.8);
+  musicTimer=setInterval(schedMusic,60);
+}
+function stopMusic(){
+  if(!musicOn) return;
+  musicOn=false;
+  if(musicTimer){clearInterval(musicTimer);musicTimer=null;}
+  if(musicGain) musicGain.gain.setTargetAtTime(0,AC.currentTime,0.4);
+}
+
+/* ================= 相机 ================= */
+const cam={x:0,y:0,z:0,yaw:0,pitch:0,roll:0};
+let cY=1,sY=0,cP=1,sP=0,cR=1,sR=0;
+function updCam(){
+  cY=Math.cos(cam.yaw); sY=Math.sin(cam.yaw);
+  cP=Math.cos(cam.pitch); sP=Math.sin(cam.pitch);
+  cR=Math.cos(cam.roll); sR=Math.sin(cam.roll);
+}
+const _ca=[0,0,0],_cb=[0,0,0];
+function toCam(px,py,pz,out){
+  const dx=px-cam.x,dy=py-cam.y,dz=pz-cam.z;
+  const x1=dx*cY-dz*sY;
+  const z1=dx*sY+dz*cY;
+  const y2=dy*cP-z1*sP;
+  const z2=dy*sP+z1*cP;
+  out[0]=x1*cR-y2*sR;
+  out[1]=x1*sR+y2*cR;
+  out[2]=z2;
+  return out;
+}
+const _pt={x:0,y:0,z:0,vis:false};
+function proj(px,py,pz){
+  toCam(px,py,pz,_ca);
+  if(_ca[2]<NEAR){_pt.vis=false;return _pt;}
+  const f=focal/_ca[2];
+  _pt.x=cxp+_ca[0]*f;
+  _pt.y=cyp-_ca[1]*f;
+  _pt.z=_ca[2];
+  _pt.vis=true;
+  return _pt;
+}
+function projAt(px,py,pz,f){
+  toCam(px,py,pz,_ca);
+  if(_ca[2]<NEAR) return null;
+  return {
+    x: cxp + _ca[0]*f/_ca[2],
+    y: cyp - _ca[1]*f/_ca[2],
+    z: _ca[2]
+  };
+}
+function seg(ax,ay,az,bx,by,bz){
+  toCam(ax,ay,az,_ca); toCam(bx,by,bz,_cb);
+  let x1=_ca[0],y1=_ca[1],z1=_ca[2];
+  let x2=_cb[0],y2=_cb[1],z2=_cb[2];
+  if(z1<NEAR&&z2<NEAR) return;
+  if(z1<NEAR){
+    const t=(NEAR-z1)/(z2-z1);
+    x1+=(x2-x1)*t; y1+=(y2-y1)*t; z1=NEAR;
+  }else if(z2<NEAR){
+    const t=(NEAR-z2)/(z1-z2);
+    x2+=(x1-x2)*t; y2+=(y1-y2)*t; z2=NEAR;
+  }
+  const f1=focal/z1,f2=focal/z2;
+  ctx.moveTo(cxp+x1*f1,cyp-y1*f1);
+  ctx.lineTo(cxp+x2*f2,cyp-y2*f2);
+}
+
+/* ================= 输入 ================= */
+const input={dx:0,dy:0,fire:false,keys:{}};
+let ptrDown=false,lastX=0,lastY=0;
+let ptrStartX=0, ptrStartY=0, ptrStartT=0, ptrMoved=false;
+
+cv.addEventListener('pointerdown',e=>{
+  resumeAudio();
+  ptrDown=true; lastX=e.clientX; lastY=e.clientY;
+  ptrStartX=e.clientX; ptrStartY=e.clientY;
+  ptrStartT=performance.now(); ptrMoved=false;
+  input.fire=true;
+  if(S&&S.onClick) S.onClick(e.clientX,e.clientY);
+  e.preventDefault();
+},{passive:false});
+cv.addEventListener('pointermove',e=>{
+  if(!ptrDown) return;
+  if(Math.abs(e.clientX-ptrStartX)>8 || Math.abs(e.clientY-ptrStartY)>8) ptrMoved=true;
+  input.dx+=e.clientX-lastX;
+  input.dy+=e.clientY-lastY;
+  lastX=e.clientX; lastY=e.clientY;
+  e.preventDefault();
+},{passive:false});
+function endPtr(e){
+  if(ptrDown && !ptrMoved && performance.now()-ptrStartT<400){
+    if(S && S.type==='bomb'){
+      S.zoomed=!S.zoomed;
+      sfx('click');
+    }
+  }
+  ptrDown=false; input.fire=false;
+  if(e&&e.preventDefault) e.preventDefault();
+}
+cv.addEventListener('pointerup',endPtr,{passive:false});
+cv.addEventListener('pointercancel',endPtr,{passive:false});
+window.addEventListener('blur',()=>{ptrDown=false;input.fire=false;});
+window.addEventListener('keydown',e=>{
+  resumeAudio(); input.keys[e.code]=true;
+  if(e.code==='Space') e.preventDefault();
+});
+window.addEventListener('keyup',e=>{input.keys[e.code]=false;});
+
+/* ================= 任务数据 ================= */
+const MISSIONS=[
+ { d:'1940-07-10', t:'dogfight', theme:'day', name:'海峡巡逻',
+   brief:'第 74 中队接到命令：德军编队正在袭扰我方海峡船队。驾机升空，拦截来犯之敌。注意高位俯冲的 Bf 109。',
+   p:{waves:2,perWave:2,ehp:2,spd:360,fire:0.7,dmg:22,skill:3.2,spawnDist:[2400,3400],pitchLimit:1.25,yawLimit:2.6} },
+
+ { d:'1940-08-18', t:'dogfight', theme:'day', name:'鹰日',
+   brief:'8 月 18 日，德军发动"鹰日"攻势。雷达报告大批敌机越过海峡。守住伦敦上空的航线。',
+   p:{waves:2,perWave:3,ehp:2,spd:380,fire:0.6,dmg:24,skill:3.4,spawnDist:[2600,3800],pitchLimit:1.25,yawLimit:2.6} },
+
+ { d:'1940-09-07', t:'bomb', theme:'day', name:'驳船与码头',
+   brief:'情报显示德军在法国沿岸集结入侵驳船。你挂载炸弹，低空突袭码头。用放大镜辨认带星号的目标，从容投弹。',
+   p:{n:4,speed:140,alt:1000,tgtR:180,spacing:2600,first:3400} },
+
+ { d:'1940-09-15', t:'dogfight', theme:'day', name:'不列颠之战',
+   brief:'9 月 15 日。历史上最大规模的空战日。两个中队的德军轰炸机正在逼近伦敦，你必须在它们投弹前撕开护航。',
+   p:{waves:3,perWave:2,ehp:2,spd:400,fire:0.55,dmg:26,skill:3.6,spawnDist:[2800,4000],pitchLimit:1.25,yawLimit:2.6} },
+
+ { d:'1941-03-12', t:'flak', theme:'night', name:'鲁尔区之夜',
+   brief:'你驾驶惠灵顿轰炸机飞入鲁尔区。探照灯与高射炮火网在等待。碎片会落在屏幕上形成扩散圈，圈扫过中心即被击中。',
+   p:{dur:70,rate:1.05} },
+
+ { d:'1941-07-24', t:'turret', theme:'night', name:'尾部炮塔',
+   brief:'夜间战斗机从后方袭来。你守在尾部炮塔，用四挺机枪守住这架飞机和机上七个人的命。视野狭窄，火力集中。',
+   p:{waves:3,perWave:2,ehp:2,spd:390,fire:0.58,dmg:24,skill:3.3,spawnDist:[1800,2600],pitchLimit:0.6,yawLimit:1.6} },
+
+ { d:'1942-02-11', t:'nav', theme:'day', name:'领航',
+   brief:'出击前的最后准备。在作战室的地图上，规划一条避开高射炮阵地、航程介于最小与最大之间的航线。点击地图放置航路点，最后点击目标圆完成。',
+   p:{zones:3,maxDist:2900,minRatio:0.62,tlimit:80} },
+
+ { d:'1942-05-30', t:'bomb', theme:'night', name:'千机轰炸',
+   brief:'"千机轰炸"行动开始。你驾驶兰开斯特飞向科隆。地面上是密集的工业区，也是密集的防空火力。',
+   p:{n:5,speed:150,alt:1400,tgtR:170,spacing:2800,first:3600} },
+
+ { d:'1943-06-20', t:'dogfight', theme:'day', name:'日间护航',
+   brief:'为深入法国的美军轰炸机提供护航。德军 Fw 190 将从各个方向全力拦截。撑住。',
+   p:{waves:3,perWave:3,ehp:3,spd:430,fire:0.5,dmg:28,skill:3.8,spawnDist:[3000,4400],pitchLimit:1.25,yawLimit:2.6} },
+
+ { d:'1943-08-17', t:'bomb', theme:'night', name:'佩内明德',
+   brief:'夜袭佩内明德火箭研究中心。目标面积很小，误差不能超过百米。放大镜是你的唯一依靠。',
+   p:{n:4,speed:155,alt:1250,tgtR:130,spacing:2600,first:3400} },
+
+ { d:'1944-04-05', t:'nav', theme:'day', name:'诺曼底侦察',
+   brief:'为即将到来的登陆作战规划侦察航线。敌方防空火力空前密集，航程也被严格限制。',
+   p:{zones:5,maxDist:3400,minRatio:0.68,tlimit:95} },
+
+ { d:'1944-06-06', t:'multi', theme:'dawn', name:'D-Day',
+   brief:'1944 年 6 月 6 日。黎明。一千架飞机正飞向同一个方向。你将随编队穿过整条战线——护航、领航、火网、炮塔、投弹。',
+   phases:[
+     { type:'dogfight', name:'护航', brief:'为轰炸机群开路。',
+       p:{waves:2,perWave:2,ehp:2,spd:400,fire:0.55,dmg:24,skill:3.5,spawnDist:[2400,3400],pitchLimit:1.25,yawLimit:2.6} },
+     { type:'nav', name:'领航', brief:'规划航线，绕开德军高炮阵地。',
+       p:{zones:6,maxDist:3600,minRatio:0.58,tlimit:90} },
+     { type:'flak', name:'穿越火网', brief:'冲过德军防空区。碎片扩散圈扫过中心即被击中。',
+       p:{dur:45,rate:0.9} },
+     { type:'turret', name:'尾部炮塔', brief:'敌机从后方追来。',
+       p:{waves:2,perWave:2,ehp:2,spd:390,fire:0.58,dmg:24,skill:3.4,spawnDist:[1800,2600],pitchLimit:0.6,yawLimit:1.6} },
+     { type:'bomb', name:'轰炸', brief:'把炸弹投在诺曼底海岸的工事上。星号目标，从容投弹。',
+       p:{n:4,speed:140,alt:1300,tgtR:150,spacing:2500,first:3300} }
+   ] }
+];
+
+/* ================= 人物 ================= */
+const FIRST=['詹姆斯','威廉','亨利','乔治','阿瑟','弗雷德里克','艾伯特','爱德华','哈罗德','约翰','罗伯特','托马斯','查尔斯','弗兰克','欧内斯特','赫伯特','阿尔弗雷德','西德尼','沃尔特','伦纳德','罗纳德','肯尼思','斯坦利','西里尔','诺曼','雷金纳德','珀西','塞西尔'];
+const LAST=['贝克','卡特','弗莱彻','休斯','马歇尔','帕尔默','里德','萨顿','沃森','毕晓普','道森','格兰特','劳森','诺顿','皮尔斯','辛克莱','特纳','华莱士','阿什比','布拉德利','科尔','埃利斯','格雷厄姆','哈迪','奈特','莫里斯','雷诺兹','斯宾塞'];
+const TOWNS=['伦敦','曼彻斯特','伯明翰','利兹','布里斯托','纽卡斯尔','谢菲尔德','诺丁汉','考文垂','格拉斯哥','爱丁堡','卡迪夫','贝尔法斯特','南安普顿','普利茅斯','利物浦','赫尔','诺里奇','约克','牛津','剑桥','埃克塞特','布莱顿','多佛','斯旺西','邓迪','阿伯丁'];
+
+function fmtDate(dt){ return dt.getFullYear()+'年'+(dt.getMonth()+1)+'月'+dt.getDate()+'日'; }
+function niceDate(s){ return fmtDate(new Date(s+'T00:00:00')); }
+function makePerson(missionDateStr){
+  const md=new Date(missionDateStr+'T00:00:00');
+  const age=rndi(19,28);
+  const birth=new Date(md.getFullYear()-age,rndi(0,11),rndi(1,27));
+  return{ name:pick(FIRST)+'·'+pick(LAST), town:pick(TOWNS),
+    birthStr:fmtDate(birth), deathStr:fmtDate(md), age:age };
+}
+
+/* ================= 全局 ================= */
+const G={ screen:'menu', mi:0, person:null, killsTotal:0, deaths:[], banner:'', bannerT:0 };
+let S=null;
+let MS=null;
+
+const SAVE_KEY='landing_gear_save_v8';
+function saveGame(){
+  try{ localStorage.setItem(SAVE_KEY,JSON.stringify({mi:G.mi,kills:G.killsTotal,deaths:G.deaths.slice(-40)})); }catch(e){}
+}
+function loadGame(){
+  try{ const s=localStorage.getItem(SAVE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; }
+}
+function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+
+/* ================= UI ================= */
+const ov=document.getElementById('ov');
+const ovc=document.getElementById('ovc');
+const fbtn=document.getElementById('fbtn');
+
+fbtn.addEventListener('pointerdown',e=>{
+  e.preventDefault(); e.stopPropagation();
+  if(S) S.bombPressed=true;
+  fbtn.classList.add('on'); resumeAudio();
+});
+fbtn.addEventListener('pointerup',e=>{ e.preventDefault(); fbtn.classList.remove('on'); });
+fbtn.addEventListener('pointercancel',()=>{ fbtn.classList.remove('on'); });
+
+function showScreen(html,btns){
+  ovc.innerHTML=html;
+  if(btns&&btns.length){
+    const bar=document.createElement('div');
+    bar.className='btnbar';
+    btns.forEach(b=>{
+      const el=document.createElement('button');
+      el.className='btn'+(b.p?' primary':'');
+      el.textContent=b.t;
+      el.onclick=()=>{ resumeAudio(); sfx('click'); b.f(); };
+      bar.appendChild(el);
+    });
+    ovc.appendChild(bar);
+  }
+  ov.style.display='flex';
+}
+function hideScreen(){ ov.style.display='none'; }
+
+function ladderHTML(){
+  let s='<div class="ladder">';
+  for(let i=0;i<12;i++){
+    let cls='pip';
+    if(i<G.mi) cls+=' done'; else if(i===G.mi) cls+=' cur';
+    s+='<div class="'+cls+'"></div>';
+  }
+  return s+'</div>';
+}
+
+function mainMenu(){
+  G.screen='menu';
+  stopMusic(); stopEngine();
+  fbtn.style.display='none';
+  S=null; MS=null;
+  applyTheme('day');
+  const sv=loadGame();
+  const has=sv&&sv.mi>0&&sv.mi<12;
+  const btns=[];
+  if(has) btns.push({t:'继续战役',p:true,f:()=>{ G.mi=sv.mi; G.killsTotal=sv.kills||0; G.deaths=sv.deaths||[]; startBrief(); }});
+  btns.push({t:has?'重新开始':'开始战役',f:()=>{ clearSave(); G.mi=0; G.killsTotal=0; G.deaths=[]; startBrief(); }});
+  if(has) btns.push({t:'清除记录',f:()=>{ clearSave(); mainMenu(); }});
+
+  showScreen(
+    '<div class="title">起 落 架</div>'+
+    '<div class="sub">LANDING GEAR</div>'+
+    '<div class="h2">1940 — 1944 · 皇家空军 · 十二次出击</div>'+
+    ladderHTML()+
+    '<div class="rule"></div>'+
+    '<div class="body c" style="opacity:.5">每一次出击，你都是另一个人。<br>有些人回来了。有些人没有。</div>'+
+    (G.killsTotal>0?'<div class="mem">已确认击落：'+G.killsTotal+' 架</div>':''),
+    btns
+  );
+}
+
+function startBrief(){
+  if(G.mi>=MISSIONS.length){ campaignEnd(); return; }
+  G.screen='brief';
+  MS=null;
+  const m=MISSIONS[G.mi];
+  applyTheme(m.theme);
+  G.person=makePerson(m.d);
+  const p=G.person;
+  const tname={dogfight:'战斗机空战',bomb:'轰炸机投弹',flak:'穿越高射炮区',turret:'轰炸机自卫炮塔',nav:'领航员·航线规划',multi:'全流程出击'}[m.t]||'出击';
+  let extra='';
+  if(m.t==='multi'){
+    extra='<div class="rule"></div><div class="mem">阶段：'+m.phases.map(x=>x.name).join(' → ')+'</div>';
+  }
+  showScreen(
+    '<div class="tag">第 '+(G.mi+1)+' / 12 次出击 · '+tname+'</div>'+
+    '<div class="h1">'+m.name+'</div>'+
+    '<div class="h2">'+niceDate(m.d)+'</div>'+
+    '<div class="rule"></div>'+
+    '<div class="body">'+m.brief+'</div>'+
+    extra+
+    '<div class="rule"></div>'+
+    '<div class="mem">飞行员：'+p.name+'<br>出生地：'+p.town+'<br>年龄：'+p.age+' 岁</div>',
+    [{t:'起飞',p:true,f:()=>beginMission()},{t:'返回',f:()=>mainMenu()}]
+  );
+}
+
+function beginMission(){
+  resumeAudio();
+  hideScreen();
+  G.screen='play';
+  G.banner=''; G.bannerT=0;
+  input.dx=0; input.dy=0; input.fire=false;
+  MS=null;
+  const m=MISSIONS[G.mi];
+  applyTheme(m.theme);
+  createScene(m);
+  if(!engineSrc) startEngine();
+  engineLevel(0.09);
+  startMusic();
+}
+
+function startMulti(m){
+  MS={ mission:m, phases:m.phases, phaseIndex:-1, active:true, log:[] };
+  nextPhase();
+}
+function nextPhase(){
+  MS.phaseIndex++;
+  if(MS.phaseIndex>=MS.phases.length){
+    MS.active=false;
+    missionWin('全部阶段完成');
+    return;
+  }
+  const ph=MS.phases[MS.phaseIndex];
+  G.banner='阶段 '+(MS.phaseIndex+1)+' / '+MS.phases.length+'   '+ph.name;
+  G.bannerT=2.2;
+  const mm={
+    d:MS.mission.d, t:ph.type, name:ph.name,
+    theme:MS.mission.theme, brief:ph.brief||'', p:ph.p
+  };
+  createScene(mm);
+}
+
+function createScene(m){
+  if(m.t==='multi'){ startMulti(m); return; }
+  if(m.t==='nav') sceneNav(m);
+  else if(m.t==='flak') sceneFlak(m);
+  else if(m.t==='bomb') sceneBomb(m);
+  else sceneDogfight(m);
+  const needBomb = (m.t==='bomb');
+  fbtn.style.display = needBomb ? 'flex' : 'none';
+  fbtn.classList.remove('on');
+}
+
+function stageWin(reason){
+  if(MS && MS.active){
+    MS.log.push(reason);
+    nextPhase();
+  }else{
+    missionWin(reason);
+  }
+}
+
+function missionWin(reason){
+  if(G.screen!=='play') return;
+  G.screen='result';
+  G.resultWin=true; G.resultReason=reason||'任务完成';
+  G.killsTotal+=(S&&S.totalKills)||0;
+  G.mi++; saveGame();
+  stopMusic(); engineLevel(0.03);
+  sfx('radio');
+  setTimeout(()=>showResultScreen(true),420);
+}
+function missionFail(reason){
+  if(G.screen!=='play') return;
+  G.screen='result';
+  G.resultWin=false; G.resultReason=reason||'任务失败';
+  stopMusic(); stopEngine();
+  sfx('boom');
+  setTimeout(()=>showResultScreen(false),700);
+}
+
+function showResultScreen(win){
+  const idx=Math.min(G.mi,11);
+  const p=G.person||makePerson(MISSIONS[idx].d);
+  if(win){
+    const done=G.mi>=MISSIONS.length;
+    showScreen(
+      '<div class="tag">任务完成</div>'+
+      '<div class="h1">返 航</div>'+
+      '<div class="h2">'+G.resultReason+'</div>'+
+      '<div class="rule"></div>'+
+      '<div class="mem">'+p.name+' · '+p.town+'<br>他回到了基地。</div>'+
+      '<div class="rule"></div>'+ladderHTML(),
+      done?[{t:'结 束',p:true,f:()=>campaignEnd()}]:[{t:'下一次出击',p:true,f:()=>startBrief()}]
+    );
+  }else{
+    G.deaths.push({n:p.name,t:p.town,b:p.birthStr,d:p.deathStr});
+    saveGame();
+    showScreen(
+      '<div class="dead">阵 亡</div>'+
+      '<div class="h2">'+G.resultReason+'</div>'+
+      '<div class="rule"></div>'+
+      '<div class="mem">姓名：'+p.name+'<br>出生地：'+p.town+'<br>生卒：'+p.birthStr+' — '+p.deathStr+'<br>享年 '+p.age+' 岁</div>'+
+      '<div class="rule"></div>'+
+      '<div class="body c" style="opacity:.45">"他们不会变老；<br>不像我们留下来的人。"</div>',
+      [{t:'再次出击',p:true,f:()=>startBrief()},{t:'返回菜单',f:()=>mainMenu()}]
+    );
+  }
+}
+
+function campaignEnd(){
+  G.screen='menu'; stopMusic(); stopEngine(); S=null; MS=null;
+  applyTheme('day');
+  const list=G.deaths.slice(-8).map(d=>
+    '<div style="opacity:.5">'+d.n+' · '+d.t+' · '+d.b+' — '+d.d+'</div>').join('');
+  showScreen(
+    '<div class="title" style="font-size:clamp(18px,5vw,30px)">战 争 结 束</div>'+
+    '<div class="sub">1945</div><div class="rule"></div>'+
+    '<div class="body c">你飞过了十二次出击。<br>十二个名字，十二个家乡。<br><br>其中一些人回到了地面。<br>另一些人留在了那里。</div>'+
+    '<div class="rule"></div>'+
+    '<div class="mem">已确认击落：'+G.killsTotal+' 架</div>'+
+    (list?'<div class="rule"></div><div class="mem scroll">'+list+'</div>':''),
+    [{t:'返 回',p:true,f:()=>mainMenu()}]
+  );
+}
+
+/* ================= 地面网格 ================= */
+function groundGrid(gy,size,step,alpha,dist){
+  ctx.strokeStyle=fg(alpha); ctx.lineWidth=1;
+  ctx.beginPath();
+  const off=(dist||0)%step;
+  for(let k=0;k<16;k++){
+    const z=k*step-off+80;
+    if(z<40) continue;
+    seg(-size,gy,z,size,gy,z);
+  }
+  const kMax=Math.min(30,Math.ceil(size/(step*2)));
+  for(let k=-kMax;k<=kMax;k++) seg(k*step*2,gy,90,k*step*2,gy,6000);
+  ctx.stroke();
+}
+
+/* ================= 敌机线框 ================= */
+const PLANE_PTS=[[0,0,1.05],[0,0,-1.05],[-1.15,0,-0.1],[1.15,0,-0.1],[0,0.5,-0.95],[-0.5,0.12,-0.95],[0.5,0.12,-0.95]];
+const PLANE_LN=[[0,1],[2,3],[4,1],[5,6],[0,4]];
+function drawPlane(x,y,z,dx,dy,dz,s){
+  let rx=-dz,rz=dx;
+  const rl=Math.hypot(rx,rz)||1; rx/=rl; rz/=rl;
+  const ux=dy*rz, uy=dz*rx-dx*rz, uz=-dy*rx;
+  const wp=[];
+  for(let i=0;i<PLANE_PTS.length;i++){
+    const p=PLANE_PTS[i];
+    wp.push([
+      x+(p[0]*rx+p[1]*ux+p[2]*dx)*s,
+      y+(p[0]*0 +p[1]*uy+p[2]*dy)*s,
+      z+(p[0]*rz+p[1]*uz+p[2]*dz)*s
+    ]);
+  }
+  for(let i=0;i<PLANE_LN.length;i++){
+    const a=wp[PLANE_LN[i][0]],b=wp[PLANE_LN[i][1]];
+    seg(a[0],a[1],a[2],b[0],b[1],b[2]);
+  }
+}
+
+/* ================= A · 空战 / 炮塔 ================= */
+function sceneDogfight(m){
+  const p=m.p;
+  S={
+    type:'dogfight',p:p,kills:0,totalKills:0,
+    hp:200,maxhp:200,flash:0,hitMark:0,
+    fireCd:0,ammo:4000,dist:0,speed:p.spd*1.7,
+    pitchLimit:p.pitchLimit||1.25,
+    yawLimit:p.yawLimit||2.6,
+    tracers:[],tt:0,enemies:[],
+    wave:1, state:'fighting', waveDelay:0,
+    msg:'', msgT:0, finished:false
+  };
+  cam.x=0;cam.y=0;cam.z=0;cam.yaw=0;cam.pitch=0;cam.roll=0;
+  spawnWave();
+}
+
+function spawnWave(){
+  const p=S.p;
+  for(let i=0;i<p.perWave;i++) spawnEnemy();
+}
+
+function spawnEnemy(){
+  const p=S.p;
+  const ang=rnd(-1.0,1.0);
+  const el=rnd(-0.22,0.22);
+  const dist=rnd(p.spawnDist[0],p.spawnDist[1]);
+  const x=Math.sin(ang)*Math.cos(el)*dist;
+  const y=Math.sin(el)*dist;
+  const z=Math.cos(ang)*Math.cos(el)*dist;
+  const l=dist;
+  S.enemies.push({
+    x:x,y:y,z:z, dx:-x/l,dy:-y/l,dz:-z/l,
+    hp:p.ehp, fireCd:rnd(0.3,0.9),
+    alive:true, side:Math.random()<0.5?1:-1,
+    agility:1.3+Math.random()*0.8,
+    burst:0
+  });
+}
+
+function updDogfight(dt){
+  const p=S.p;
+  S.dist+=S.speed*dt; S.tt+=dt;
+  S.flash=Math.max(0,S.flash-dt*2.4);
+  S.hitMark=Math.max(0,S.hitMark-dt*3.2);
+  if(S.msgT>0){ S.msgT-=dt; if(S.msgT<=0) S.msg=''; }
+
+  const sens=(('ontouchstart' in window)?0.0052:0.0030);
+  cam.yaw=clamp(cam.yaw+input.dx*sens, -S.yawLimit, S.yawLimit);
+  cam.pitch=clamp(cam.pitch-input.dy*sens,-S.pitchLimit,S.pitchLimit);
+  const kt=dt*1.5;
+  if(input.keys['ArrowLeft']||input.keys['KeyA']) cam.yaw=clamp(cam.yaw-kt,-S.yawLimit,S.yawLimit);
+  if(input.keys['ArrowRight']||input.keys['KeyD']) cam.yaw=clamp(cam.yaw+kt,-S.yawLimit,S.yawLimit);
+  if(input.keys['ArrowUp']||input.keys['KeyW']) cam.pitch=clamp(cam.pitch+kt*0.6,-S.pitchLimit,S.pitchLimit);
+  if(input.keys['ArrowDown']||input.keys['KeyS']) cam.pitch=clamp(cam.pitch-kt*0.6,-S.pitchLimit,S.pitchLimit);
+  input.dx=0; input.dy=0;
+
+  if(input.fire||input.keys['Space']) fireGuns(dt);
+  else S.fireCd=Math.max(0,S.fireCd-dt);
+
+  for(let i=0;i<S.enemies.length;i++){
+    const e=S.enemies[i];
+    if(!e.alive) continue;
+    const d=Math.hypot(e.x,e.y,e.z)||1;
+    let tx,ty,tz;
+    if(d>650){
+      tx=-e.x/d; ty=-e.y/d; tz=-e.z/d;
+    }else{
+      const s=e.side;
+      const px=-e.x/d,pz=-e.z/d;
+      tx=pz*s*1.2; ty=rnd(-0.1,0.35); tz=-px*s*1.2;
+      const l=Math.hypot(tx,ty,tz)||1;
+      tx/=l;ty/=l;tz/=l;
+      if(Math.random()<0.025) e.side*=-1;
+    }
+    const rate=Math.min(1,p.skill*e.agility*dt*2.5);
+    e.dx+=(tx-e.dx)*rate; e.dy+=(ty-e.dy)*rate; e.dz+=(tz-e.dz)*rate;
+    const l=Math.hypot(e.dx,e.dy,e.dz)||1;
+    e.dx/=l;e.dy/=l;e.dz/=l;
+    e.x+=e.dx*p.spd*dt; e.y+=e.dy*p.spd*dt; e.z+=e.dz*p.spd*dt;
+
+    e.fireCd-=dt;
+    if(e.fireCd<=0){
+      if(d<1900){
+        const nx=-e.x/d,ny=-e.y/d,nz=-e.z/d;
+        const dot=nx*e.dx+ny*e.dy+nz*e.dz;
+        if(dot>0.75){
+          e.burst++;
+          const shots = e.burst%4===0 ? 1.0 : 0.28;
+          e.fireCd = p.fire*rnd(0.4,0.9)*(shots<0.5?0.28:1);
+          const acc=clamp(1.15-d/2000,0.32,1);
+          S.hp-=p.dmg*acc*rnd(0.6,1.3);
+          S.flash=0.44; sfx('hit');
+          S.tracers.push({x:e.x,y:e.y,z:e.z,t:0.12});
+        }else{
+          e.fireCd=0.16;
+        }
+      }else{
+        e.fireCd=0.22;
+      }
+    }
+  }
+  S.enemies=S.enemies.filter(e=>e.alive);
+
+  for(let i=S.tracers.length-1;i>=0;i--){
+    S.tracers[i].t-=dt;
+    if(S.tracers[i].t<=0) S.tracers.splice(i,1);
+  }
+
+  if(S.hp<=0){ missionFail('座机被击落'); return; }
+
+  if(S.state==='fighting'){
+    if(S.enemies.length===0){
+      if(S.wave<p.waves){
+        S.state='delay';
+        S.waveDelay=1.6;
+        S.msg='第 '+S.wave+' 波已清空';
+        S.msgT=1.5;
+      }else{
+        S.state='done';
+        if(!S.finished){
+          S.finished=true;
+          stageWin('击落全部 '+S.totalKills+' 架敌机');
+        }
+        return;
+      }
+    }
+  }else if(S.state==='delay'){
+    S.waveDelay-=dt;
+    if(S.waveDelay<=0){
+      S.wave++;
+      spawnWave();
+      S.state='fighting';
+    }
+  }
+}
+
+function fireGuns(dt){
+  if(S.fireCd>0){ S.fireCd-=dt; return; }
+  if(S.ammo<=0) return;
+  S.fireCd=0.082; S.ammo-=4;
+  sfx('gun');
+  const fx=Math.sin(cam.yaw)*Math.cos(cam.pitch);
+  const fy=Math.sin(cam.pitch);
+  const fz=Math.cos(cam.yaw)*Math.cos(cam.pitch);
+  for(let i=0;i<S.enemies.length;i++){
+    const e=S.enemies[i];
+    if(!e.alive) continue;
+    const d=Math.hypot(e.x,e.y,e.z);
+    if(d<45) continue;
+    const nx=e.x/d,ny=e.y/d,nz=e.z/d;
+    const dot=nx*fx+ny*fy+nz*fz;
+    if(dot<0.86) continue;
+    const ang=Math.acos(Math.min(1,dot));
+    if(ang<Math.atan2(48,d)){
+      e.hp--; S.hitMark=0.2;
+      if(e.hp<=0){
+        e.alive=false;
+        S.kills++; S.totalKills++;
+        sfx('kill');
+      }
+    }
+  }
+}
+
+function drawDogfight(){
+  const p=S.p;
+  groundGrid(-720,2600,420,0.10,S.dist);
+
+  ctx.strokeStyle=fg(0.18); ctx.lineWidth=1;
+  ctx.beginPath(); seg(-90000,cam.y,-90000,90000,cam.y,-90000); ctx.stroke();
+
+  ctx.strokeStyle=fg(0.95); ctx.lineWidth=1.5;
+  ctx.beginPath();
+  for(let i=0;i<S.enemies.length;i++){
+    const e=S.enemies[i];
+    if(!e.alive) continue;
+    drawPlane(e.x,e.y,e.z,e.dx,e.dy,e.dz,24);
+  }
+  ctx.stroke();
+
+  ctx.strokeStyle=fg(0.5); ctx.lineWidth=1.2;
+  ctx.beginPath();
+  for(let i=0;i<S.tracers.length;i++){
+    const t=S.tracers[i];
+    seg(t.x,t.y,t.z,t.x*0.75,t.y*0.75,t.z*0.75);
+  }
+  ctx.stroke();
+
+  drawCockpit();
+  drawCrosshair();
+
+  ctx.font='11px "Courier New",monospace';
+  ctx.textAlign='left'; ctx.fillStyle=fg(0.72);
+  ctx.fillText('波次  '+Math.min(S.wave,p.waves)+' / '+p.waves,18,H-74);
+  ctx.fillText('本波  '+S.enemies.length+' 架',18,H-58);
+  ctx.fillText('累计  '+S.totalKills,18,H-42);
+
+  const bw=Math.min(160,W*0.32);
+  ctx.strokeStyle=fg(0.5); ctx.lineWidth=1;
+  ctx.strokeRect(18,H-30,bw,9);
+  ctx.fillStyle=fg(0.85);
+  ctx.fillRect(18,H-30,bw*clamp(S.hp/S.maxhp,0,1),9);
+
+  ctx.textAlign='right'; ctx.fillStyle=fg(0.45);
+  const sec=Math.floor(S.tt);
+  ctx.fillText(String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0'),W-18,H-20);
+
+  if(S.msg){
+    ctx.textAlign='center'; ctx.font='13px "Courier New",monospace';
+    ctx.fillStyle=fg(0.85);
+    ctx.fillText(S.msg,cxp,cyp+Math.min(H*0.28,180));
+  }
+
+  if(S.flash>0){ ctx.fillStyle=fg(S.flash*0.22); ctx.fillRect(0,0,W,H); }
+  if(S.hp<70){
+    const a=(0.10+Math.sin(performance.now()/160)*0.06);
+    ctx.strokeStyle=fg(a); ctx.lineWidth=14;
+    ctx.strokeRect(7,7,W-14,H-14);
+  }
+}
+
+function drawCockpit(){
+  ctx.strokeStyle=fg(0.30); ctx.lineWidth=1.5;
+  ctx.beginPath();
+  const m=Math.min(W,H)*0.045;
+  ctx.moveTo(m,m*2.2); ctx.lineTo(m,m); ctx.lineTo(m*2.4,m);
+  ctx.moveTo(W-m*2.4,m); ctx.lineTo(W-m,m); ctx.lineTo(W-m,m*2.2);
+  ctx.moveTo(m,H-m*2.2); ctx.lineTo(m,H-m); ctx.lineTo(m*2.4,H-m);
+  ctx.moveTo(W-m*2.4,H-m); ctx.lineTo(W-m,H-m); ctx.lineTo(W-m,H-m*2.2);
+  ctx.stroke();
+}
+
+function drawCrosshair(){
+  const r=Math.min(W,H)*0.032, g=r*0.55;
+  ctx.strokeStyle=fg(S.hitMark>0?1:0.78);
+  ctx.lineWidth=S.hitMark>0?2.4:1.4;
+  ctx.beginPath();
+  ctx.arc(cxp,cyp,r,0,TAU);
+  ctx.moveTo(cxp-r-g,cyp); ctx.lineTo(cxp-r+2,cyp);
+  ctx.moveTo(cxp+r-2,cyp); ctx.lineTo(cxp+r+g,cyp);
+  ctx.moveTo(cxp,cyp-r-g); ctx.lineTo(cxp,cyp-r+2);
+  ctx.moveTo(cxp,cyp+r-2); ctx.lineTo(cxp,cyp+r+g);
+  ctx.stroke();
+  ctx.fillStyle=fg(0.9);
+  ctx.fillRect(cxp-1,cyp-1,2,2);
+}
+
+/* ================= B · 投弹（修复版） ================= */
+const BOMB_ZOOM=1.5;            /* 降低放大倍率，保证瞄准范围足够 */
+const AIM_SCREEN_RANGE=0.40;    /* 基准屏幕范围 */
+const AIM_MAX=1.6;              /* aimScreen 取值范围 */
+const DROP_WINDOW=400;          /* 纵向投弹窗口 ±400（放宽） */
+const DROP_TOLERANCE=40;        /* 横向额外容差 */
+
+function sceneBomb(m){
+  const p=m.p;
+  const g=900;
+  const fall=Math.sqrt(2*p.alt/g);
+  const aimZ=p.speed*fall;
+
+  const buildings=[];
+  const tgtZ=[];
+  /* 目标建筑：x 限制在 ±170 内，确保准星够得到 */
+  for(let i=0;i<p.n;i++){
+    const tz=p.first + i*p.spacing + rnd(-120,120);
+    const tx=rnd(-170,170);
+    tgtZ.push(tz);
+    buildings.push({ x:tx, z:tz, r:52, isTarget:true, done:false, hitT:0,
+                     w:rnd(90,130), h:rnd(50,90) });
+  }
+  /* 干扰建筑 */
+  for(let i=0;i<420;i++){
+    const bz=rnd(800, p.first + (p.n-1)*p.spacing + 1800);
+    const bx=rnd(-1500,1500);
+    let ok=true;
+    for(let k=0;k<tgtZ.length;k++){
+      if(Math.abs(bz-tgtZ[k])<200 && Math.abs(bx-buildings[k].x)<220){ ok=false; break; }
+    }
+    if(!ok) continue;
+    buildings.push({ x:bx, z:bz, r:26, isTarget:false, done:false, hitT:0,
+                     w:rnd(30,60), h:rnd(20,40) });
+  }
+
+  S={
+    type:'bomb',p:p,buildings:buildings,
+    speed:p.speed, alt:p.alt, g:g, fall:fall, aimZ:aimZ,
+    dist:0, hits:0, bombPressed:false, msg:'', msgT:0,
+    flash:0, tt:0, endTimer:0, endAction:null, endReason:'',
+    nearMsg:false, nearMsgT:0,
+    spaceHeld:false, bombCd:0, failed:false,
+    zoomed:false,
+    aimScreen:0,
+    canHit:false
+  };
+  cam.x=0;cam.y=0;cam.z=0; cam.yaw=0; cam.roll=0;
+  cam.pitch=-Math.atan2(p.alt,aimZ);
+}
+
+/* --- 准星屏幕 x 坐标 --- */
+function getAimScreenX(){
+  const rng = W * AIM_SCREEN_RANGE * (S.zoomed ? BOMB_ZOOM : 1);
+  return cxp + S.aimScreen * rng;
+}
+/* --- 准星对应的世界 x 坐标 --- */
+function getDropX(){
+  const rx = getAimScreenX();
+  const ef = focal * (S.zoomed ? BOMB_ZOOM : 1);
+  return (rx - cxp) * S.aimZ / ef;
+}
+
+function updBomb(dt){
+  const p=S.p;
+  S.tt+=dt; S.dist+=S.speed*dt;
+  S.flash=Math.max(0,S.flash-dt*2.5);
+  if(S.msgT>0){ S.msgT-=dt; if(S.msgT<=0) S.msg=''; }
+  if(S.nearMsgT>0){ S.nearMsgT-=dt; if(S.nearMsgT<=0) S.nearMsg=false; }
+  if(S.bombCd>0) S.bombCd-=dt;
+  cam.pitch=-Math.atan2(S.alt,S.aimZ);
+
+  /* 拖动移动准星 */
+  const sens=(('ontouchstart' in window)?0.0055:0.0035);
+  S.aimScreen = clamp(S.aimScreen - input.dx*sens, -AIM_MAX, AIM_MAX);
+  input.dx=0; input.dy=0;
+
+  for(let i=0;i<S.buildings.length;i++){
+    const b=S.buildings[i];
+    if(b.hitT>0) b.hitT-=dt;
+    if(!b.done) b.z-=S.speed*dt;
+  }
+
+  /* 目标接近提示 */
+  let near=false;
+  for(let i=0;i<S.buildings.length;i++){
+    const b=S.buildings[i];
+    if(!b.isTarget||b.done) continue;
+    const dz=b.z-S.aimZ;
+    if(dz>-600 && dz<900){ near=true; break; }
+  }
+  if(near&&!S.nearMsg){ S.nearMsg=true; S.nearMsgT=0.9; }
+  if(near&&S.nearMsgT<=0) S.nearMsgT=0.6;
+
+  /* 更新 canHit（用于准星高亮） */
+  const dropX = getDropX();
+  S.canHit = false;
+  for(let i=0;i<S.buildings.length;i++){
+    const b=S.buildings[i];
+    if(b.done) continue;
+    if(b.z < S.aimZ - DROP_WINDOW || b.z > S.aimZ + DROP_WINDOW) continue;
+    if(Math.abs(b.x - dropX) < b.w/2 + DROP_TOLERANCE){ S.canHit = true; break; }
+  }
+
+  /* 投弹触发 */
+  const spaceNow=!!input.keys['Space'];
+  if((S.bombPressed||(spaceNow&&!S.spaceHeld)) && S.bombCd<=0 && !S.failed){
+    S.bombPressed=false; S.spaceHeld=true;
+    dropBomb();
+  }
+  if(!spaceNow) S.spaceHeld=false;
+
+  if(S.endTimer>0){
+    S.endTimer-=dt;
+    if(S.endTimer<=0){
+      if(S.endAction==='win') stageWin('命中全部 '+S.hits+' 个目标');
+      else missionFail(S.endReason);
+      return;
+    }
+  }
+
+  /* 错过所有目标：目标飞过 */
+  if(!S.failed){
+    for(let i=0;i<S.buildings.length;i++){
+      const b=S.buildings[i];
+      if(b.isTarget&&!b.done&&b.z < -300){
+        b.done=true;
+        S.failed=true;
+        S.msg='错过了目标！';
+        S.msgT=2;
+        S.endTimer=0.9;
+        S.endAction='fail';
+        S.endReason='错过投弹窗口 — 目标未被摧毁';
+      }
+    }
+  }
+}
+
+/* 投弹判定：优先目标，其次民用，最后空地 */
+function dropBomb(){
+  sfx('gun');
+  S.bombCd = 0.35;
+
+  const dropX = getDropX();
+  const dropZ = S.aimZ;
+
+  let bestTarget=null, bestTargetD=1e9;
+  let bestCivil=null, bestCivilD=1e9;
+
+  for(let i=0;i<S.buildings.length;i++){
+    const b=S.buildings[i];
+    if(b.done) continue;
+    if(b.z < dropZ - DROP_WINDOW) continue;
+    if(b.z > dropZ + DROP_WINDOW) continue;
+
+    const dx = Math.abs(b.x - dropX);
+    if(dx > b.w/2 + DROP_TOLERANCE) continue;
+
+    if(b.isTarget){
+      if(dx < bestTargetD){ bestTargetD = dx; bestTarget = b; }
+    }else{
+      if(dx < bestCivilD){ bestCivilD = dx; bestCivil = b; }
+    }
+  }
+
+  if(bestTarget){
+    bestTarget.done = true;
+    bestTarget.hitT = 1.4;
+    S.hits++;
+    sfx('boom');
+    S.msg = '命中目标！'; S.msgT = 1.4;
+    const left = S.buildings.filter(b=>b.isTarget&&!b.done).length;
+    if(left === 0){ S.endTimer = 0.9; S.endAction = 'win'; }
+  }else if(bestCivil){
+    sfx('boom');
+    S.msg = '误炸非军事建筑！'; S.msgT = 2;
+    S.failed = true;
+    S.endTimer = 1.0; S.endAction = 'fail';
+    S.endReason = '误炸民用建筑 — 任务取消';
+  }else{
+    sfx('flak');
+    S.msg = '炸弹落入空地'; S.msgT = 2;
+    S.failed = true;
+    S.endTimer = 1.0; S.endAction = 'fail';
+    S.endReason = '未能命中目标 — 任务失败';
+  }
+}
+
+/* ---------- 准星绘制 ---------- */
+function drawAimReticle(cx,cy,scale,canHit){
+  const r=Math.min(W,H)*0.030*scale;
+  const g=r*0.55;
+  const col = canHit ? 1 : 0.88;
+  ctx.strokeStyle=fg(col);
+  ctx.lineWidth=canHit?2.8:2.2;
+  ctx.beginPath();
+  ctx.arc(cx,cy,r,0,TAU);
+  ctx.moveTo(cx-r-g,cy); ctx.lineTo(cx-r+2,cy);
+  ctx.moveTo(cx+r-2,cy); ctx.lineTo(cx+r+g,cy);
+  ctx.moveTo(cx,cy-r-g); ctx.lineTo(cx,cy-r+2);
+  ctx.moveTo(cx,cy+r-2); ctx.lineTo(cx,cy+r+g);
+  ctx.stroke();
+  ctx.fillStyle=fg(canHit?1:0.95);
+  ctx.fillRect(cx-1.5,cy-1.5,3,3);
+
+  if(canHit){
+    const pulse = 1 + Math.sin(performance.now()/140)*0.18;
+    ctx.strokeStyle=fg(0.6);
+    ctx.lineWidth=1.6;
+    ctx.beginPath();
+    ctx.arc(cx,cy,r*1.7*pulse,0,TAU);
+    ctx.stroke();
+  } else {
+    ctx.strokeStyle=fg(0.28);
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.arc(cx,cy,r*1.65,0,TAU);
+    ctx.stroke();
+  }
+}
+
+/* ---------- 轰炸场景绘制 ---------- */
+function drawBomb(){
+  const gy=-S.alt;
+  const rawRx = getAimScreenX();
+  const rx = clamp(rawRx, 30, W-30);
+  const ry = cyp;
+
+  if(S.zoomed){
+    const oldF=focal;
+    focal = oldF * BOMB_ZOOM;
+
+    drawBombWorld(gy,true);
+
+    focal=oldF;
+
+    drawAimReticle(rx, ry, 1.15, S.canHit);
+
+    ctx.strokeStyle=fg(0.65); ctx.lineWidth=2;
+    ctx.setLineDash([10,7]);
+    ctx.strokeRect(10,10,W-20,H-20);
+    ctx.setLineDash([]);
+
+    ctx.strokeStyle=fg(0.9); ctx.lineWidth=3;
+    const cs=24;
+    ctx.beginPath();
+    ctx.moveTo(10,10+cs); ctx.lineTo(10,10); ctx.lineTo(10+cs,10);
+    ctx.moveTo(W-10-cs,10); ctx.lineTo(W-10,10); ctx.lineTo(W-10,10+cs);
+    ctx.moveTo(10,H-10-cs); ctx.lineTo(10,H-10); ctx.lineTo(10+cs,H-10);
+    ctx.moveTo(W-10-cs,H-10); ctx.lineTo(W-10,H-10); ctx.lineTo(W-10,H-10-cs);
+    ctx.stroke();
+
+    ctx.fillStyle=fg(0.75);
+    ctx.font='bold 12px "Courier New",monospace';
+    ctx.textAlign='center';
+    ctx.fillText('× '+BOMB_ZOOM.toFixed(1)+'  放大镜视图',W/2,34);
+    ctx.font='10px "Courier New",monospace';
+    ctx.fillStyle=fg(0.5);
+    ctx.fillText('拖动可移动准星 · 点击返回',W/2,H-22);
+  }else{
+    drawBombWorld(gy,false);
+
+    /* 放大镜可观察区域 */
+    const bw=W/BOMB_ZOOM;
+    const bh=H/BOMB_ZOOM;
+    const x0=rx-bw/2, y0=ry-bh/2;
+
+    ctx.fillStyle=TH.dark?'rgba(16,16,19,0.28)':'rgba(244,243,238,0.42)';
+    ctx.fillRect(0,0,W,y0);
+    ctx.fillRect(0,y0+bh,W,H-y0-bh);
+    ctx.fillRect(0,y0,x0,bh);
+    ctx.fillRect(x0+bw,y0,W-x0-bw,bh);
+
+    ctx.strokeStyle=fg(0.55); ctx.lineWidth=1.2;
+    ctx.setLineDash([6,4]);
+    ctx.strokeRect(x0,y0,bw,bh);
+    ctx.setLineDash([]);
+
+    const cs=16;
+    ctx.strokeStyle=fg(0.9); ctx.lineWidth=2.4;
+    ctx.beginPath();
+    ctx.moveTo(x0,y0+cs); ctx.lineTo(x0,y0); ctx.lineTo(x0+cs,y0);
+    ctx.moveTo(x0+bw-cs,y0); ctx.lineTo(x0+bw,y0); ctx.lineTo(x0+bw,y0+cs);
+    ctx.moveTo(x0,y0+bh-cs); ctx.lineTo(x0,y0+bh); ctx.lineTo(x0+cs,y0+bh);
+    ctx.moveTo(x0+bw-cs,y0+bh); ctx.lineTo(x0+bw,y0+bh); ctx.lineTo(x0+bw,y0+bh-cs);
+    ctx.stroke();
+
+    ctx.fillStyle=fg(0.65);
+    ctx.font='10px "Courier New",monospace';
+    ctx.textAlign='center';
+    ctx.fillText('▣ 放大镜可观察区 · 点击切换',rx,y0-10);
+
+    drawAimReticle(rx, ry, 1.0, S.canHit);
+  }
+
+  drawBombHUD();
+}
+
+function drawBombWorld(gy, zoomMode){
+  groundGrid(gy, zoomMode?9000:3400, 320, zoomMode?0.14:0.11, S.dist);
+
+  ctx.strokeStyle=fg(0.16); ctx.lineWidth=1;
+  ctx.beginPath(); seg(-90000,gy,-90000,90000,gy,-90000); ctx.stroke();
+
+  ctx.lineWidth=zoomMode?1.5:1.6;
+  for(let i=0;i<S.buildings.length;i++){
+    const b=S.buildings[i];
+    if(b.z<-500||b.z>7000) continue;
+    if(b.done&&b.hitT<=0) continue;
+    const bx=b.x;
+
+    if(!zoomMode){
+      const pp=proj(bx, gy, b.z);
+      if(!pp.vis) continue;
+      const sz=clamp(3000/(pp.z+300),1.2,5.5);
+      ctx.fillStyle=fg(b.isTarget?0.62:0.30);
+      ctx.beginPath();
+      ctx.arc(pp.x,pp.y,sz,0,TAU);
+      ctx.fill();
+      if(b.isTarget){
+        ctx.fillStyle=fg(0.98);
+        ctx.font='bold 15px "Courier New",monospace';
+        ctx.textAlign='center';
+        ctx.fillText('*',pp.x,pp.y-9);
+        /* 目标在投弹窗口内时，加一个闪烁圈 */
+        if(b.z > S.aimZ - DROP_WINDOW && b.z < S.aimZ + DROP_WINDOW){
+          const pulse=1+Math.sin(performance.now()/120)*0.3;
+          ctx.strokeStyle=fg(0.85);
+          ctx.lineWidth=1.6;
+          ctx.beginPath();
+          ctx.arc(pp.x,pp.y-9,10*pulse,0,TAU);
+          ctx.stroke();
+        }
+      }
+    }else{
+      const w=b.w/2, hh=b.h;
+      ctx.strokeStyle=fg(b.isTarget?0.98:0.45);
+      ctx.beginPath();
+      seg(bx-w,gy,b.z-w, bx+w,gy,b.z-w);
+      seg(bx+w,gy,b.z-w, bx+w,gy,b.z+w);
+      seg(bx+w,gy,b.z+w, bx-w,gy,b.z+w);
+      seg(bx-w,gy,b.z+w, bx-w,gy,b.z-w);
+      seg(bx-w,gy+hh,b.z-w, bx+w,gy+hh,b.z-w);
+      seg(bx+w,gy+hh,b.z-w, bx+w,gy+hh,b.z+w);
+      seg(bx+w,gy+hh,b.z+w, bx-w,gy+hh,b.z+w);
+      seg(bx-w,gy+hh,b.z+w, bx-w,gy+hh,b.z-w);
+      seg(bx-w,gy,b.z-w, bx-w,gy+hh,b.z-w);
+      seg(bx+w,gy,b.z-w, bx+w,gy+hh,b.z-w);
+      seg(bx+w,gy,b.z+w, bx+w,gy+hh,b.z+w);
+      seg(bx-w,gy,b.z+w, bx-w,gy+hh,b.z+w);
+      ctx.stroke();
+
+      if(b.isTarget){
+        const pp=proj(bx, gy+hh+55, b.z);
+        if(pp.vis){
+          ctx.fillStyle=fg(0.98);
+          ctx.font='bold 22px "Courier New",monospace';
+          ctx.textAlign='center';
+          ctx.fillText('*',pp.x,pp.y);
+        }
+      }
+    }
+  }
+
+  /* 命中爆炸 */
+  for(let i=0;i<S.buildings.length;i++){
+    const b=S.buildings[i];
+    if(!b.done||b.hitT<=0) continue;
+    const bx=b.x;
+    const pp=proj(bx, gy+b.h, b.z);
+    if(!pp.vis) continue;
+    const rr=110*focal/Math.max(pp.z,200);
+    ctx.strokeStyle=fg(clamp(b.hitT,0,1));
+    ctx.lineWidth=2.6;
+    ctx.beginPath(); ctx.arc(pp.x,pp.y,rr,0,TAU); ctx.stroke();
+    ctx.beginPath();
+    for(let k=0;k<10;k++){
+      const a=k*TAU/10;
+      ctx.moveTo(pp.x+Math.cos(a)*rr*0.35,pp.y+Math.sin(a)*rr*0.35);
+      ctx.lineTo(pp.x+Math.cos(a)*rr*1.35,pp.y+Math.sin(a)*rr*1.35);
+    }
+    ctx.stroke();
+  }
+}
+
+function drawBombHUD(){
+  ctx.font='11px "Courier New",monospace';
+  ctx.textAlign='left'; ctx.fillStyle=fg(0.72);
+  ctx.fillText('命中  '+S.hits+' / '+S.p.n,18,H-40);
+  ctx.fillText('高度  '+Math.round(S.alt)+' m',18,H-24);
+
+  if(S.nearMsg&&!S.zoomed){
+    ctx.textAlign='center';
+    ctx.font='bold 14px "Courier New",monospace';
+    ctx.fillStyle=fg(0.98);
+    ctx.fillText('▲ 目标在望 ▲',cxp,cyp-Math.min(W,H)*0.35);
+  }
+
+  if(S.msg){
+    ctx.textAlign='center'; ctx.font='14px "Courier New",monospace';
+    ctx.fillStyle=fg(0.9);
+    ctx.fillText(S.msg,cxp,cyp+Math.min(W,H)*0.30);
+  }
+
+  if(!S.zoomed){
+    ctx.textAlign='right';
+    ctx.font='10px "Courier New",monospace';
+    ctx.fillStyle=fg(0.5);
+    ctx.fillText('拖动瞄准 · 点击切换放大镜',W-18,H-24);
+  }
+
+  if(S.flash>0){ ctx.fillStyle=fg(S.flash*0.25); ctx.fillRect(0,0,W,H); }
+}
+
+/* ================= C · 穿越高射炮区 ================= */
+function sceneFlak(m){
+  const p=m.p;
+  S={
+    type:'flak',p:p, hp:100,maxhp:100,
+    shells:[], dist:0, speed:340, tt:0, left:p.dur,
+    flash:0, spawnCd:0.5, planeX:0, msg:'', msgT:0
+  };
+  cam.x=0;cam.y=0;cam.z=0;cam.yaw=0;cam.pitch=0;cam.roll=0;
+}
+
+function updFlak(dt){
+  const p=S.p;
+  S.tt+=dt; S.left-=dt; S.dist+=S.speed*dt;
+  S.flash=Math.max(0,S.flash-dt*2.5);
+  if(S.msgT>0){ S.msgT-=dt; if(S.msgT<=0) S.msg=''; }
+
+  const sens=(('ontouchstart' in window)?3.0:1.9);
+  S.planeX=clamp(S.planeX-input.dx*sens,-520,520);
+  cam.x=S.planeX;
+  cam.pitch=clamp(cam.pitch-input.dy*0.0020,-0.32,0.32);
+  input.dx=0; input.dy=0;
+
+  S.spawnCd-=dt;
+  if(S.spawnCd<=0){
+    S.spawnCd=p.rate*rnd(0.65,1.25);
+    const offX=rnd(-620,620);
+    const offY=rnd(-400,400);
+    const zz=rnd(1500,2300);
+    S.shells.push({
+      x:offX+S.planeX, y:offY, z:zz,
+      warn:zz/S.speed,
+      exploded:false,
+      ringDelay:0.18,
+      ringR:0,
+      ringSpeed:rnd(520,880),
+      life:2.2,
+      hit:false,
+      sx:0, sy:0
+    });
+  }
+
+  for(let i=S.shells.length-1;i>=0;i--){
+    const s=S.shells[i];
+    if(!s.exploded){
+      s.z-=S.speed*dt;
+      s.warn-=dt;
+      if(s.z<=30){
+        s.exploded=true;
+        s.z=30;
+        const pp=proj(s.x,s.y,s.z);
+        if(pp.vis){ s.sx=pp.x; s.sy=pp.y; }
+        else{
+          const k=focal/Math.max(s.z,40);
+          s.sx=cxp+(s.x-cam.x)*k;
+          s.sy=cyp-s.y*k;
+        }
+        sfx('flak');
+      }
+    }else{
+      s.life-=dt;
+      if(s.ringDelay>0){
+        s.ringDelay-=dt;
+      }else{
+        s.ringR+=s.ringSpeed*dt;
+        if(!s.hit){
+          const d=Math.hypot(s.sx-cxp, s.sy-cyp);
+          if(d<s.ringR){
+            s.hit=true;
+            const acc=clamp(1-d/420,0.25,1);
+            S.hp-=rnd(12,24)*acc+3;
+            S.flash=0.55;
+            sfx('hit');
+          }
+        }
+      }
+      if(s.life<=0) S.shells.splice(i,1);
+    }
+  }
+
+  if(S.hp<=0){ missionFail('高射炮碎片击中机身'); return; }
+  if(S.left<=0){ stageWin('安全穿越火网'); return; }
+}
+
+function drawFlak(){
+  groundGrid(-380,2600,420,0.09,S.dist);
+  ctx.strokeStyle=fg(0.16); ctx.lineWidth=1;
+  ctx.beginPath(); seg(-90000,cam.y,-90000,90000,cam.y,-90000); ctx.stroke();
+
+  for(let i=0;i<S.shells.length;i++){
+    const s=S.shells[i];
+    if(!s.exploded){
+      const pp=proj(s.x,s.y,s.z);
+      if(!pp.vis) continue;
+      const t=clamp(s.warn/1.4,0,1);
+      const rr=Math.min(W,H)*0.05*(1.6-t)+8;
+      ctx.strokeStyle=fg(0.18+t*0.5);
+      ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.arc(pp.x,pp.y,rr,0,TAU); ctx.stroke();
+      ctx.beginPath(); ctx.arc(pp.x,pp.y,rr*0.45,0,TAU); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(pp.x-rr*1.5,pp.y); ctx.lineTo(pp.x-rr*0.5,pp.y);
+      ctx.moveTo(pp.x+rr*0.5,pp.y); ctx.lineTo(pp.x+rr*1.5,pp.y);
+      ctx.stroke();
+    }else{
+      const a=clamp(s.life/2.2,0,1);
+      ctx.fillStyle=fg(a*0.95);
+      ctx.beginPath(); ctx.arc(s.sx,s.sy,3.5,0,TAU); ctx.fill();
+      if(s.ringDelay<=0){
+        ctx.strokeStyle=fg(a*0.9);
+        ctx.lineWidth=2.6;
+        ctx.beginPath(); ctx.arc(s.sx,s.sy,s.ringR,0,TAU); ctx.stroke();
+        ctx.strokeStyle=fg(a*0.30);
+        ctx.lineWidth=1;
+        ctx.beginPath(); ctx.arc(s.sx,s.sy,s.ringR*0.6,0,TAU); ctx.stroke();
+      }
+    }
+  }
+
+  drawCockpit();
+
+  ctx.strokeStyle=fg(0.55); ctx.lineWidth=1.4;
+  ctx.beginPath();
+  ctx.moveTo(cxp-14,cyp); ctx.lineTo(cxp-5,cyp);
+  ctx.moveTo(cxp+5,cyp); ctx.lineTo(cxp+14,cyp);
+  ctx.moveTo(cxp,cyp-14); ctx.lineTo(cxp,cyp-5);
+  ctx.moveTo(cxp,cyp+5); ctx.lineTo(cxp,cyp+14);
+  ctx.stroke();
+  ctx.beginPath(); ctx.arc(cxp,cyp,3,0,TAU); ctx.stroke();
+
+  ctx.strokeStyle=fg(0.45); ctx.lineWidth=1.4;
+  ctx.beginPath();
+  const cw=Math.min(W,H)*0.14;
+  const yy=cyp+Math.min(H*0.22,140);
+  ctx.moveTo(cxp-cw,yy); ctx.lineTo(cxp+cw,yy);
+  ctx.moveTo(cxp-cw,yy); ctx.lineTo(cxp-cw+10,yy-8);
+  ctx.moveTo(cxp+cw,yy); ctx.lineTo(cxp+cw-10,yy-8);
+  ctx.stroke();
+  ctx.fillStyle=fg(0.85);
+  ctx.fillRect(cxp-2,yy-2,4,14);
+
+  ctx.font='11px "Courier New",monospace';
+  ctx.textAlign='left'; ctx.fillStyle=fg(0.72);
+  ctx.fillText('剩余  0:'+String(Math.max(0,Math.ceil(S.left))).padStart(2,'0'),18,H-42);
+
+  const bw=Math.min(160,W*0.32);
+  ctx.strokeStyle=fg(0.5); ctx.lineWidth=1;
+  ctx.strokeRect(18,H-30,bw,9);
+  ctx.fillStyle=fg(0.85);
+  ctx.fillRect(18,H-30,bw*clamp(S.hp/S.maxhp,0,1),9);
+
+  if(S.flash>0){ ctx.fillStyle=fg(S.flash*0.26); ctx.fillRect(0,0,W,H); }
+  if(S.hp<35){
+    const a=(0.10+Math.sin(performance.now()/150)*0.06);
+    ctx.strokeStyle=fg(a); ctx.lineWidth=14;
+    ctx.strokeRect(7,7,W-14,H-14);
+  }
+}
+
+/* ================= D · 领航 ================= */
+function sceneNav(m){
+  const p=m.p;
+  const margin=Math.min(W,H)*0.10;
+  const topPad=Math.min(H*0.09,50);
+  const mapW=W-margin*2;
+  const mapH=H-margin*2-topPad-Math.min(H*0.09,50);
+  const mapX=margin, mapY=margin+topPad;
+
+  const start={x:mapX+mapW*0.08,y:mapY+mapH*0.90};
+  const goal={x:mapX+mapW*0.92,y:mapY+mapH*0.10};
+
+  const zones=[];
+  for(let i=0;i<p.zones*10&&zones.length<p.zones;i++){
+    const z={ x:rnd(mapX+mapW*0.14,mapX+mapW*0.86),
+              y:rnd(mapY+mapH*0.14,mapY+mapH*0.86),
+              r:rnd(Math.min(mapW,mapH)*0.10,Math.min(mapW,mapH)*0.16) };
+    if(Math.hypot(z.x-start.x,z.y-start.y)<z.r+40) continue;
+    if(Math.hypot(z.x-goal.x,z.y-goal.y)<z.r+40) continue;
+    let bad=false;
+    for(const q of zones) if(Math.hypot(z.x-q.x,z.y-q.y)<(z.r+q.r)*0.55){ bad=true; break; }
+    if(bad) continue;
+    zones.push(z);
+  }
+
+  const maxL=p.maxDist*((mapW+mapH)/1600);
+  const minL=maxL*(p.minRatio||0.6);
+
+  S={
+    type:'nav',p:p,start:start,goal:goal,zones:zones,
+    pts:[start], mapX:mapX,mapY:mapY,mapW:mapW,mapH:mapH,
+    tt:0, left:p.tlimit, done:false,
+    maxL:maxL, minL:minL,
+    onClick:function(x,y){
+      if(S.done) return;
+      if(Math.hypot(x-S.goal.x,y-S.goal.y)<28){ navFinish(); return; }
+      if(x<S.mapX-10||x>S.mapX+S.mapW+10||y<S.mapY-10||y>S.mapY+S.mapH+10) return;
+      S.pts.push({x:x,y:y});
+      sfx('click');
+    }
+  };
+  cam.x=0;cam.y=0;cam.z=0;cam.yaw=0;cam.pitch=0;cam.roll=0;
+}
+
+function updNav(dt){
+  S.tt+=dt;
+  S.left-=dt;
+  if(S.left<=0&&!S.done) navFinish();
+}
+
+function navPathLength(){
+  let L=0;
+  for(let i=1;i<S.pts.length;i++)
+    L+=Math.hypot(S.pts[i].x-S.pts[i-1].x,S.pts[i].y-S.pts[i-1].y);
+  const last=S.pts[S.pts.length-1];
+  L+=Math.hypot(S.goal.x-last.x,S.goal.y-last.y);
+  return L;
+}
+function navRisk(){
+  const all=S.pts.concat([S.goal]);
+  let n=0;
+  for(let i=1;i<all.length;i++)
+    for(let j=0;j<S.zones.length;j++)
+      if(segCircle(all[i-1].x,all[i-1].y,all[i].x,all[i].y,S.zones[j].x,S.zones[j].y,S.zones[j].r)) n++;
+  return n;
+}
+function segCircle(x1,y1,x2,y2,cx,cy,r){
+  const dx=x2-x1,dy=y2-y1,fx=x1-cx,fy=y1-cy;
+  const a=dx*dx+dy*dy;
+  if(a<0.0001) return Math.hypot(fx,fy)<=r;
+  let t=-(fx*dx+fy*dy)/a;
+  t=clamp(t,0,1);
+  const px=x1+dx*t-cx, py=y1+dy*t-cy;
+  return px*px+py*py<=r*r;
+}
+function navFinish(){
+  if(S.done) return;
+  S.done=true;
+  const L=navPathLength();
+  const risk=navRisk();
+  if(risk>0){ missionFail('航线穿越高射炮阵地 — 编队被击落'); return; }
+  if(L>S.maxL){ missionFail('航程超出燃油极限 — 未能返航'); return; }
+  if(L<S.minL){ missionFail('航线过短 — 未能覆盖侦察区域'); return; }
+  const km=(L/S.maxL*S.p.maxDist).toFixed(0);
+  stageWin('航线安全，全程约 '+km+' 公里');
+}
+
+function drawNav(){
+  ctx.fillStyle=TH.bg; ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle=fg(0.35); ctx.lineWidth=1.4;
+  ctx.strokeRect(S.mapX,S.mapY,S.mapW,S.mapH);
+
+  ctx.strokeStyle=fg(0.07); ctx.lineWidth=1;
+  ctx.beginPath();
+  for(let i=1;i<10;i++){
+    const x=S.mapX+S.mapW*i/10;
+    ctx.moveTo(x,S.mapY); ctx.lineTo(x,S.mapY+S.mapH);
+  }
+  for(let i=1;i<8;i++){
+    const y=S.mapY+S.mapH*i/8;
+    ctx.moveTo(S.mapX,y); ctx.lineTo(S.mapX+S.mapW,y);
+  }
+  ctx.stroke();
+
+  for(let i=0;i<S.zones.length;i++){
+    const z=S.zones[i];
+    ctx.strokeStyle=fg(0.32); ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.arc(z.x,z.y,z.r,0,TAU); ctx.stroke();
+    ctx.save();
+    ctx.beginPath(); ctx.arc(z.x,z.y,z.r,0,TAU); ctx.clip();
+    ctx.strokeStyle=fg(0.10); ctx.lineWidth=1;
+    ctx.beginPath();
+    for(let k=-z.r;k<z.r*2;k+=9){
+      ctx.moveTo(z.x-z.r+k,z.y-z.r);
+      ctx.lineTo(z.x-z.r+k+z.r*2,z.y+z.r);
+    }
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle=fg(0.4);
+    ctx.font='9px "Courier New",monospace';
+    ctx.textAlign='center';
+    ctx.fillText('FLAK',z.x,z.y+3);
+  }
+
+  const all=S.pts.concat([S.goal]);
+  const L=navPathLength();
+  const risk=navRisk();
+  const lenOK=(L<=S.maxL&&L>=S.minL);
+  const pathColor=(risk>0||!lenOK)?0.45:0.9;
+
+  ctx.strokeStyle=fg(pathColor); ctx.lineWidth=1.8;
+  ctx.beginPath();
+  ctx.moveTo(all[0].x,all[0].y);
+  for(let i=1;i<all.length;i++) ctx.lineTo(all[i].x,all[i].y);
+  ctx.stroke();
+
+  for(let i=1;i<S.pts.length;i++){
+    ctx.fillStyle=TH.bg;
+    ctx.strokeStyle=fg(0.9); ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.arc(S.pts[i].x,S.pts[i].y,4.5,0,TAU);
+    ctx.fill(); ctx.stroke();
+  }
+
+  ctx.fillStyle=fg(0.85);
+  ctx.beginPath(); ctx.arc(S.start.x,S.start.y,7,0,TAU); ctx.fill();
+  ctx.fillStyle=TH.bg;
+  ctx.font='8px "Courier New",monospace';
+  ctx.textAlign='center';
+  ctx.fillText('B',S.start.x,S.start.y+3);
+
+  ctx.strokeStyle=fg(0.95); ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(S.goal.x,S.goal.y,14,0,TAU); ctx.stroke();
+  ctx.beginPath(); ctx.arc(S.goal.x,S.goal.y,7,0,TAU); ctx.stroke();
+  ctx.fillStyle=fg(0.9);
+  ctx.font='9px "Courier New",monospace';
+  ctx.fillText('目标',S.goal.x,S.goal.y-20);
+
+  ctx.textAlign='left'; ctx.font='11px "Courier New",monospace';
+  ctx.fillStyle=fg(0.72);
+  ctx.fillText('第 '+(G.mi+1)+' 次出击 · 领航作业',S.mapX,Math.max(S.mapY-16,16));
+
+  ctx.textAlign='right';
+  ctx.fillStyle=risk>0?fg(1):fg(0.55);
+  ctx.fillText('穿越火网  '+risk+' 次',S.mapX+S.mapW,Math.max(S.mapY-16,16));
+
+  const barW=Math.min(S.mapW*0.55,360);
+  const barX=S.mapX;
+  const barY=S.mapY+S.mapH+16;
+  ctx.strokeStyle=fg(0.4); ctx.lineWidth=1;
+  ctx.strokeRect(barX,barY,barW,10);
+  const frac=clamp(L/S.maxL,0,1.2);
+  ctx.fillStyle=fg(lenOK?0.85:0.35);
+  ctx.fillRect(barX,barY,Math.min(frac,1)*barW,10);
+  const minX=barX+S.minL/S.maxL*barW;
+  ctx.strokeStyle=fg(0.7); ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.moveTo(minX,barY-3); ctx.lineTo(minX,barY+13); ctx.stroke();
+
+  ctx.textAlign='left'; ctx.fillStyle=fg(0.6);
+  ctx.font='10px "Courier New",monospace';
+  ctx.fillText('航程 '+(L/S.maxL*S.p.maxDist).toFixed(0)+' km  /  限 '+
+    (S.minL/S.maxL*S.p.maxDist).toFixed(0)+'~'+S.p.maxDist+' km',barX,barY+26);
+
+  ctx.textAlign='right'; ctx.fillStyle=fg(0.6);
+  ctx.fillText('剩余 '+Math.max(0,Math.ceil(S.left))+' s  ·  点击目标圆完成',S.mapX+S.mapW,barY+26);
+}
+
+/* ================= 更新 / 渲染 ================= */
+function update(dt){
+  updCam();
+  if(!S) return;
+  if(S.type==='dogfight') updDogfight(dt);
+  else if(S.type==='bomb') updBomb(dt);
+  else if(S.type==='flak') updFlak(dt);
+  else if(S.type==='nav') updNav(dt);
+  if(G.bannerT>0) G.bannerT-=dt;
+}
+
+function render(){
+  ctx.fillStyle=TH.bg;
+  ctx.fillRect(0,0,W,H);
+  if(!S) return;
+  ctx.lineJoin='round'; ctx.lineCap='round';
+  if(S.type==='dogfight') drawDogfight();
+  else if(S.type==='bomb') drawBomb();
+  else if(S.type==='flak') drawFlak();
+  else if(S.type==='nav') drawNav();
+
+  if(G.bannerT>0){
+    const a=clamp(G.bannerT/0.6,0,1);
+    ctx.fillStyle=TH.dark?'rgba(16,16,19,'+(0.85*a)+')':'rgba(244,243,238,'+(0.9*a)+')';
+    const bh=Math.min(H*0.16,90);
+    ctx.fillRect(0,cyp-bh/2,W,bh);
+    ctx.fillStyle=fg(a);
+    ctx.font='bold 16px "Courier New",monospace';
+    ctx.textAlign='center';
+    ctx.fillText(G.banner,cxp,cyp+6);
+  }
+}
+
+/* ================= 主循环 ================= */
+let lastT=performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  let dt=(now-lastT)/1000;
+  lastT=now;
+  if(dt>0.05) dt=0.05;
+  if(dt<0) dt=0;
+  if(G.screen==='play') update(dt);
+  else updCam();
+  render();
+}
+
+/* ================= 启动 ================= */
+function boot(){
+  resize();
+  const initOnce=()=>{
+    resumeAudio();
+    window.removeEventListener('pointerdown',initOnce);
+    window.removeEventListener('keydown',initOnce);
+  };
+  window.addEventListener('pointerdown',initOnce);
+  window.addEventListener('keydown',initOnce);
+  mainMenu();
+  requestAnimationFrame(loop);
+}
+boot();
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){
+    if(AC&&AC.state==='running') AC.suspend();
+  }else{
+    if(AC&&AC.state==='suspended') AC.resume();
+    lastT=performance.now();
+  }
+});
+</script>
+</body>
+</html>

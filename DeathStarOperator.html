@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>死星操作员</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+html,body{height:100%;background:#000;overflow:hidden;
+  font-family:"Courier New",Consolas,monospace;color:#00ff41;
+  user-select:none;-webkit-user-select:none;}
+#app{position:fixed;inset:0;overflow:hidden;}
+
+.screen{position:absolute;inset:0;display:none;flex-direction:column;}
+.screen.active{display:flex;}
+
+#app::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:1000;
+  background:repeating-linear-gradient(0deg,rgba(0,255,65,0.035) 0px,rgba(0,255,65,0.035) 1px,transparent 1px,transparent 3px);
+  mix-blend-mode:screen;}
+
+/* ---------- generic ---------- */
+.btn{
+  display:inline-block;padding:10px 18px;
+  background:rgba(0,50,15,0.5);
+  border:1px solid #00ff41;color:#00ff41;
+  font-family:inherit;font-size:14px;letter-spacing:2px;
+  cursor:pointer;text-shadow:0 0 6px #00ff41;
+  transition:background .12s,color .12s;
+  border-radius:2px;
+}
+.btn:hover{background:rgba(0,255,65,0.15);}
+.btn:active{background:#00ff41;color:#001a06;text-shadow:none;}
+.btn.tiny{font-size:11px;padding:6px 10px;letter-spacing:1px;}
+.btn.big{font-size:18px;padding:14px 46px;letter-spacing:6px;}
+
+/* ---------- start ---------- */
+#screen-start{justify-content:center;align-items:center;
+  background:radial-gradient(ellipse at 50% 45%,#001a08 0%,#000 70%);}
+.start-inner{display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px;max-width:520px;}
+.empire-logo{width:min(38vw,170px);height:min(38vw,170px);color:#00ff41;
+  filter:drop-shadow(0 0 12px #00ff41);animation:spin 40s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#screen-start h1{font-size:clamp(22px,7vw,40px);letter-spacing:10px;text-shadow:0 0 14px #00ff41;font-weight:normal;white-space:nowrap;}
+#screen-start .sub{font-size:11px;letter-spacing:4px;color:#0f8a35;text-align:center;}
+.hiscore{margin-top:10px;font-size:14px;letter-spacing:2px;color:#0fa838;}
+.hiscore b{color:#00ff41;text-shadow:0 0 8px #00ff41;}
+.tips{font-size:11px;line-height:1.9;color:#0c7a30;max-width:420px;text-align:center;margin-top:12px;letter-spacing:1px;}
+
+/* ---------- game ---------- */
+#screen-game{background:#000;}
+.g-top{display:flex;justify-content:space-between;align-items:center;
+  padding:8px 14px;font-size:12px;letter-spacing:2px;
+  border-bottom:1px solid rgba(0,255,65,0.35);color:#0fc23c;background:rgba(0,25,8,0.5);}
+.g-top b{color:#00ff41;text-shadow:0 0 8px #00ff41;}
+.g-view{position:relative;flex:1;min-height:0;}
+#ds-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+.g-readout{position:absolute;left:10px;top:10px;display:flex;flex-direction:column;gap:4px;
+  font-size:12px;letter-spacing:1px;pointer-events:none;}
+.g-readout>div{display:flex;gap:8px;}
+.g-readout .lbl{color:#0b8a30;min-width:78px;}
+.g-readout .val{color:#00ff41;text-shadow:0 0 8px #00ff41;}
+.g-ctrl{display:flex;gap:10px;padding:10px 12px;border-top:1px solid rgba(0,255,65,0.35);
+  background:rgba(0,18,6,0.65);}
+.joy-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.joy{position:relative;width:118px;height:118px;border-radius:50%;
+  border:1px solid rgba(0,255,65,0.5);
+  background:radial-gradient(circle,rgba(0,60,20,0.35),rgba(0,10,4,0.7));
+  touch-action:none;flex-shrink:0;}
+.joy::before,.joy::after{content:'';position:absolute;background:rgba(0,255,65,0.18);}
+.joy::before{left:50%;top:8%;width:1px;height:84%;}
+.joy::after{top:50%;left:8%;height:1px;width:84%;}
+.joy-knob{position:absolute;left:50%;top:50%;width:34px;height:34px;border-radius:50%;
+  transform:translate(-50%,-50%);
+  background:radial-gradient(circle,#00ff41,#036b1d);
+  box-shadow:0 0 14px #00ff41;pointer-events:none;}
+.joy-cap{font-size:10px;color:#0b8a30;letter-spacing:2px;}
+.pwr-wrap{flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;min-width:0;}
+.pwr-head{display:flex;justify-content:space-between;font-size:12px;letter-spacing:2px;color:#0b8a30;}
+.pwr-head b{color:#00ff41;text-shadow:0 0 10px #00ff41;font-size:18px;}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;cursor:pointer;}
+input[type=range]::-webkit-slider-runnable-track{height:6px;background:rgba(0,255,65,0.18);border:1px solid rgba(0,255,65,0.4);}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:22px;margin-top:-9px;
+  background:#00ff41;box-shadow:0 0 10px #00ff41;border:none;}
+input[type=range]::-moz-range-track{height:6px;background:rgba(0,255,65,0.18);border:1px solid rgba(0,255,65,0.4);}
+input[type=range]::-moz-range-thumb{width:14px;height:22px;background:#00ff41;box-shadow:0 0 10px #00ff41;border:none;border-radius:0;}
+.pwr-btns{display:flex;gap:8px;}
+.btn.fire{margin:0 12px 12px;padding:14px;font-size:18px;letter-spacing:10px;
+  background:rgba(0,60,18,0.6);border-width:2px;}
+
+/* ---------- pano ---------- */
+#screen-pano{background:#000;}
+#pano-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+.pano-hud{position:absolute;left:0;right:0;top:0;padding:10px 14px;pointer-events:none;
+  display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.pano-title{font-size:12px;letter-spacing:3px;color:#0b8a30;}
+.pano-readout{font-size:12px;letter-spacing:1px;text-align:right;line-height:1.7;color:#0b8a30;}
+.pano-readout.locked{color:#00ff41;text-shadow:0 0 10px #00ff41;}
+.pano-readout b{font-size:15px;}
+.pano-readout .dim{color:#0a5c22;font-size:11px;}
+.pano-bottom{position:absolute;left:0;right:0;bottom:0;padding:10px 14px;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  background:linear-gradient(to top,rgba(0,15,5,0.9),transparent);}
+.ring-info{font-size:12px;letter-spacing:2px;color:#0b8a30;}
+.ring-info b{color:#00ff41;text-shadow:0 0 10px #00ff41;font-size:16px;}
+
+/* ---------- archive ---------- */
+#screen-archive{background:#000;}
+.arc-head{padding:12px 14px;font-size:14px;letter-spacing:4px;border-bottom:1px solid rgba(0,255,65,0.35);color:#00ff41;text-shadow:0 0 8px #00ff41;}
+.arc-body{flex:1;display:flex;min-height:0;}
+.arc-list{width:44%;max-width:230px;overflow-y:auto;border-right:1px solid rgba(0,255,65,0.3);}
+.arc-item{padding:8px 10px;font-size:12px;letter-spacing:1px;cursor:pointer;
+  border-bottom:1px solid rgba(0,255,65,0.12);display:flex;align-items:center;gap:8px;}
+.arc-item canvas{width:26px;height:26px;flex-shrink:0;}
+.arc-item.sel{background:rgba(0,255,65,0.16);color:#00ff41;text-shadow:0 0 8px #00ff41;}
+.arc-item span{color:#0b8a30;font-size:10px;}
+.arc-detail{flex:1;padding:14px;overflow-y:auto;font-size:12px;line-height:1.85;letter-spacing:0.5px;}
+.arc-detail h3{font-size:16px;letter-spacing:3px;margin-bottom:10px;color:#00ff41;text-shadow:0 0 10px #00ff41;}
+.arc-detail .k{color:#0b8a30;}
+.arc-detail .v{color:#00ff41;}
+.arc-detail .block{margin-bottom:12px;border-left:2px solid rgba(0,255,65,0.35);padding-left:10px;}
+.arc-formula{margin:0 12px 12px;padding:10px;border:1px dashed rgba(0,255,65,0.5);
+  font-size:12px;letter-spacing:1px;text-align:center;color:#00ff41;line-height:1.8;}
+#btn-archive-back{margin:0 12px 12px;}
+
+/* ---------- fire overlay ---------- */
+#fire-overlay{position:absolute;inset:0;display:none;z-index:500;background:rgba(0,0,0,0.9);}
+#fire-overlay.active{display:block;}
+#fire-canvas{position:absolute;inset:0;width:100%;height:100%;}
+#fire-text{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);
+  text-align:center;font-size:clamp(16px,5.5vw,32px);letter-spacing:6px;
+  text-shadow:0 0 20px currentColor;padding:0 16px;line-height:1.6;}
+#fire-text.good{color:#7dffa8;}
+#fire-text.bad{color:#ff3b2f;}
+
+@media (max-height:560px){
+  .joy{width:92px;height:92px;}
+  .joy-knob{width:28px;height:28px;}
+  .btn.fire{padding:10px;font-size:15px;letter-spacing:6px;}
+  .tips{display:none;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="screen-start" class="screen active">
+    <div class="start-inner">
+      <svg class="empire-logo" viewBox="-100 -100 200 200">
+        <g fill="none" stroke="currentColor" stroke-linecap="butt">
+          <circle r="92" stroke-width="4"/>
+          <circle r="26" stroke-width="4"/>
+          <g stroke-width="10">
+            <line x1="0" y1="-30" x2="0" y2="-88"/>
+            <line x1="0" y1="-30" x2="0" y2="-88" transform="rotate(60)"/>
+            <line x1="0" y1="-30" x2="0" y2="-88" transform="rotate(120)"/>
+            <line x1="0" y1="-30" x2="0" y2="-88" transform="rotate(180)"/>
+            <line x1="0" y1="-30" x2="0" y2="-88" transform="rotate(240)"/>
+            <line x1="0" y1="-30" x2="0" y2="-88" transform="rotate(300)"/>
+          </g>
+        </g>
+      </svg>
+      <h1>死星操作员</h1>
+      <div class="sub">IMPERIAL DEATH STAR · FIRE CONTROL</div>
+      <button class="btn big" id="btn-start">开始游戏</button>
+      <div class="hiscore">最高积分 <b id="hiscore-val">0</b></div>
+      <div class="tips">
+        使用【全景探测】锁定行星，记录方位 / 仰角 / 距离，<br>
+        用测量仪读取视径 θ，查阅【行星档案】获取标准密度 ρ，<br>
+        计算功率 P = ρ × d × θ ÷ 20，调好方向与功率后发射。<br>
+        打偏或功率不足 → 处决；功率过载 → 死星自毁。
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-game" class="screen">
+    <div class="g-top">
+      <span>◈ 死星火控系统</span>
+      <span>积分 <b id="score-val">0</b></span>
+    </div>
+    <div class="g-view">
+      <canvas id="ds-canvas"></canvas>
+      <div class="g-readout">
+        <div><span class="lbl">方位角 AZ</span><span class="val" id="rd-az">0.0°</span></div>
+        <div><span class="lbl">仰角 EL</span><span class="val" id="rd-el">0.0°</span></div>
+        <div><span class="lbl">发射功率</span><span class="val" id="rd-pwr">0</span></div>
+      </div>
+    </div>
+    <div class="g-ctrl">
+      <div class="joy-wrap">
+        <div class="joy" id="joystick"><div class="joy-knob" id="joy-knob"></div></div>
+        <div class="joy-cap">方向控制</div>
+      </div>
+      <div class="pwr-wrap">
+        <div class="pwr-head"><span>功率调节</span><b id="power-val">0</b></div>
+        <input type="range" id="power-slider" min="0" max="1000" step="1" value="0">
+        <div class="pwr-btns">
+          <button class="btn tiny" id="btn-pano">全景探测</button>
+          <button class="btn tiny" id="btn-archive">行星档案</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn fire" id="btn-fire">发 射</button>
+  </div>
+
+  <div id="screen-pano" class="screen">
+    <canvas id="pano-canvas"></canvas>
+    <div class="pano-hud">
+      <div class="pano-title">全景探测 · PANORAMIC SCAN</div>
+      <div class="pano-readout" id="pano-readout"></div>
+    </div>
+    <div class="pano-bottom">
+      <div class="ring-info">视径 θ <b id="ring-val">--</b></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn tiny" id="btn-ring-minus">−</button>
+        <button class="btn tiny" id="btn-ring-plus">＋</button>
+        <button class="btn tiny" id="btn-pano-back">返回</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-archive" class="screen">
+    <div class="arc-head">行星类型档案 · PLANETARY ARCHIVE</div>
+    <div class="arc-body">
+      <div class="arc-list" id="arc-list"></div>
+      <div class="arc-detail" id="arc-detail"></div>
+    </div>
+    <div class="arc-formula">所需功率 P = ρ × d × θ ÷ 20</div>
+    <button class="btn" id="btn-archive-back">返回火控台</button>
+  </div>
+
+  <div id="fire-overlay">
+    <canvas id="fire-canvas"></canvas>
+    <div id="fire-text"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const $ = id => document.getElementById(id);
+const TAU = Math.PI*2;
+const DEG = Math.PI/180;
+const clamp = (v,a,b)=> v<a?a:(v>b?b:v);
+const rand = (a,b)=> a + Math.random()*(b-a);
+const randi = (a,b)=> Math.floor(a + Math.random()*(b-a+1));
+
+function fitCanvas(canvas){
+  const rect = canvas.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.max(1, Math.round(rect.width));
+  const h = Math.max(1, Math.round(rect.height));
+  if(canvas._w !== w || canvas._h !== h || canvas._dpr !== dpr){
+    canvas.width  = Math.round(w*dpr);
+    canvas.height = Math.round(h*dpr);
+    canvas._w = w; canvas._h = h; canvas._dpr = dpr;
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {w,h,ctx};
+}
+
+/* ================= PLANET TYPES ================= */
+const TYPES = [
+{
+  id:'rock', name:'岩石行星', density:5.5, base:'#6e675c',
+  look:'灰褐色地表，密布深色圆形陨石坑与放射状裂谷，几乎没有大气层。',
+  desc:'最典型的固态行星。地壳厚实，表面遍布撞击坑。',
+  draw(g,R){
+    for(let i=0;i<110;i++){
+      const a=Math.random()*TAU, d=Math.sqrt(Math.random())*R*0.97;
+      const x=R+Math.cos(a)*d, y=R+Math.sin(a)*d;
+      const r=2+Math.random()*9;
+      const dark=Math.random()<0.62;
+      g.beginPath(); g.arc(x,y,r,0,TAU);
+      g.fillStyle = dark?'rgba(48,44,38,0.75)':'rgba(155,146,132,0.45)';
+      g.fill();
+      if(dark){
+        g.beginPath(); g.arc(x-r*0.22,y-r*0.22,r*0.62,0,TAU);
+        g.fillStyle='rgba(28,26,22,0.55)'; g.fill();
+      }
+    }
+  }
+},
+{
+  id:'ocean', name:'海洋行星', density:6.0, base:'#0e4c96',
+  look:'深蓝色海洋覆盖全球，白色云带横贯赤道，散布着绿色岛屿。',
+  desc:'富含液态水，核心由铁镍构成，整体密度偏高。',
+  draw(g,R){
+    for(let i=0;i<14;i++){
+      g.beginPath();
+      g.ellipse(rand(R*0.15,R*1.85),rand(R*0.15,R*1.85),rand(10,28),rand(7,18),rand(0,TAU),0,TAU);
+      g.fillStyle='rgba(44,118,64,0.85)'; g.fill();
+    }
+    for(let i=0;i<46;i++){
+      g.beginPath();
+      g.ellipse(rand(-R*0.3,R*2.3),rand(0,R*2),rand(24,R*1.1),rand(3,9),rand(-0.25,0.25),0,TAU);
+      g.fillStyle='rgba(255,255,255,0.26)'; g.fill();
+    }
+  }
+},
+{
+  id:'desert', name:'沙漠行星', density:5.0, base:'#c9a24b',
+  look:'土黄色地表，横向分布着褐金色沙尘暴纹带，点缀深色陨石坑。',
+  desc:'干燥缺水的沙质行星，岩层松散，密度略低于类地行星。',
+  draw(g,R){
+    for(let i=0;i<56;i++){
+      g.beginPath();
+      g.ellipse(rand(-R*0.3,R*2.3),rand(0,R*2),rand(24,72),rand(3,10),rand(-0.22,0.22),0,TAU);
+      g.fillStyle = Math.random()<0.5?'rgba(148,104,40,0.5)':'rgba(232,203,142,0.5)';
+      g.fill();
+    }
+    for(let i=0;i<30;i++){
+      g.beginPath(); g.arc(rand(0,R*2),rand(0,R*2),rand(3,10),0,TAU);
+      g.fillStyle='rgba(108,74,30,0.55)'; g.fill();
+    }
+  }
+},
+{
+  id:'gas', name:'气态巨行星', density:1.3, base:'#c99a4a',
+  look:'巨大的橙黄色球体，清晰的水平云带，右下方有一个暗红色风暴眼。',
+  desc:'由氢氦组成，没有固体表面，密度极低。',
+  draw(g,R){
+    for(let i=0;i<26;i++){
+      g.beginPath();
+      g.ellipse(R, rand(-10,R*2+10), R*1.4, rand(7,28), 0, 0, TAU);
+      g.fillStyle = Math.random()<0.5?'rgba(176,124,54,0.55)':'rgba(242,216,160,0.5)';
+      g.fill();
+    }
+    g.beginPath();
+    g.ellipse(R*1.28, R*1.32, R*0.28, R*0.16, 0, 0, TAU);
+    g.fillStyle='rgba(172,58,38,0.85)'; g.fill();
+    g.beginPath();
+    g.ellipse(R*1.28, R*1.32, R*0.17, R*0.09, 0, 0, TAU);
+    g.fillStyle='rgba(120,30,20,0.6)'; g.fill();
+  }
+},
+{
+  id:'ice', name:'冰封行星', density:3.9, base:'#c8e3f0',
+  look:'亮白偏青的冰壳，表面布满纵横交错的深蓝色裂纹。',
+  desc:'表面被厚厚的水冰覆盖，内部为岩石核心，密度偏低。',
+  draw(g,R){
+    for(let i=0;i<70;i++){
+      g.beginPath();
+      let x=rand(0,R*2), y=rand(0,R*2);
+      g.moveTo(x,y);
+      for(let k=0;k<4;k++){ x+=rand(-34,34); y+=rand(-34,34); g.lineTo(x,y); }
+      g.strokeStyle = Math.random()<0.5?'rgba(102,158,200,0.6)':'rgba(255,255,255,0.8)';
+      g.lineWidth = rand(1,3.2); g.stroke();
+    }
+  }
+},
+{
+  id:'lava', name:'熔岩行星', density:4.8, base:'#2b0a05',
+  look:'暗红近黑的地表，遍布明橙与亮黄色的熔岩裂缝和炽热熔斑。',
+  desc:'年轻而炽热的行星，地壳尚未冷却，密度中等。',
+  draw(g,R){
+    for(let i=0;i<26;i++){
+      g.beginPath(); g.arc(rand(0,R*2),rand(0,R*2),rand(14,42),0,TAU);
+      g.fillStyle='rgba(120,24,8,0.55)'; g.fill();
+    }
+    for(let i=0;i<50;i++){
+      g.beginPath();
+      let x=rand(0,R*2), y=rand(0,R*2);
+      g.moveTo(x,y);
+      for(let k=0;k<6;k++){ x+=rand(-28,28); y+=rand(-28,28); g.lineTo(x,y); }
+      g.strokeStyle = Math.random()<0.5?'rgba(255,92,16,0.9)':'rgba(255,196,46,0.85)';
+      g.lineWidth = rand(2,5); g.stroke();
+    }
+    for(let i=0;i<22;i++){
+      g.beginPath(); g.arc(rand(0,R*2),rand(0,R*2),rand(4,13),0,TAU);
+      g.fillStyle='rgba(255,130,26,0.5)'; g.fill();
+    }
+  }
+},
+{
+  id:'jungle', name:'丛林行星', density:5.2, base:'#1d6b2c',
+  look:'深浅不一的绿色植被斑块覆盖全球，其间散布着蓝色湖泊与河流。',
+  desc:'生态繁茂的宜居行星，生物量巨大，密度接近类地行星。',
+  draw(g,R){
+    for(let i=0;i<70;i++){
+      g.beginPath();
+      g.ellipse(rand(0,R*2),rand(0,R*2),rand(9,32),rand(9,26),rand(0,TAU),0,TAU);
+      g.fillStyle = Math.random()<0.5?'rgba(10,56,20,0.7)':'rgba(64,146,62,0.6)';
+      g.fill();
+    }
+    for(let i=0;i<10;i++){
+      g.beginPath();
+      g.ellipse(rand(0,R*2),rand(0,R*2),rand(7,19),rand(4,12),rand(0,TAU),0,TAU);
+      g.fillStyle='rgba(38,108,178,0.65)'; g.fill();
+    }
+  }
+},
+{
+  id:'toxic', name:'毒气行星', density:2.5, base:'#4a1f6b',
+  look:'深紫色雾霭，缠绕着荧光绿色的酸性气体漩涡。',
+  desc:'大气充满腐蚀性气体，外层蓬松，密度较低。',
+  draw(g,R){
+    for(let i=0;i<80;i++){
+      g.beginPath();
+      g.ellipse(rand(-R*0.3,R*2.3),rand(-R*0.3,R*2.3),rand(12,46),rand(6,22),rand(-0.4,0.4),0,TAU);
+      g.fillStyle = Math.random()<0.5?'rgba(122,222,72,0.42)':'rgba(78,28,108,0.6)';
+      g.fill();
+    }
+    for(let i=0;i<14;i++){
+      g.beginPath();
+      g.arc(rand(0,R*2),rand(0,R*2),rand(6,18),0,TAU);
+      g.fillStyle='rgba(160,255,96,0.35)'; g.fill();
+    }
+  }
+}
+];
+
+/* ================= SPRITE CACHE ================= */
+const spriteCache = {};
+function getSprite(type){
+  if(spriteCache[type.id]) return spriteCache[type.id];
+  const S = 256, R = S/2;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  g.save();
+  g.beginPath(); g.arc(R,R,R-1,0,TAU); g.clip();
+  g.fillStyle = type.base; g.fillRect(0,0,S,S);
+  type.draw(g,R);
+  const grad = g.createRadialGradient(R*0.62,R*0.58,R*0.05, R*0.98,R*1.0,R*1.3);
+  grad.addColorStop(0,'rgba(255,255,255,0.20)');
+  grad.addColorStop(0.32,'rgba(255,255,255,0.02)');
+  grad.addColorStop(0.72,'rgba(0,0,0,0.34)');
+  grad.addColorStop(1,'rgba(0,0,0,0.92)');
+  g.fillStyle = grad; g.fillRect(0,0,S,S);
+  g.restore();
+  g.beginPath(); g.arc(R,R,R-1,0,TAU);
+  g.strokeStyle='rgba(0,0,0,0.6)'; g.lineWidth=2; g.stroke();
+  spriteCache[type.id] = c;
+  return c;
+}
+
+/* ================= STATE ================= */
+const state = {
+  screen:'start',
+  score:0,
+  high: +(localStorage.getItem('ds_high')||0),
+  azimuth:180, elevation:0, power:0,
+  target:null,
+  firing:false
+};
+
+const pano = {
+  camYaw:0, camPitch:0,
+  ringR:90,
+  focal:400,
+  W:400, H:400,
+  stars:[]
+};
+
+(function initStars(){
+  const arr = [];
+  for(let i=0;i<430;i++){
+    const u = Math.random()*2-1;
+    const th = Math.random()*TAU;
+    const s = Math.sqrt(1-u*u);
+    const bright = Math.random();
+    arr.push({
+      x:s*Math.cos(th), y:u, z:s*Math.sin(th),
+      b: bright*0.75+0.25,
+      s: bright>0.9?2:(bright>0.55?1.4:1),
+      c: Math.random()<0.85 ? [150,255,190] : (Math.random()<0.5?[190,190,255]:[255,235,190])
+    });
+  }
+  pano.stars = arr;
+})();
+
+/* ================= SCREENS ================= */
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));
+  const el = $('screen-'+name);
+  if(el) el.classList.add('active');
+  state.screen = name;
+  if(name !== 'game'){ joyActive = false; joyX = 0; joyY = 0; joyKnob.style.transform='translate(-50%,-50%)'; }
+}
+
+/* ================= TARGET ================= */
+function newTarget(){
+  let az=0, el=0, dist=0, theta=0, type=TYPES[0], P=0;
+  for(let i=0;i<4000;i++){
+    type = TYPES[randi(0,TYPES.length-1)];
+    az = rand(0,360);
+    el = rand(-72,72);
+    dist = Math.round(rand(300,900)/10)*10;
+    theta = Math.round(rand(2.0,5.0)*10)/10;
+    P = type.density * dist * theta / 20;
+    if(P>=110 && P<=900) break;
+  }
+  return { az, el, dist, theta, type, P: Math.round(P) };
+}
+
+function startMission(){
+  state.target = newTarget();
+  state.azimuth = Math.round(rand(0,360)*10)/10;
+  state.elevation = Math.round(rand(-60,60)*10)/10;
+  state.power = 0;
+  $('power-slider').value = 0;
+  pano.camYaw = rand(0,360);
+  pano.camPitch = rand(-50,50);
+  pano.ringR = 90;
+  state.firing = false;
+  updateReadouts();
+}
+
+function updateReadouts(){
+  $('rd-az').textContent = state.azimuth.toFixed(1)+'°';
+  $('rd-el').textContent = state.elevation.toFixed(1)+'°';
+  $('rd-pwr').textContent = state.power;
+  $('power-val').textContent = state.power;
+}
+
+/* ================= DEATH STAR RENDER ================= */
+const SPHERE_CURVES = (function(){
+  const curves = [];
+  for(let i=1;i<8;i++){
+    const phi = Math.PI*i/8;
+    const y = Math.cos(phi), r = Math.sin(phi);
+    const pts = [];
+    for(let j=0;j<=48;j++){
+      const th = TAU*j/48;
+      pts.push([r*Math.cos(th), y, r*Math.sin(th)]);
+    }
+    curves.push(pts);
+  }
+  for(let i=0;i<12;i++){
+    const th0 = Math.PI*i/12;
+    const pts = [];
+    for(let j=0;j<=32;j++){
+      const phi = Math.PI*j/32;
+      pts.push([Math.sin(phi)*Math.cos(th0), Math.cos(phi), Math.sin(phi)*Math.sin(th0)]);
+    }
+    curves.push(pts);
+  }
+  return curves;
+})();
+
+let dsRot = 0;
+
+function drawSphere(ctx, cx, cy, R, rotY, tiltX){
+  const cr=Math.cos(rotY), sr=Math.sin(rotY);
+  const ct=Math.cos(tiltX), st=Math.sin(tiltX);
+  for(let ci=0;ci<SPHERE_CURVES.length;ci++){
+    const curve = SPHERE_CURVES[ci];
+    const tp = [];
+    for(let i=0;i<curve.length;i++){
+      const p = curve[i];
+      const X = p[0]*cr + p[2]*sr;
+      const Z = -p[0]*sr + p[2]*cr;
+      const Y = p[1];
+      const Y2 = Y*ct - Z*st;
+      const Z2 = Y*st + Z*ct;
+      tp.push([cx + X*R, cy - Y2*R, Z2]);
+    }
+    ctx.beginPath();
+    for(let i=0;i<tp.length-1;i++){
+      const a=tp[i], b=tp[i+1];
+      if((a[2]+b[2])*0.5 <= 0){ ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); }
+    }
+    ctx.strokeStyle='rgba(0,180,55,0.14)';
+    ctx.lineWidth=1;
+    ctx.stroke();
+
+    ctx.beginPath();
+    for(let i=0;i<tp.length-1;i++){
+      const a=tp[i], b=tp[i+1];
+      if((a[2]+b[2])*0.5 > 0){ ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); }
+    }
+    ctx.strokeStyle='rgba(0,255,65,0.5)';
+    ctx.lineWidth=1;
+    ctx.stroke();
+  }
+}
+
+function drawGame(dt){
+  const {w,h,ctx} = fitCanvas($('ds-canvas'));
+  const W=w, H=h;
+  ctx.clearRect(0,0,W,H);
+
+  ctx.strokeStyle='rgba(0,255,65,0.06)';
+  ctx.lineWidth=1;
+  const gs=40;
+  ctx.beginPath();
+  for(let x=0;x<W;x+=gs){ ctx.moveTo(x,0); ctx.lineTo(x,H); }
+  for(let y=0;y<H;y+=gs){ ctx.moveTo(0,y); ctx.lineTo(W,y); }
+  ctx.stroke();
+
+  const cx=W/2, cy=H/2;
+  const R = Math.min(W,H)*0.30;
+  dsRot += dt*0.22;
+
+  const gl = ctx.createRadialGradient(cx,cy,R*0.6,cx,cy,R*2.1);
+  gl.addColorStop(0,'rgba(0,120,40,0.20)');
+  gl.addColorStop(1,'rgba(0,120,40,0)');
+  ctx.fillStyle=gl;
+  ctx.beginPath(); ctx.arc(cx,cy,R*2.1,0,TAU); ctx.fill();
+
+  drawSphere(ctx, cx, cy, R, dsRot, 0.35);
+
+  const az = state.azimuth*DEG, el = state.elevation*DEG;
+  const dx = Math.cos(el)*Math.sin(az);
+  const dy = Math.sin(el);
+  const dz = Math.cos(el)*Math.cos(az);
+
+  const len = R*1.6;
+  const ex = cx + dx*len;
+  const ey = cy - dy*len;
+
+  ctx.save();
+  ctx.strokeStyle = dz>=0 ? 'rgba(150,255,180,0.95)' : 'rgba(0,200,70,0.7)';
+  ctx.lineWidth = 3;
+  ctx.shadowColor='#00ff41';
+  ctx.shadowBlur=14;
+  ctx.beginPath();
+  ctx.moveTo(cx,cy);
+  ctx.lineTo(ex,ey);
+  ctx.stroke();
+
+  const ang = Math.atan2(ey-cy, ex-cx);
+  ctx.beginPath();
+  ctx.moveTo(ex,ey);
+  ctx.lineTo(ex-Math.cos(ang-0.42)*15, ey-Math.sin(ang-0.42)*15);
+  ctx.lineTo(ex-Math.cos(ang+0.42)*15, ey-Math.sin(ang+0.42)*15);
+  ctx.closePath();
+  ctx.fillStyle = dz>=0?'#9dffbc':'rgba(0,200,70,0.7)';
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle='rgba(180,255,200,0.95)';
+  ctx.shadowColor='#00ff41'; ctx.shadowBlur=18;
+  ctx.beginPath(); ctx.arc(cx + dx*R*0.97, cy - dy*R*0.97, 4.5, 0, TAU); ctx.fill();
+  ctx.restore();
+}
+
+/* ================= PANO RENDER ================= */
+function drawPano(){
+  const {w,h,ctx} = fitCanvas($('pano-canvas'));
+  const W=w, H=h;
+  pano.W=W; pano.H=H;
+  const focal = Math.min(W,H)*0.70;
+  pano.focal = focal;
+
+  ctx.fillStyle='#000308';
+  ctx.fillRect(0,0,W,H);
+
+  const cyaw=pano.camYaw*DEG, cpitch=pano.camPitch*DEG;
+  const cy=Math.cos(cyaw), sy=Math.sin(cyaw);
+  const cp=Math.cos(cpitch), sp=Math.sin(cpitch);
+
+  const fx=sy*cp, fy=sp, fz=cy*cp;
+  const rx=cy,  ry=0,  rz=-sy;
+  const ux=fy*rz-fz*ry, uy=fz*rx-fx*rz, uz=fx*ry-fy*rx;
+
+  function proj(vx,vy,vz){
+    const z = vx*fx+vy*fy+vz*fz;
+    if(z<=0.08) return null;
+    const x = vx*rx+vy*ry+vz*rz;
+    const y = vx*ux+vy*uy+vz*uz;
+    return [W*0.5 + (x/z)*focal, H*0.5 - (y/z)*focal, z];
+  }
+
+  for(let i=0;i<pano.stars.length;i++){
+    const s = pano.stars[i];
+    const p = proj(s.x,s.y,s.z);
+    if(!p) continue;
+    if(p[0]<-8||p[0]>W+8||p[1]<-8||p[1]>H+8) continue;
+    const a = s.b * clamp((p[2]-0.05)*1.6, 0, 1);
+    ctx.fillStyle = 'rgba('+s.c[0]+','+s.c[1]+','+s.c[2]+','+a.toFixed(3)+')';
+    ctx.fillRect(p[0], p[1], s.s, s.s);
+  }
+
+  const t = state.target;
+  let aimed = false;
+  if(t){
+    const tdx = Math.cos(t.el*DEG)*Math.sin(t.az*DEG);
+    const tdy = Math.sin(t.el*DEG);
+    const tdz = Math.cos(t.el*DEG)*Math.cos(t.az*DEG);
+    const p = proj(tdx,tdy,tdz);
+    if(p){
+      const rpx = focal*Math.tan(t.theta*0.075);
+      const grd = ctx.createRadialGradient(p[0],p[1],rpx*0.7,p[0],p[1],rpx*2.6);
+      grd.addColorStop(0,'rgba(90,255,150,0.16)');
+      grd.addColorStop(1,'rgba(90,255,150,0)');
+      ctx.fillStyle=grd;
+      ctx.beginPath(); ctx.arc(p[0],p[1],rpx*2.6,0,TAU); ctx.fill();
+
+      const spr = getSprite(t.type);
+      ctx.drawImage(spr, p[0]-rpx, p[1]-rpx, rpx*2, rpx*2);
+
+      const dot = tdx*fx + tdy*fy + tdz*fz;
+      const ang = Math.acos(clamp(dot,-1,1));
+      const angRad = t.theta*0.075;
+      if(ang < angRad + 2.5*DEG) aimed = true;
+    }
+  }
+
+  const R = pano.ringR;
+  const cxp = W/2, cyp = H/2;
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,255,65,0.5)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cxp,cyp,R,0,TAU); ctx.stroke();
+
+  ctx.strokeStyle='rgba(0,255,65,0.85)';
+  ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(cxp,cyp,R,0,TAU); ctx.stroke();
+
+  ctx.strokeStyle='rgba(0,255,65,0.75)';
+  ctx.lineWidth=1;
+  for(let i=0;i<72;i++){
+    const a = i*TAU/72 - Math.PI/2;
+    const inner = (i%6===0)? R-14 : R-7;
+    ctx.beginPath();
+    ctx.moveTo(cxp+Math.cos(a)*inner, cyp+Math.sin(a)*inner);
+    ctx.lineTo(cxp+Math.cos(a)*(R-1), cyp+Math.sin(a)*(R-1));
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle='rgba(0,255,65,0.5)';
+  ctx.beginPath();
+  ctx.moveTo(cxp-R,cyp); ctx.lineTo(cxp-16,cyp);
+  ctx.moveTo(cxp+16,cyp); ctx.lineTo(cxp+R,cyp);
+  ctx.moveTo(cxp,cyp-R); ctx.lineTo(cxp,cyp-16);
+  ctx.moveTo(cxp,cyp+16); ctx.lineTo(cxp,cyp+R);
+  ctx.stroke();
+
+  ctx.fillStyle='rgba(0,255,65,0.95)';
+  ctx.beginPath(); ctx.arc(cxp,cyp,3,0,TAU); ctx.fill();
+  ctx.restore();
+
+  const theta = Math.atan(R/focal)/0.075;
+  $('ring-val').textContent = theta.toFixed(1);
+
+  const ro = $('pano-readout');
+  if(aimed && t){
+    ro.classList.add('locked');
+    ro.innerHTML =
+      '<div>◆ 目标锁定</div>'+
+      '<div>方位角 <b>'+t.az.toFixed(1)+'°</b></div>'+
+      '<div>仰角 <b>'+t.el.toFixed(1)+'°</b></div>'+
+      '<div>距离 <b>'+t.dist+'</b> MK</div>';
+  }else{
+    ro.classList.remove('locked');
+    ro.innerHTML = '<div>未锁定目标</div><div class="dim">将目标移至十字中心</div>';
+  }
+}
+
+/* ================= ARCHIVE ================= */
+let archiveSel = 0;
+function buildArchive(){
+  const list = $('arc-list');
+  list.innerHTML='';
+  TYPES.forEach((tp,i)=>{
+    const d = document.createElement('div');
+    d.className = 'arc-item'+(i===archiveSel?' sel':'');
+    const cv = document.createElement('canvas');
+    cv.width = 52; cv.height = 52;
+    const g = cv.getContext('2d');
+    g.drawImage(getSprite(tp), 0, 0, 52, 52);
+    d.appendChild(cv);
+    const txt = document.createElement('div');
+    txt.innerHTML = tp.name+'<br><span>ρ = '+tp.density.toFixed(1)+'</span>';
+    d.appendChild(txt);
+    d.addEventListener('click', ()=>{
+      archiveSel = i;
+      buildArchive();
+    });
+    list.appendChild(d);
+  });
+  renderArchiveDetail();
+}
+function renderArchiveDetail(){
+  const tp = TYPES[archiveSel];
+  const det = $('arc-detail');
+  det.innerHTML =
+    '<h3>'+tp.name+'</h3>'+
+    '<div class="block"><span class="k">外观特征</span><br><span class="v">'+tp.look+'</span></div>'+
+    '<div class="block"><span class="k">标准密度 ρ</span><br><span class="v" style="font-size:22px">'+tp.density.toFixed(1)+'</span> <span class="k">g/cm³</span></div>'+
+    '<div class="block"><span class="k">说明</span><br>'+tp.desc+'</div>'+
+    '<div class="block"><span class="k">功率公式</span><br>'+
+      'P = ρ × d × θ ÷ 20<br>'+
+      '<span class="k" style="font-size:11px">ρ 密度 · d 距离(MK) · θ 视径(刻度)</span>'+
+    '</div>';
+}
+
+/* ================= JOYSTICK ================= */
+let joyActive = false, joyX = 0, joyY = 0;
+const joyEl = $('joystick');
+const joyKnob = $('joy-knob');
+
+function joyUpdate(e){
+  const rect = joyEl.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top + rect.height/2;
+  let dx = (e.clientX - cx) / (rect.width/2);
+  let dy = (e.clientY - cy) / (rect.height/2);
+  const len = Math.hypot(dx,dy);
+  if(len > 1){ dx/=len; dy/=len; }
+  joyX = dx; joyY = dy;
+  const rad = rect.width/2 - 20;
+  joyKnob.style.transform = 'translate(calc(-50% + '+(dx*rad)+'px), calc(-50% + '+(dy*rad)+'px))';
+}
+
+joyEl.addEventListener('pointerdown', e=>{
+  e.preventDefault();
+  joyActive = true;
+  try{ joyEl.setPointerCapture(e.pointerId); }catch(err){}
+  joyUpdate(e);
+});
+joyEl.addEventListener('pointermove', e=>{
+  if(joyActive) joyUpdate(e);
+});
+function joyEnd(){
+  joyActive = false; joyX = 0; joyY = 0;
+  joyKnob.style.transform = 'translate(-50%,-50%)';
+}
+joyEl.addEventListener('pointerup', joyEnd);
+joyEl.addEventListener('pointercancel', joyEnd);
+
+/* ================= PANO INPUT ================= */
+(function(){
+  const cv = $('pano-canvas');
+  let drag = null;
+  const pointers = new Map();
+  let pinchStart = 0, pinchRing = 0;
+
+  cv.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    if(pointers.size === 2){
+      drag = null;
+      const p = [...pointers.values()];
+      pinchStart = Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y);
+      pinchRing = pano.ringR;
+    }else if(pointers.size === 1){
+      drag = { id:e.pointerId, x:e.clientX, y:e.clientY, yaw:pano.camYaw, pitch:pano.camPitch };
+      try{ cv.setPointerCapture(e.pointerId); }catch(err){}
+    }
+  });
+
+  cv.addEventListener('pointermove', e=>{
+    if(!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+
+    if(pointers.size === 2 && pinchStart > 0){
+      const p = [...pointers.values()];
+      const d = Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y);
+      const maxR = Math.min(pano.W, pano.H)*0.48;
+      pano.ringR = clamp(pinchRing * d/pinchStart, 20, maxR);
+      return;
+    }
+
+    if(drag && drag.id === e.pointerId){
+      const dx = e.clientX - drag.x;
+      const dy = e.clientY - drag.y;
+      pano.camYaw = drag.yaw - dx*0.20;
+      pano.camPitch = clamp(drag.pitch + dy*0.20, -89, 89);
+    }
+  });
+
+  function release(e){
+    pointers.delete(e.pointerId);
+    if(pointers.size < 2) pinchStart = 0;
+    if(drag && drag.id === e.pointerId) drag = null;
+  }
+  cv.addEventListener('pointerup', release);
+  cv.addEventListener('pointercancel', release);
+
+  cv.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const maxR = Math.min(pano.W, pano.H)*0.48;
+    pano.ringR = clamp(pano.ringR * (1 - Math.sign(e.deltaY)*0.10), 20, maxR);
+  }, {passive:false});
+})();
+
+/* ================= FIRE ================= */
+let fireState = null;
+
+function fireLaser(){
+  if(state.firing || !state.target) return;
+  state.firing = true;
+
+  const t = state.target;
+  const azT=t.az*DEG, elT=t.el*DEG;
+  const azP=state.azimuth*DEG, elP=state.elevation*DEG;
+
+  const d1=[Math.cos(elT)*Math.sin(azT), Math.sin(elT), Math.cos(elT)*Math.cos(azT)];
+  const d2=[Math.cos(elP)*Math.sin(azP), Math.sin(elP), Math.cos(elP)*Math.cos(azP)];
+  const dot = clamp(d1[0]*d2[0]+d1[1]*d2[1]+d1[2]*d2[2], -1, 1);
+  const aimErr = Math.acos(dot)/DEG;
+
+  const P = state.power;
+  const req = t.P;
+  const tol = Math.max(10, req*0.06);
+
+  let result;
+  if(aimErr > 8) result = 'miss';
+  else if(P < req - tol) result = 'weak';
+  else if(P > req + tol) result = 'strong';
+  else result = 'hit';
+
+  let pts = 0;
+  if(result === 'hit'){
+    pts = Math.round(120 + t.dist/5 + t.theta*20);
+    state.score += pts;
+    $('score-val').textContent = state.score;
+    if(state.score > state.high){
+      state.high = state.score;
+      try{ localStorage.setItem('ds_high', String(state.high)); }catch(e){}
+    }
+  }
+
+  startFireAnim(result, pts);
+}
+
+function startFireAnim(result, pts){
+  const ov = $('fire-overlay');
+  ov.classList.add('active');
+  const txt = $('fire-text');
+  txt.textContent = '';
+  txt.className = '';
+  fireState = {
+    result, pts,
+    t0: performance.now(),
+    particles: [],
+    textShown: false
+  };
+  setTimeout(endFireAnim, 4600);
+}
+
+function updateFireAnim(now){
+  if(!fireState) return;
+  const canvas = $('fire-canvas');
+  const {w,h,ctx} = fitCanvas(canvas);
+  const W=w,H=h;
+
+  const T = (now - fireState.t0)/1000;
+  const cx = W/2, cy = H/2;
+  const result = fireState.result;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.95)';
+  ctx.fillRect(0,0,W,H);
+
+  if(T < 0.7){
+    const p = clamp(T/0.7,0,1);
+    const r = 30 + p*90;
+    const g = ctx.createRadialGradient(cx,H-30,0,cx,H-30,r*2.2);
+    g.addColorStop(0,'rgba(150,255,180,'+(0.85*p)+')');
+    g.addColorStop(0.4,'rgba(0,255,65,'+(0.4*p)+')');
+    g.addColorStop(1,'rgba(0,255,65,0)');
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.arc(cx,H-30,r*2.2,0,TAU); ctx.fill();
+  }
+
+  if(T >= 0.7 && T < 1.35){
+    const p = clamp((T-0.7)/0.65,0,1);
+    const endY = H-30 + (cy - (H-30)) * p;
+    ctx.save();
+    ctx.strokeStyle='rgba(160,255,190,0.95)';
+    ctx.lineWidth = 8 + 16*p;
+    ctx.shadowColor='#8dffb0';
+    ctx.shadowBlur=40;
+    ctx.beginPath();
+    ctx.moveTo(cx,H-30);
+    ctx.lineTo(cx,endY);
+    ctx.stroke();
+
+    ctx.strokeStyle='rgba(255,255,255,0.9)';
+    ctx.lineWidth = 3 + 6*p;
+    ctx.beginPath();
+    ctx.moveTo(cx,H-30);
+    ctx.lineTo(cx,endY);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if(T >= 1.35){
+    const t = T - 1.35;
+
+    if(result === 'miss'){
+      if(t < 0.9){
+        ctx.save();
+        ctx.globalAlpha = 1 - t/0.9;
+        ctx.strokeStyle='rgba(140,255,170,0.9)';
+        ctx.lineWidth=10;
+        ctx.beginPath();
+        ctx.moveTo(cx,cy);
+        ctx.lineTo(cx, -100);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }else{
+      if(t < 0.35){
+        const a = 1 - t/0.35;
+        ctx.fillStyle = 'rgba(180,255,200,'+(a*0.9)+')';
+        ctx.fillRect(0,0,W,H);
+      }
+      const ringR = t*420;
+      ctx.save();
+      ctx.globalAlpha = clamp(1 - t/1.6, 0, 1);
+      ctx.strokeStyle='rgba(150,255,190,0.9)';
+      ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.arc(cx,cy,ringR,0,TAU); ctx.stroke();
+      ctx.restore();
+
+      if(fireState.particles.length === 0 && (result==='hit'||result==='strong')){
+        for(let i=0;i<90;i++){
+          const a = Math.random()*TAU;
+          const sp = rand(70, 520);
+          fireState.particles.push({
+            vx: Math.cos(a)*sp,
+            vy: Math.sin(a)*sp,
+            sz: rand(1.5,4.5),
+            c: Math.random()<0.6?'150,255,190':'255,220,120'
+          });
+        }
+      }
+      ctx.save();
+      for(let i=0;i<fireState.particles.length;i++){
+        const p = fireState.particles[i];
+        const px = cx + p.vx*t;
+        const py = cy + p.vy*t;
+        const a = clamp(1 - t/1.7, 0, 1);
+        if(a<=0) continue;
+        ctx.fillStyle = 'rgba('+p.c+','+a.toFixed(3)+')';
+        ctx.fillRect(px, py, p.sz, p.sz);
+      }
+      ctx.restore();
+    }
+
+    if(t > 0.6 && !fireState.textShown){
+      fireState.textShown = true;
+      const txt = $('fire-text');
+      if(result === 'hit'){
+        txt.className = 'good';
+        txt.textContent = '目标已摧毁 +'+fireState.pts;
+      }else if(result === 'miss'){
+        txt.className = 'bad';
+        txt.textContent = '脱靶 · 浪费帝国资源 · 处决';
+      }else if(result === 'weak'){
+        txt.className = 'bad';
+        txt.textContent = '能量不足 · 目标完好 · 处决';
+      }else{
+        txt.className = 'bad';
+        txt.textContent = '能量过载 · 死星解体';
+      }
+    }
+
+    if(result === 'strong' && t > 1.2){
+      const a = clamp((t-1.2)/1.0, 0, 1);
+      ctx.fillStyle = 'rgba(255,60,40,'+(a*0.55)+')';
+      ctx.fillRect(0,0,W,H);
+    }
+  }
+}
+
+function endFireAnim(){
+  if(!fireState) return;
+  const result = fireState.result;
+  fireState = null;
+  state.firing = false;
+  $('fire-overlay').classList.remove('active');
+
+  if(result === 'hit'){
+    startMission();
+    showScreen('game');
+  }else{
+    state.score = 0;
+    $('score-val').textContent = '0';
+    $('hiscore-val').textContent = state.high;
+    showScreen('start');
+  }
+}
+
+/* ================= LOOP ================= */
+let lastTs = 0;
+
+function loop(ts){
+  requestAnimationFrame(loop);
+  if(!lastTs) lastTs = ts;
+  const dt = Math.min(0.05, (ts - lastTs)/1000);
+  lastTs = ts;
+
+  if(state.screen === 'game' && !state.firing){
+    if(joyActive){
+      const dead = 0.10;
+      const jx = Math.abs(joyX) < dead ? 0 : joyX;
+      const jy = Math.abs(joyY) < dead ? 0 : joyY;
+      const speed = 50;
+      state.azimuth += Math.sign(jx)*jx*jx*speed*dt;
+      state.elevation -= Math.sign(jy)*jy*jy*speed*dt;
+      state.elevation = clamp(state.elevation, -90, 90);
+      state.azimuth = ((state.azimuth % 360) + 360) % 360;
+      updateReadouts();
+    }
+    drawGame(dt);
+  }
+
+  if(state.screen === 'pano'){
+    drawPano();
+  }
+
+  if(fireState){
+    updateFireAnim(ts);
+  }
+}
+requestAnimationFrame(loop);
+
+/* ================= EVENTS ================= */
+$('btn-start').addEventListener('click', ()=>{
+  state.score = 0;
+  $('score-val').textContent = '0';
+  startMission();
+  showScreen('game');
+});
+
+$('power-slider').addEventListener('input', e=>{
+  state.power = parseInt(e.target.value, 10) || 0;
+  updateReadouts();
+});
+
+$('btn-pano').addEventListener('click', ()=> showScreen('pano'));
+$('btn-archive').addEventListener('click', ()=>{ buildArchive(); showScreen('archive'); });
+$('btn-pano-back').addEventListener('click', ()=> showScreen('game'));
+$('btn-archive-back').addEventListener('click', ()=> showScreen('game'));
+
+$('btn-ring-plus').addEventListener('click', ()=>{
+  const maxR = Math.min(pano.W, pano.H)*0.48;
+  pano.ringR = clamp(pano.ringR*1.12, 20, maxR);
+});
+$('btn-ring-minus').addEventListener('click', ()=>{
+  pano.ringR = clamp(pano.ringR/1.12, 20, 400);
+});
+
+$('btn-fire').addEventListener('click', fireLaser);
+
+document.addEventListener('contextmenu', e=> e.preventDefault());
+
+$('hiscore-val').textContent = state.high;
+
+})();
+</script>
+</body>
+</html>
